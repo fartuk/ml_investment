@@ -5,13 +5,17 @@ config = load_json("config.json")
 
 
 def calc_series_stats(series, str_prefix=''):
+    series = np.array(series)
+    series = list(series[series != np.array(None)])
+    
     stats = {
             '{}_mean'.format(str_prefix):np.mean(series),
-            '{}_max'.format(str_prefix):np.max(series),
-            '{}_min'.format(str_prefix):np.min(series),
-            '{}_std'.format(str_prefix):np.std(series)
+            '{}_max'.format(str_prefix):np.max(series, initial=np.nan),
+            '{}_min'.format(str_prefix):np.min(series, initial=np.nan),
+            '{}_std'.format(str_prefix):np.std(series),
             }
-    
+
+        
     return stats
     
     
@@ -31,26 +35,24 @@ def calc_feats_single_ticker(ticker, max_back_quarter, columns):
     quarterly_data = load_quarterly_data_cf1(ticker, config)
     
     for back_quarter in range(max_back_quarter):
-        try:
-            curr_data = quarterly_data[back_quarter:]
-            if len(curr_data) == 0:
-                break
+        curr_data = quarterly_data[back_quarter:]
+        if len(curr_data) == 0:
+            break
 
-            feats = {
-                'ticker':ticker, 
-                'date':curr_data[0]['date'],
-                'marketcap':curr_data[0]['marketcap'],
+        feats = {
+            'ticker':ticker, 
+            'date':curr_data[0]['date'],
+            'marketcap':curr_data[0]['marketcap'],
 #                 'f1':curr_data[1]['marketcap'],
-            }
+        }
 
-            for quarter_cnt in [2, 4, 10]:
-                series_feats = calc_series_feats(curr_data[:quarter_cnt][::-1], columns, 'quarter{}'.format(quarter_cnt))
+        for quarter_cnt in [2, 4, 10]:
+            series_feats = calc_series_feats(curr_data[:quarter_cnt][::-1], columns, 'quarter{}'.format(quarter_cnt))
 
-                feats.update(series_feats)
+            feats.update(series_feats)
 
-            result.append(feats)
-        except:
-            None
+        result.append(feats)
+
             
     return result
 
