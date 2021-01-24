@@ -17,7 +17,7 @@ class QuarterlyOOFModel:
         df_arr = []
         kfold = GroupKFold(self.fold_cnt)
         for k, (itr, ite) in enumerate(kfold.split(X, y, groups)):
-            print(k)
+            #print(k)
             self.base_models[k].fit(X.loc[itr], y.loc[itr])
 
             curr_group_df = pd.DataFrame()
@@ -32,13 +32,14 @@ class QuarterlyOOFModel:
         predict_groups = pd.DataFrame(groups)
         predict_groups.columns = ['group']
         predict_groups = pd.merge(predict_groups, self.group_df, on='group', how='left')
+        # If was not in train -> put to 0th fold
         predict_groups.fillna(0)
         pred_df = []
         for fold_id in range(self.fold_cnt):
             curr = X[predict_groups['fold_id'] == fold_id]
             if len(curr) == 0:
                 continue
-            print(fold_id)
+            #print(fold_id)
             try:
                 pred = self.base_models[fold_id].predict_proba(curr)
             except:
