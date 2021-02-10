@@ -45,35 +45,7 @@ def translate_currency_cf1(data, columns):
     
     return data
     
-    
-def load_quarterly_data_fmpapi(ticker, config):
-    list_of_datas = []
-    for foldername in ['income_statement', 'cash_flow_statement', 'enterprise_values']:
-        data = load_json('{}/fmpapi/{}/{}.json'.format(config['data_path'], foldername, ticker))
-        list_of_datas.append(data)
-        
-    list_of_set_data = []
-    for data in list_of_datas:
-        list_of_set_data.append({x['date']:x for x in data})
-            
-    common_dates = set.intersection(*[set(x.keys()) for x in list_of_set_data]) 
-    try:
-        common_dates = sorted([np.datetime64(x) for x in common_dates])
-    except:
-        return []
-        
-    common_dates = [str(x) for x in common_dates][::-1]
-    
-    result = []
-    for date in common_dates:
-        quarter_set = {}
-        for set_data in list_of_set_data:
-            quarter_set.update(set_data[date])
-            
-        result.append(quarter_set)
-        
-    return result
-    
+
     
     
     

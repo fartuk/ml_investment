@@ -58,3 +58,29 @@ def form_last_quarter_df(pred_df):
     last_df.index = range(len(last_df))
     
     return last_df
+
+
+def form_portfolio_cumm_df(portfolio_df):
+    arr = []
+    for ticker in portfolio_df['ticker']:
+        daily_df = load_cf1_df('{}/cf1/daily/{}.json'.format(config['data_path'], ticker))
+        arr.append(daily_df)
+
+    index_df = pd.DataFrame()
+    index_df['date'] = list(set(np.concatenate([x['date'].values for x in arr], axis=0)))
+
+    for ticker, part in portfolio_df[['ticker', 'part']].values:
+        daily_df = load_cf1_df('{}/cf1/daily/{}.json'.format(config['data_path'], ticker))
+        daily_df[ticker] = daily_df['marketcap'].values / daily_df['marketcap'].values[-1] * part
+
+        index_df = pd.merge(index_df, daily_df[['date', ticker]], how='left')
+
+    index_df['date'] = index_df['date'].apply(lambda x: np.datetime64(x))
+    index_df = index_df.sort_values('date')
+    index_df.index = range(len(index_df))
+
+    index_df = index_df.interpolate().fillna(0)
+    index_df['val'] = index_df[index_df.columns[1:]].sum(axis=1)
+    
+    return index_df
+

@@ -1,6 +1,7 @@
 import os
 import requests
 import time
+import numpy as np
 from tqdm import tqdm
 from multiprocessing import Pool
 from itertools import repeat
@@ -49,4 +50,30 @@ def multi_ticker_download(base_url_route, ticker_list, save_dirpath, skip_exists
         None
         
 
+def get_tinkoff_portfolio(config):
+    headers = {"Authorization": "Bearer {}".format(config['tinkoff_token'])}
+    url = 'https://api-invest.tinkoff.ru/openapi/portfolio?brokerAccountId=2001883988'
+    response = requests.get(url, headers=headers)
+    tinkoff_portfolio = response.json()
+    
+    return tinkoff_portfolio['payload']['positions']
+
+
+def get_tinkoff_price(ticker, config):
+    headers = {"Authorization": "Bearer {}".format(config['tinkoff_token'])}
+    url = 'https://api-invest.tinkoff.ru/openapi/market/search/by-ticker?ticker={}'.format(ticker)
+    response = requests.get(url, headers=headers)
+    figi = response.json()['payload']['instruments'][0]['figi']
+    
+    price_url = 'https://api-invest.tinkoff.ru/openapi/market/candles?figi={}&from={}&to={}&interval=day'
+
+    end = np.datetime64('now')
+    start = np.datetime64('now') - np.timedelta64(7, 'D')
+
+    price_url = price_url.format(figi, str(start) + '%2B00%3A00', str(end) + '%2B00%3A00')
+
+    response = requests.get(price_url, headers=headers)
+    val = response.json()['payload']['candles'][-1]['c']
+    
+    return val
 

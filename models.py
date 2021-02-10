@@ -33,7 +33,7 @@ class QuarterlyOOFModel:
         predict_groups.columns = ['group']
         predict_groups = pd.merge(predict_groups, self.group_df, on='group', how='left')
         # If was not in train -> put to 0th fold
-        predict_groups.fillna(0)
+        predict_groups = predict_groups.fillna(0)
         pred_df = []
         for fold_id in range(self.fold_cnt):
             curr = X[predict_groups['fold_id'] == fold_id]
