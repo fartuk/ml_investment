@@ -3,7 +3,6 @@ import numpy as np
 import os
 
 from tqdm import tqdm
-
 from utils import load_json
 from data import load_cf1_df
 

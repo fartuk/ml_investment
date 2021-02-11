@@ -17,11 +17,6 @@ def download_json(url, save_filepath=None):
     return data, response
 
 
-def form_fmpapi_url(route, config):
-    url = "{}/{}&apikey={}".format(config['fmp_api_url'], route, config['fmp_api_key'])
-    return url 
-
-
 def form_quandl_url(route, config):
     url = "{}/{}&api_key={}".format(config['quandl_api_url'], route, config['quandl_api_key'])
     return url 
