@@ -4,7 +4,7 @@ from copy import deepcopy
 from sklearn.model_selection import GroupKFold
 
 
-class QuarterlyOOFModel:
+class GroupedOOFModel:
     def __init__(self, base_model, fold_cnt=5):
         self.fold_cnt = fold_cnt
         self.base_models = []
@@ -12,12 +12,11 @@ class QuarterlyOOFModel:
             self.base_models.append(deepcopy(base_model))        
         self.group_df = None
         
-        
+
     def fit(self, X, y, groups):
         df_arr = []
         kfold = GroupKFold(self.fold_cnt)
         for k, (itr, ite) in enumerate(kfold.split(X, y, groups)):
-            #print(k)
             self.base_models[k].fit(X.loc[itr], y.loc[itr])
 
             curr_group_df = pd.DataFrame()
@@ -29,21 +28,21 @@ class QuarterlyOOFModel:
         
         
     def predict(self, X, groups):
-        predict_groups = pd.DataFrame(groups)
-        predict_groups.columns = ['group']
+        predict_groups = pd.DataFrame()
+        predict_groups['group'] = groups
         predict_groups = pd.merge(predict_groups, self.group_df, on='group', how='left')
-        # If was not in train -> put to 0th fold
+        # If group was not in train data -> put to 0th fold
         predict_groups = predict_groups.fillna(0)
         pred_df = []
         for fold_id in range(self.fold_cnt):
             curr = X[predict_groups['fold_id'] == fold_id]
             if len(curr) == 0:
                 continue
-            #print(fold_id)
             try:
                 pred = self.base_models[fold_id].predict_proba(curr)
             except:
                 pred = self.base_models[fold_id].predict(curr)
+
             curr_pred_df = pd.DataFrame()
             curr_pred_df['idx'] = curr.index
             curr_pred_df['pred'] = pred
@@ -53,3 +52,18 @@ class QuarterlyOOFModel:
         pred_df = pred_df.sort_values('idx')
         
         return pred_df['pred'].values
+
+
+
+class OneVsAllModel:
+    None
+
+
+
+
+
+
+
+
+
+
