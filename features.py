@@ -34,7 +34,20 @@ def calc_series_stats(series, name_prefix=''):
     
               
                 
-
+class FeatureMerger:
+    def __init__(self, fc1, fc2, on):
+        self.fc1 = fc1
+        self.fc2 = fc2
+        self.on = on
+        
+        
+    def calculate(self, tickers):
+        X1 = self.fc1.calculate(tickers)
+        X2 = self.fc2.calculate(tickers)
+        X = pd.merge(X1, X2, on=self.on, how='left')        
+        
+        return X
+        
 
 
 class QuarterlyFeatures:

@@ -14,6 +14,7 @@ class QuarterlyTarget:
         self.col = col
         self.quarter_shift = quarter_shift
         
+        
     def _single_ticker_target(self, ticker_and_dates):
         ticker, dates = ticker_and_dates
         quarterly_data = load_quarterly_data_cf1(ticker, self.config)[::-1]

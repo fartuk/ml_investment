@@ -11,7 +11,8 @@ class GroupedOOFModel:
         for k in range(self.fold_cnt):
             self.base_models.append(deepcopy(base_model))        
         self.group_df = None
-        
+        self.columns = None
+       
 
     def fit(self, X, y, groups):
         df_arr = []
@@ -25,6 +26,7 @@ class GroupedOOFModel:
             df_arr.append(curr_group_df)
 
         self.group_df = pd.concat(df_arr, axis=0)
+        self.columns = X.columns
         
         
     def predict(self, X, groups):
