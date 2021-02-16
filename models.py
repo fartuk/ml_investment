@@ -32,7 +32,8 @@ class GroupedOOFModel:
     def predict(self, X, groups):
         predict_groups = pd.DataFrame()
         predict_groups['group'] = groups
-        predict_groups = pd.merge(predict_groups, self.group_df, on='group', how='left')
+        predict_groups = pd.merge(predict_groups, self.group_df,
+                                  on='group', how='left')
         # If group was not in train data -> put to 0th fold
         predict_groups = predict_groups.fillna(0)
         pred_df = []

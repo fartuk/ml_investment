@@ -18,8 +18,8 @@ def load_cf1_df(json_path):
     return df
 
 
-def load_quarterly_data_cf1(ticker, config, dimension='ARQ'):
-    path = '{}/cf1/core_fundamental/{}.json'.format(config['data_path'], ticker)
+def load_quarterly_data_cf1(ticker, data_path, dimension='ARQ'):
+    path = '{}/cf1/core_fundamental/{}.json'.format(data_path, ticker)
     if not os.path.exists(path):
         return []
     df = load_cf1_df(path)
