@@ -1,12 +1,42 @@
 {
-    "data_path": "../clever_investment_data",
-    "pipelines": {
-        "marketcap": {
-            "quarter_columns": [
-                "revenue", "netinc", "ncf", "assets", "ebitda", "debt", "fcf",
-                "gp", "workingcapital", "cashneq", "rnd", "sgna","ncfx",
-                "divyield", "currentratio", "netinccmn"],
-            "quarter_counts": [2, 4, 10],
-            "max_back_quarter": 10,
-            "cat_columns": ["sector", "sicindustry"]}},
+   "sf1_data_path":"../clever_investment_data/sf1",
+   "quandl_api_url":"https://www.quandl.com/api/v3",
+   "pipelines":{
+      "marketcap":{
+         "scalemarketcap":[
+            "4 - Mid",
+            "5 - Large",
+            "6 - Mega"
+         ],
+         "currency":"USD",
+         "quarter_columns":[
+            "revenue",
+            "netinc",
+            "ncf",
+            "assets",
+            "ebitda",
+            "debt",
+            "fcf",
+            "gp",
+            "workingcapital",
+            "cashneq",
+            "rnd",
+            "sgna",
+            "ncfx",
+            "divyield",
+            "currentratio",
+            "netinccmn"
+         ],
+         "quarter_counts":[
+            2,
+            4,
+            10
+         ],
+         "max_back_quarter":10,
+         "cat_columns":[
+            "sector",
+            "sicindustry"
+         ]
+      }
+   }
 }

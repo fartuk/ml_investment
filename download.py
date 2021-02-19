@@ -2,51 +2,124 @@ import os
 import requests
 import time
 import numpy as np
+import copy
 from tqdm import tqdm
 from multiprocessing import Pool
 from itertools import repeat
 from utils import load_json, save_json
 
 
-def download_json(url, save_filepath=None):
-    response = requests.get(url)
-    data = response.json()
-    if save_filepath is not None:
-        save_json(save_filepath, data)
+
+
+class QuandlDownloader:
+    def __init__(self, config, secrets, retry_cnt=10, sleep_time=0.2):
+        self.config = config
+        self.secrets = secrets
+        self.retry_cnt = retry_cnt
+        self.sleep_time = sleep_time
+        self._save_dirpath = None
+        self._base_url_route = None
+                
+
+    def _form_quandl_url(self, route):
+        url = "{}/{}&api_key={}".format(
+                self.config['quandl_api_url'],
+                route, self.secrets['quandl_api_key'])
+                
+        return url 
+
+
+    def _batch_ticker_download(self, ticker_list):
+        time.sleep(self.sleep_time)
+        url = self._base_url_route.format(ticker=','.join(ticker_list))
+        url = self._form_quandl_url(url)
+        response = requests.get(url)
+        if response.status_code != 200:
+            return
+        data = response.json()
+        datatable_data = np.array(data['datatable']['data'])
+        ticker_seq = np.array([x[0] for x in data['datatable']['data']])
         
-    return data, response
+        curr_data = copy.deepcopy(data)
+        curr_data['datatable']['data'] = []
 
+        for ticker in ticker_list:
+            curr_datatable_data = datatable_data[ticker_seq == ticker].tolist()
+            curr_data['datatable']['data'] = curr_datatable_data
 
-def form_quandl_url(route, config):
-    url = "{}/{}&api_key={}".format(config['quandl_api_url'], route, config['quandl_api_key'])
-    return url 
-
-
-def single_ticker_download(base_url_route, ticker, save_dirpath, retry_cnt=100, sleep_time=0.5):
-    for _ in range(retry_cnt):
-        url = base_url_route.format(ticker=ticker)
-        save_filepath = '{}/{}.json'.format(save_dirpath, ticker)
-        data, response = download_json(url, save_filepath)
-        if response.status_code == 200:
-            break
-        else:
-            time.sleep(sleep_time)
+            save_filepath = '{}/{}.json'.format(self._save_dirpath, ticker)
+            save_json(save_filepath, curr_data)            
 
             
-def multi_ticker_download(base_url_route, ticker_list, save_dirpath, skip_exists=False, n_jobs=12):
-    os.makedirs(save_dirpath, exist_ok=True)
-    if skip_exists:
-        exist_tickers = [x.split('.')[0] for x in os.listdir(save_dirpath)]
-        ticker_list = list(set(ticker_list).difference(set(exist_tickers)))
-
-    p = Pool(n_jobs)
-    params_gen = zip(repeat(base_url_route), ticker_list, repeat(save_dirpath))
-    for _ in tqdm(p.starmap(single_ticker_download, params_gen)):
-        None
+    def ticker_download(self, base_url_route, ticker_list, save_dirpath,
+                 skip_exists=False, batch_size=10, n_jobs=12):
+        self._save_dirpath = save_dirpath
+        self._base_url_route = base_url_route
+        os.makedirs(save_dirpath, exist_ok=True)
+        if skip_exists:
+            exist_tickers = [x.split('.')[0] for x in os.listdir(save_dirpath)]
+            ticker_list = list(set(ticker_list).difference(set(exist_tickers)))
         
+        batches = [ticker_list[k:k+batch_size] 
+                        for k in range(0, len(ticker_list), batch_size)]
+        p = Pool(n_jobs)
+        for _ in tqdm(p.imap(self._batch_ticker_download, batches)):
+            None
+            
+            
+            
+class TinkoffDownloader:
+    def __init__(self, secrets):
+        self.headers = {"Authorization": 
+                        "Bearer {}".format(secrets['tinkoff_token'])}
+        
+        def get_stocks(self)
+            url = 'https://api-invest.tinkoff.ru/openapi/market/stocks'
+            response = requests.get(url, headers=self.headers)
+            result = response.json()        
+            
+            return result
+            
+            
+        def get_portfolio(self):
+            url = 'https://api-invest.tinkoff.ru/openapi/portfolio' \
+                   '?brokerAccountId={}'
+            url = url.format(self.secrets['tinkoff_broker_account_id'])
+            response = requests.get(url, headers=self.headers)
+            portfolio = response.json()
+            
+            return tinkoff_portfolio['payload']['positions']
+            
+            
+        def get_figi_by_ticker(self, ticker):
+            url = 'https://api-invest.tinkoff.ru/' \ 
+                  'openapi/market/search/by-ticker?ticker={}'.format(ticker)
+            response = requests.get(url, headers=self.headers)
+            figi = response.json()['payload']['instruments'][0]['figi']            
+        
+            return figi
+        
+            
+        def get_price(self, ticker):
+            figi = self.get_figi_by_ticker(ticker)      
+            url = 'https://api-invest.tinkoff.ru/openapi/market/candles' \
+                  '?figi={}&from={}&to={}&interval=day'
 
-def get_tinkoff_portfolio(config):
-    headers = {"Authorization": "Bearer {}".format(config['tinkoff_token'])}
+            end = np.datetime64('now')
+            end = str(end) + '%2B00%3A00'
+            start = np.datetime64('now') - np.timedelta64(7, 'D')
+            start = str(start) + '%2B00%3A00'
+            
+            url = url.format(figi, start, end)
+
+            response = requests.get(url, headers=self.headers)
+            close_price = response.json()['payload']['candles'][-1]['c']
+            
+            return close_price
+            
+
+def get_tinkoff_portfolio(secrets):
+    headers = {"Authorization": "Bearer {}".format(secrets['tinkoff_token'])}
     url = 'https://api-invest.tinkoff.ru/openapi/portfolio?brokerAccountId=2001883988'
     response = requests.get(url, headers=headers)
     tinkoff_portfolio = response.json()
@@ -54,8 +127,18 @@ def get_tinkoff_portfolio(config):
     return tinkoff_portfolio['payload']['positions']
 
 
-def get_tinkoff_price(ticker, config):
-    headers = {"Authorization": "Bearer {}".format(config['tinkoff_token'])}
+def get_tinkoff_tickers(secrets):
+    headers = {"Authorization": "Bearer {}".format(secrets['tinkoff_token'])}
+    url = 'https://api-invest.tinkoff.ru/openapi/market/stocks'
+    response = requests.get(url, headers=headers)
+    result = response.json()
+    tickers = [x['ticker'] for x in result['payload']['instruments']]
+    
+    return tickers
+
+
+def get_tinkoff_price(ticker, secrets):
+    headers = {"Authorization": "Bearer {}".format(secrets['tinkoff_token'])}
     url = 'https://api-invest.tinkoff.ru/openapi/market/search/by-ticker?ticker={}'.format(ticker)
     response = requests.get(url, headers=headers)
     figi = response.json()['payload']['instruments'][0]['figi']
@@ -71,4 +154,62 @@ def get_tinkoff_price(ticker, config):
     val = response.json()['payload']['candles'][-1]['c']
     
     return val
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 

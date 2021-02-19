@@ -6,6 +6,7 @@ import numpy as np
 import pandas as pd
 import lightgbm as lgbm
 from utils import load_json
+from data import SF1Data
 from features import QuarterlyFeatures, BaseCompanyFeatures, FeatureMerger
 from targets import QuarterlyTarget
 from models import GroupedOOFModel
@@ -34,8 +35,8 @@ class MarketcapPipeline:
 
 
     def fit(self, config, tickers):
-        X = self.feature.calculate(config['data_path'], tickers)
-        y = self.target.calculate(config['data_path'], X[['ticker', 'date']])
+        X = self.feature.calculate(config['sf1_data_path'], tickers)
+        y = self.target.calculate(config['sf1_data_path'], X[['ticker', 'date']])
         leave_mask = (y['y'] >= 2e9) * (y['y'].isnull() == False)
         y = y[leave_mask].reset_index(drop=True)
         X = X[leave_mask].reset_index(drop=True)
@@ -50,7 +51,7 @@ class MarketcapPipeline:
                                   
                                   
     def execute(self, config, tickers):
-        X = self.feature.calculate(config['data_path'], tickers)
+        X = self.feature.calculate(config['sf1_data_path'], tickers)
         pred = self.model.predict(X=X.drop(['ticker', 'date'], axis=1), 
                                   groups=X['ticker'])
         result = X[['ticker', 'date']]
@@ -65,10 +66,10 @@ class MarketcapPipeline:
             folder_path = 'models_data/marketcap_pipeline_{}'.format(now)
         
         os.makedirs(folder_path, exist_ok=True)    
-            
+
         with open('{}/feature.pickle'.format(folder_path), 'wb') as f:
             pickle.dump(self.feature, f)
-            
+
         with open('{}/target.pickle'.format(folder_path), 'wb') as f:
             pickle.dump(self.target, f)
 
@@ -97,20 +98,21 @@ if __name__ == '__main__':
     args = parser.parse_args()
     
     config = load_json(args.config_path)
+    pipeline_config = config['pipelines']['marketcap']
 
-    tickers_df = pd.read_csv('{}/cf1/tickers.csv'.format(config['data_path']))
-    tickers_df = tickers_df[tickers_df['currency']=='USD']
-    tickers_df = tickers_df[tickers_df['scalemarketcap'].apply(lambda x:
-                                 x in ['4 - Mid', '5 - Large', '6 - Mega'])]
+    data_loader = SF1Data(config['sf1_data_path'])
+    tickers_df = data_loader.load_tickers(
+        currency=pipeline_config['currency'],
+        scalemarketcap=pipeline_config['scalemarketcap'])
     ticker_list = tickers_df['ticker'].unique().tolist()
 
     fc1 = QuarterlyFeatures(
-        columns=config['pipelines']['marketcap']['quarter_columns'],
-        quarter_counts=config['pipelines']['marketcap']['quarter_counts'],
-        max_back_quarter=config['pipelines']['marketcap']['max_back_quarter'])
+        columns=pipeline_config['quarter_columns'],
+        quarter_counts=pipeline_config['quarter_counts'],
+        max_back_quarter=pipeline_config['max_back_quarter'])
 
     fc2 = BaseCompanyFeatures(
-        cat_columns=config['pipelines']['marketcap']['cat_columns'])
+        cat_columns=pipeline_config['cat_columns'])
 
     feature = FeatureMerger(fc1, fc2, on='ticker')
     target = QuarterlyTarget(col='marketcap', quarter_shift=0)

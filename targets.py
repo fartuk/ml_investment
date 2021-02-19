@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 from multiprocessing import Pool
 from tqdm import tqdm
-from data import load_quarterly_data_cf1
+from data import SF1Data
 
 
 
@@ -12,12 +12,12 @@ class QuarterlyTarget:
     def __init__(self, col, quarter_shift:int=0):
         self.col = col
         self.quarter_shift = quarter_shift
-        self._data_path = None
+        self._data_loader = None
         
         
     def _single_ticker_target(self, ticker_and_dates):
         ticker, dates = ticker_and_dates
-        quarterly_data = load_quarterly_data_cf1(ticker, self._data_path)[::-1]
+        quarterly_data = self._data_loader.load_quarterly_data([ticker])[::-1]
         quarter_dates = [np.datetime64(x['date']) for x in quarterly_data]
         quarter_dates = np.array(quarter_dates)
         vals = []
@@ -44,7 +44,7 @@ class QuarterlyTarget:
         '''
         info_df: pd.DataFrame. Should have columns: ["ticker", "date"] 
         '''
-        self._data_path = data_path
+        self._data_loader = SF1Data(data_path)
         grouped = info_df.groupby('ticker')['date'].apply(lambda x: x.tolist()).reset_index()
         params = [(ticker, dates) for ticker, dates in grouped.values]
 

@@ -6,7 +6,7 @@ from itertools import repeat
 from sklearn.preprocessing import LabelEncoder
 from tqdm import tqdm
 
-from data import load_quarterly_data_cf1, translate_currency_cf1
+from data import SF1Data
 from utils import load_json
 
 
@@ -58,7 +58,7 @@ class QuarterlyFeatures:
         self.columns = columns
         self.quarter_counts = quarter_counts
         self.max_back_quarter = max_back_quarter
-        self._data_path = None
+        self._data_loader = None
         
 
     def _calc_series_feats(self, data, str_prefix=''):
@@ -75,7 +75,7 @@ class QuarterlyFeatures:
 
     def _single_ticker(self, ticker):
         result = []
-        quarterly_data = load_quarterly_data_cf1(ticker, self._data_path)
+        quarterly_data = self._data_loader.load_quarterly_data([ticker])        
         #quarterly_data = translate_currency_cf1(quarterly_data, self.columns)
         max_back_quarter = min(self.max_back_quarter, len(quarterly_data) - 1)
         for back_quarter in range(max_back_quarter):
@@ -95,15 +95,13 @@ class QuarterlyFeatures:
         
         
     def calculate(self, data_path, tickers, n_jobs=10):
-        self._data_path = data_path
+        self._data_loader = SF1Data(data_path)
         p = Pool(n_jobs)
         X = []
         for ticker_feats_arr in tqdm(p.imap(self._single_ticker, tickers)):
             X.extend(ticker_feats_arr)
 
         X = pd.DataFrame(X)
-        #X = X[X['marketcap'].isnull()==False]
-        
         
         return X
     
@@ -115,10 +113,10 @@ class BaseCompanyFeatures:
 
 
     def calculate(self, data_path, tickers):
+        data_loader = SF1Data(data_path)
         result = pd.DataFrame()
         result['ticker'] = tickers
-        path = '{}/cf1/tickers.csv'.format(data_path)
-        tickers_df = pd.read_csv(path)
+        tickers_df = data_loader.load_tickers()
         result = pd.merge(result, tickers_df[['ticker'] + self.cat_columns],
                           on='ticker', how='left')
 
