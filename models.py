@@ -1,7 +1,36 @@
 import pandas as pd
 import numpy as np
 from copy import deepcopy
+from tqdm import tqdm
 from sklearn.model_selection import GroupKFold
+
+
+
+class AnsambleModel:
+    def __init__(self, base_models, bagging_fraction=0.8, model_cnt=20):
+        self.base_models = base_models
+        self.bagging_fraction = bagging_fraction
+        self.model_cnt = model_cnt
+        self.models = []
+        
+    def fit(self, X, y):
+        X.index = range(len(X))
+        y.index = range(len(y))
+        for _ in tqdm(range(self.model_cnt)):
+            idxs = np.random.randint(0, len(X), 
+                                     int(len(X) * self.bagging_fraction))
+            curr_model = deepcopy(np.random.choice(self.base_models))
+            curr_model.fit(X.loc[idxs], y.loc[idxs])
+            self.models.append(curr_model)
+                
+    
+    def predict(self, X):
+        preds = []
+        for k in range(self.model_cnt):        
+            preds.append(self.models[k].predict(X))
+        
+        return np.mean(preds, axis=0)         
+                        
 
 
 class GroupedOOFModel:

@@ -45,7 +45,8 @@ class QuarterlyTarget:
         info_df: pd.DataFrame. Should have columns: ["ticker", "date"] 
         '''
         self._data_loader = SF1Data(data_path)
-        grouped = info_df.groupby('ticker')['date'].apply(lambda x: x.tolist()).reset_index()
+        grouped = info_df.groupby('ticker')['date'].apply(lambda x:
+                  x.tolist()).reset_index()
         params = [(ticker, dates) for ticker, dates in grouped.values]
 
         n_jobs=10
@@ -60,11 +61,18 @@ class QuarterlyTarget:
         return result
 
 
+class QuarterlyDiffTarget:
+    def __init__(self, col):
+        self.curr_target = QuarterlyTarget(col=col, quarter_shift=0)
+        self.last_target = QuarterlyTarget(col=col, quarter_shift=-1)
 
+    
+    def calculate(self, data_path, info_df, norm=True):
+        curr_df = self.curr_target.calculate(data_path, info_df)
+        last_df = self.last_target.calculate(data_path, info_df)
+        curr_df['y'] = curr_df['y'] - last_df['y']
+        if norm:
+            curr_df['y'] = curr_df['y'] / last_df['y']
 
-
-
-
-
-
+        return curr_df
 

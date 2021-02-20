@@ -12,7 +12,7 @@ from utils import load_json, save_json
 
 
 class QuandlDownloader:
-    def __init__(self, config, secrets, retry_cnt=10, sleep_time=0.2):
+    def __init__(self, config, secrets, retry_cnt=10, sleep_time=1.4):
         self.config = config
         self.secrets = secrets
         self.retry_cnt = retry_cnt
@@ -30,7 +30,7 @@ class QuandlDownloader:
 
 
     def _batch_ticker_download(self, ticker_list):
-        time.sleep(self.sleep_time)
+        time.sleep(np.random.uniform(0, self.sleep_time))
         url = self._base_url_route.format(ticker=','.join(ticker_list))
         url = self._form_quandl_url(url)
         response = requests.get(url)
@@ -70,90 +70,54 @@ class QuandlDownloader:
             
 class TinkoffDownloader:
     def __init__(self, secrets):
+        self.secrets = secrets
         self.headers = {"Authorization": 
                         "Bearer {}".format(secrets['tinkoff_token'])}
         
-        def get_stocks(self)
-            url = 'https://api-invest.tinkoff.ru/openapi/market/stocks'
-            response = requests.get(url, headers=self.headers)
-            result = response.json()        
-            
-            return result
-            
-            
-        def get_portfolio(self):
-            url = 'https://api-invest.tinkoff.ru/openapi/portfolio' \
-                   '?brokerAccountId={}'
-            url = url.format(self.secrets['tinkoff_broker_account_id'])
-            response = requests.get(url, headers=self.headers)
-            portfolio = response.json()
-            
-            return tinkoff_portfolio['payload']['positions']
-            
-            
-        def get_figi_by_ticker(self, ticker):
-            url = 'https://api-invest.tinkoff.ru/' \ 
-                  'openapi/market/search/by-ticker?ticker={}'.format(ticker)
-            response = requests.get(url, headers=self.headers)
-            figi = response.json()['payload']['instruments'][0]['figi']            
+    def get_stocks(self):
+        url = 'https://api-invest.tinkoff.ru/openapi/market/stocks'
+        response = requests.get(url, headers=self.headers)
+        result = response.json()        
         
-            return figi
+        return result
         
-            
-        def get_price(self, ticker):
-            figi = self.get_figi_by_ticker(ticker)      
-            url = 'https://api-invest.tinkoff.ru/openapi/market/candles' \
-                  '?figi={}&from={}&to={}&interval=day'
-
-            end = np.datetime64('now')
-            end = str(end) + '%2B00%3A00'
-            start = np.datetime64('now') - np.timedelta64(7, 'D')
-            start = str(start) + '%2B00%3A00'
-            
-            url = url.format(figi, start, end)
-
-            response = requests.get(url, headers=self.headers)
-            close_price = response.json()['payload']['candles'][-1]['c']
-            
-            return close_price
-            
-
-def get_tinkoff_portfolio(secrets):
-    headers = {"Authorization": "Bearer {}".format(secrets['tinkoff_token'])}
-    url = 'https://api-invest.tinkoff.ru/openapi/portfolio?brokerAccountId=2001883988'
-    response = requests.get(url, headers=headers)
-    tinkoff_portfolio = response.json()
+        
+    def get_portfolio(self):
+        url = 'https://api-invest.tinkoff.ru/openapi/portfolio' \
+               '?brokerAccountId={}'
+        url = url.format(self.secrets['tinkoff_broker_account_id'])
+        response = requests.get(url, headers=self.headers)
+        portfolio = response.json()
+        
+        return portfolio['payload']['positions']
+        
+        
+    def get_figi_by_ticker(self, ticker):
+        url = 'https://api-invest.tinkoff.ru/' \
+              'openapi/market/search/by-ticker?ticker={}'.format(ticker)
+        response = requests.get(url, headers=self.headers)
+        figi = response.json()['payload']['instruments'][0]['figi']            
     
-    return tinkoff_portfolio['payload']['positions']
-
-
-def get_tinkoff_tickers(secrets):
-    headers = {"Authorization": "Bearer {}".format(secrets['tinkoff_token'])}
-    url = 'https://api-invest.tinkoff.ru/openapi/market/stocks'
-    response = requests.get(url, headers=headers)
-    result = response.json()
-    tickers = [x['ticker'] for x in result['payload']['instruments']]
+        return figi
     
-    return tickers
+        
+    def get_price(self, ticker):
+        figi = self.get_figi_by_ticker(ticker)      
+        url = 'https://api-invest.tinkoff.ru/openapi/market/candles' \
+              '?figi={}&from={}&to={}&interval=day'
 
+        end = np.datetime64('now')
+        end = str(end) + '%2B00%3A00'
+        start = np.datetime64('now') - np.timedelta64(7, 'D')
+        start = str(start) + '%2B00%3A00'
+        
+        url = url.format(figi, start, end)
 
-def get_tinkoff_price(ticker, secrets):
-    headers = {"Authorization": "Bearer {}".format(secrets['tinkoff_token'])}
-    url = 'https://api-invest.tinkoff.ru/openapi/market/search/by-ticker?ticker={}'.format(ticker)
-    response = requests.get(url, headers=headers)
-    figi = response.json()['payload']['instruments'][0]['figi']
-    
-    price_url = 'https://api-invest.tinkoff.ru/openapi/market/candles?figi={}&from={}&to={}&interval=day'
-
-    end = np.datetime64('now')
-    start = np.datetime64('now') - np.timedelta64(7, 'D')
-
-    price_url = price_url.format(figi, str(start) + '%2B00%3A00', str(end) + '%2B00%3A00')
-
-    response = requests.get(price_url, headers=headers)
-    val = response.json()['payload']['candles'][-1]['c']
-    
-    return val
+        response = requests.get(url, headers=self.headers)
+        close_price = response.json()['payload']['candles'][-1]['c']
+        
+        return close_price
+            
 
 
 
