@@ -57,22 +57,58 @@ class QuarterlyTarget:
 
         result = pd.concat(result, axis=0)
         result = pd.merge(info_df, result, on=['ticker', 'date'], how='left')
+        result = result.set_index(['ticker', 'date'])
         
         return result
 
 
 class QuarterlyDiffTarget:
-    def __init__(self, col):
+    def __init__(self, col, norm=True):
         self.curr_target = QuarterlyTarget(col=col, quarter_shift=0)
         self.last_target = QuarterlyTarget(col=col, quarter_shift=-1)
+        self.norm = norm
 
     
-    def calculate(self, data_path, info_df, norm=True):
+    def calculate(self, data_path, info_df):
         curr_df = self.curr_target.calculate(data_path, info_df)
         last_df = self.last_target.calculate(data_path, info_df)
         curr_df['y'] = curr_df['y'] - last_df['y']
-        if norm:
+        if self.norm:
             curr_df['y'] = curr_df['y'] / last_df['y']
 
         return curr_df
+
+
+class QuarterlyBinDiffTarget:
+    def __init__(self, col, norm=True):
+        self.target = QuarterlyDiffTarget(col=col, norm=False)
+    
+    def calculate(self, data_path, info_df):
+        target_df = self.curr_target.calculate(data_path, info_df)
+        target_df['y'] = target_df['y'] > 0
+
+        return target_df
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 

@@ -50,7 +50,7 @@ class SF1Data:
             tickers_df = tickers_df[tickers_df['scalemarketcap'] == scalemarketcap]
         if type(scalemarketcap) == list:
             tickers_df = tickers_df[tickers_df['scalemarketcap'].apply(lambda x: 
-                                    x in ['4 - Mid', '5 - Large', '6 - Mega'])]
+                                    x in scalemarketcap)]
         return tickers_df
 
 
