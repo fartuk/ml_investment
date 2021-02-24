@@ -26,13 +26,11 @@ class AnsambleModel:
         
         
     def fit(self, X, y):
-        X.index = range(len(X))
-        y.index = range(len(y))
         for _ in tqdm(range(self.model_cnt)):
             idxs = np.random.randint(0, len(X), 
                                      int(len(X) * self.bagging_fraction))
             curr_model = deepcopy(np.random.choice(self.base_models))
-            curr_model.fit(X.loc[idxs], y.loc[idxs])
+            curr_model.fit(X.iloc[idxs], y.iloc[idxs])
             self.models.append(curr_model)
                 
     
@@ -40,9 +38,9 @@ class AnsambleModel:
         preds = []
         for k in range(self.model_cnt):
             try:
-                model_pred = self.base_models[k].predict_proba(X)[:, 0]
+                model_pred = self.models[k].predict_proba(X)[:, 0]
             except:
-                model_pred = self.base_models[k].predict(X)
+                model_pred = self.models[k].predict(X)
                 
             preds.append(model_pred)
         
