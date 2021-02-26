@@ -86,17 +86,17 @@ class GroupedOOFModel:
         predict_groups = predict_groups.fillna(0)
         pred_df = []
         for fold_id in range(self.fold_cnt):
-            curr = X[predict_groups['fold_id'] == fold_id]
-            if len(curr) == 0:
+            X_curr = X[predict_groups['fold_id'] == fold_id]
+            if len(X_curr) == 0:
                 continue
             try:
-                pred = self.base_models[fold_id].predict_proba(curr)[:, 0]
+                pred = self.base_models[fold_id].predict_proba(X_curr)[:, 0]
             except:
-                pred = self.base_models[fold_id].predict(curr)
+                pred = self.base_models[fold_id].predict(X_curr)
 
             curr_pred_df = pd.DataFrame()
             curr_pred_df['pred'] = pred
-            curr_pred_df.index = curr.index
+            curr_pred_df.index = X_curr.index
             pred_df.append(curr_pred_df)
         
         pred_df = pd.concat(pred_df, axis=0)
@@ -106,25 +106,67 @@ class GroupedOOFModel:
 
 
 class TimeSeriesOOFModel:
-    def __init__(self, base_model, fold_cnt=5):
+    def __init__(self, base_model, time_column, fold_cnt=5):
         self.fold_cnt = fold_cnt
+        self.time_column = time_column
         self.base_models = []
         for k in range(self.fold_cnt):
             self.base_models.append(deepcopy(base_model))
             
         
-        self.time_bounds = None        
-        None
+        self.time_bounds = None
         
    
-    def fit(X, y, time):
-        np.linspace(min(time), max(time))
-        None
+    def _create_time_bounds(self, times):
+        max_time = max(times)
+        min_time = min(times)
+        delta = (max_time - min_time) // self.fold_cnt
+        self.time_bounds = []
+        for fold_id in range(1, self.fold_cnt):
+            self.time_bounds.append(min_time + fold_id * delta)
+        self.time_bounds.append(max_time)
+        self.time_bounds.append(max_time + np.timedelta64(10000, 'D'))
+                
+   
+    def fit(self, X, y):
+        times = X.reset_index()[self.time_column].astype(np.datetime64).values
+        self._create_time_bounds(times)
+        for fold_id in range(self.fold_cnt):
+            curr_mask = times <= self.time_bounds[fold_id]
+            self.base_models[fold_id].fit(X[curr_mask], y[curr_mask])
         
-    
-    def predict(X, time):
-        None
-
+          
+    def predict(self, X):
+        times = X.reset_index()[self.time_column].astype(np.datetime64).values
+        pred_df = []
+        X_curr = X[times <= self.time_bounds[0]]
+        curr_pred_df = pd.DataFrame()
+        curr_pred_df['pred'] = [np.nan] * len(X_curr)
+        curr_pred_df.index = X_curr.index
+        pred_df.append(curr_pred_df)                  
+        for fold_id in range(self.fold_cnt):
+            curr_mask = (times > self.time_bounds[fold_id]) * \
+                        (times <= self.time_bounds[fold_id + 1])
+            X_curr = X[curr_mask]
+            if len(X_curr) == 0:
+                continue
+            try:            
+                pred = self.base_models[fold_id].predict(X_curr)
+            except:
+                pred = self.base_models[fold_id].predict_proba(X_curr)[:, 0]
+                                 
+            curr_pred_df = pd.DataFrame()
+            curr_pred_df['pred'] = pred
+            curr_pred_df.index = X_curr.index
+            pred_df.append(curr_pred_df)
+        
+        
+        pred_df = pd.concat(pred_df, axis=0)
+        pred_df = pred_df.loc[X.index]                
+                      
+        return pred_df['pred'].values
+        
+                    
 
 class OneVsAllModel:
     None
