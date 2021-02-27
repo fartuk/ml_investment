@@ -31,7 +31,7 @@ Simple example of pipeline creation using QuarterlyFeatures and BaseCompanyFeatu
     pipeline.export_core('models_data/marketcap')
 ```
 
-### Marketcap prediction pipeline
+### Marketcap evaluation
 Model is used to estimate **current** fair company marketcap. 
 Pipeline consist of calculating quarterly-based statistics of fundamental company indicators(revenue, netinc etc) and training to predict real market capitalizations. Since some companies are overvalued and some are undervalued, the model makes an average "fair" prediction.
 
@@ -45,7 +45,19 @@ Lower predicted marketcap may indicates that company is overvalued according its
 
 
 
-### Quarter marketcap difference model
+### Quarter marketcap difference
+Model is used to evaluate quarter-to-quarter(q2q) company fundamental progress.
+Pipeline consist of calculating q2q results progress(e.g. 30% revenue increase, decrease in debt by 15% etc) and prediction real q2q marketcap difference. So model prediction may be interpreted as "fair" marketcap change according this fundamental change.
+
+To fit default pre-defined marketcap prediction pipeline run:
+```properties
+python3 train/marketcap_diff.py --config_path config.json
+```
+
+![plot](./images/marketcap_diff_prediction.png?raw=true "marketcap_prediction")
+Similarly, a higher predicted capitalization may indicate that the company has fundamentally grown more than its value.
+
+### Down-std prediction
 Model is used to evaluate quarter-to-quarter(q2q) company fundamental progress.
 Pipeline consist of calculating q2q results progress(e.g. 30% revenue increase, decrease in debt by 15%) and prediction real q2q marketcap difference. So model prediction may be interpreted as "fair" marketcap change according this fundamental change.
 
@@ -56,7 +68,6 @@ python3 train/marketcap_diff.py --config_path config.json
 
 ![plot](./images/marketcap_diff_prediction.png?raw=true "marketcap_prediction")
 Similarly, a higher predicted capitalization may indicate that the company has fundamentally grown more than its value.
-
 
 
 

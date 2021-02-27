@@ -40,11 +40,11 @@ class QuarterlyTarget:
         return result        
         
 
-    def calculate(self, data_path, info_df):
+    def calculate(self, data_loader, info_df):
         '''
         info_df: pd.DataFrame. Should have columns: ["ticker", "date"] 
         '''
-        self._data_loader = SF1Data(data_path)
+        self._data_loader = data_loader
         grouped = info_df.groupby('ticker')['date'].apply(lambda x:
                   x.tolist()).reset_index()
         params = [(ticker, dates) for ticker, dates in grouped.values]
@@ -69,9 +69,9 @@ class QuarterlyDiffTarget:
         self.norm = norm
 
     
-    def calculate(self, data_path, info_df):
-        curr_df = self.curr_target.calculate(data_path, info_df)
-        last_df = self.last_target.calculate(data_path, info_df)
+    def calculate(self, data_loader, info_df):
+        curr_df = self.curr_target.calculate(data_loader, info_df)
+        last_df = self.last_target.calculate(data_loader, info_df)
         curr_df['y'] = curr_df['y'] - last_df['y']
         if self.norm:
             curr_df['y'] = curr_df['y'] / last_df['y']
@@ -83,8 +83,8 @@ class QuarterlyBinDiffTarget:
     def __init__(self, col, norm=True):
         self.target = QuarterlyDiffTarget(col=col, norm=False)
     
-    def calculate(self, data_path, info_df):
-        target_df = self.curr_target.calculate(data_path, info_df)
+    def calculate(self, data_loader, info_df):
+        target_df = self.curr_target.calculate(data_loader, info_df)
         target_df['y'] = target_df['y'] > 0
 
         return target_df

@@ -36,7 +36,7 @@ class SF1Data:
             df['date'] = df['datekey']
             data = json.loads(df.to_json(orient='records'))
             result.extend(data)
-            
+                  
         return result
 
     
@@ -68,7 +68,6 @@ class SF1Data:
         result = pd.concat(result, axis=0)
         
         return result
-
 
 
     def translate_currency(self, data, columns):

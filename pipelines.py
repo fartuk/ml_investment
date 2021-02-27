@@ -28,9 +28,9 @@ class BasePipeline:
         return pipeline
 
 
-    def fit(self, config, tickers):
-        X = self.core['feature'].calculate(config['sf1_data_path'], tickers)
-        y = self.core['target'].calculate(config['sf1_data_path'], 
+    def fit(self, data_loader, tickers):
+        X = self.core['feature'].calculate(data_loader, tickers)
+        y = self.core['target'].calculate(data_loader, 
                                           X.index.to_frame(index=False))
         leave_mask = (y['y'].isnull() == False)
         y = y[leave_mask]
@@ -41,8 +41,8 @@ class BasePipeline:
         print(self.metric(y['y'].values, pred))
 
 
-    def execute(self, config, tickers):
-        X = self.core['feature'].calculate(config['sf1_data_path'], tickers)
+    def execute(self, data_loader, tickers):
+        X = self.core['feature'].calculate(data_loader, tickers)
         pred = self.core['model'].predict(X)
         result = pd.DataFrame()
         result['y'] = pred

@@ -18,7 +18,7 @@ if __name__ == '__main__':
     args = parser.parse_args()
     
     config = load_json(args.config_path)
-    pipeline_config = config['pipelines']['marketcap']
+    pipeline_config = config['pipelines']['marketcap_diff']
 
     data_loader = SF1Data(config['sf1_data_path'])
     tickers_df = data_loader.load_tickers(
@@ -57,5 +57,5 @@ if __name__ == '__main__':
                             model=model, 
                             metric=median_absolute_relative_error)
                             
-    pipeline.fit(config, ticker_list)
+    pipeline.fit(data_loader, ticker_list)
     pipeline.export_core('models_data/marketcap_diff') 

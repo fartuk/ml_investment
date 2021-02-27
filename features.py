@@ -46,9 +46,9 @@ class FeatureMerger:
         self.on = on
         
         
-    def calculate(self, config, tickers):
-        X1 = self.fc1.calculate(config, tickers)
-        X2 = self.fc2.calculate(config, tickers)
+    def calculate(self, data_loader, tickers):
+        X1 = self.fc1.calculate(data_loader, tickers)
+        X2 = self.fc2.calculate(data_loader, tickers)
         X = pd.merge(X1, X2, on=self.on, how='left')        
         X.index = X1.index
         return X
@@ -98,8 +98,8 @@ class QuarterlyFeatures:
         return result
         
         
-    def calculate(self, data_path, tickers, n_jobs=10):
-        self._data_loader = SF1Data(data_path)
+    def calculate(self, data_loader, tickers, n_jobs=10):
+        self._data_loader = data_loader
         p = Pool(n_jobs)
         X = []
         for ticker_feats_arr in tqdm(p.imap(self._single_ticker, tickers)):
@@ -159,8 +159,8 @@ class QuarterlyDiffFeatures:
         return result
         
         
-    def calculate(self, data_path, tickers, n_jobs=10):
-        self._data_loader = SF1Data(data_path)
+    def calculate(self, data_loader, tickers, n_jobs=10):
+        self._data_loader = data_loader
         p = Pool(n_jobs)
         X = []
         for ticker_feats_arr in tqdm(p.imap(self._single_ticker, tickers)):
@@ -177,8 +177,7 @@ class BaseCompanyFeatures:
         self.cat_columns = cat_columns
 
 
-    def calculate(self, data_path, tickers):
-        data_loader = SF1Data(data_path)
+    def calculate(self, data_loader, tickers):
         result = pd.DataFrame()
         result['ticker'] = tickers
         tickers_df = data_loader.load_tickers()

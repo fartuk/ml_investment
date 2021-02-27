@@ -49,7 +49,7 @@ if __name__ == '__main__':
                             model=model, 
                             metric=median_absolute_relative_error)
                             
-    pipeline.fit(config, ticker_list)
+    pipeline.fit(data_loader, ticker_list)
     pipeline.export_core('models_data/marketcap')    
     
     
