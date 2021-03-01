@@ -18,15 +18,14 @@ class QuarterlyTarget:
     def _single_ticker_target(self, ticker_and_dates):
         ticker, dates = ticker_and_dates
         quarterly_data = self._data_loader.load_quarterly_data([ticker])[::-1]
-        quarter_dates = [np.datetime64(x['date']) for x in quarterly_data]
-        quarter_dates = np.array(quarter_dates)
+        quarter_dates = quarterly_data['date'].astype(np.datetime64).values
         vals = []
         for date in dates:
             curr_date_mask = quarter_dates == np.datetime64(date)
             curr_quarter_idx = np.where(curr_date_mask)[0][0]
             idx = curr_quarter_idx + self.quarter_shift
             if idx >= 0 and idx < len(quarterly_data):
-                value = quarterly_data[idx][self.col]
+                value = quarterly_data[self.col].values[idx]
             else:
                 value = np.nan
                 

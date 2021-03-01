@@ -68,6 +68,10 @@
             4,
             10
          ],
+         "compare_idxs":[
+            1,
+            4
+         ],
          "max_back_quarter":10,
          "cat_columns":[
             "sector",
