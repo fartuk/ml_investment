@@ -6,6 +6,7 @@ from multiprocessing import Pool
 from itertools import repeat
 from sklearn.preprocessing import LabelEncoder
 from tqdm import tqdm
+from copy import deepcopy
 
 from data import SF1Data
 from utils import load_json
@@ -109,22 +110,22 @@ class QuarterlyFeatures:
 class QuarterlyDiffFeatures:
     def __init__(self, 
                  columns,
-                 compare_idxs=[1, 4],
+                 compare_quarter_idxs=[1, 4],
                  max_back_quarter=10):
         self.columns = columns
-        self.compare_idxs = compare_idxs
+        self.compare_quarter_idxs = compare_quarter_idxs
         self.max_back_quarter = max_back_quarter
         self._data_loader = None
         
 
     def _calc_diff_feats(self, data):
         result = {}   
-        curr_quarter = np.array([data[0][col] for col in self.columns], 
-                                                            dtype='float')              
-        for quarter_idx in self.compare_idxs:
+        curr_quarter = np.array([data[col].values[0] 
+                                    for col in self.columns], dtype='float')              
+        for quarter_idx in self.compare_quarter_idxs:
             if len(data) >= quarter_idx + 1:
-                compare_quarter = np.array([data[quarter_idx][col] 
-                                  for col in self.columns], dtype='float')
+                compare_quarter = np.array([data[col].values[quarter_idx] 
+                                    for col in self.columns], dtype='float')
             else:
                 compare_quarter = np.array([np.nan for col in self.columns], 
                                                  dtype='float')     
@@ -171,18 +172,26 @@ class QuarterlyDiffFeatures:
 class BaseCompanyFeatures:
     def __init__(self, cat_columns):
         self.cat_columns = cat_columns
-
+        self.col_to_encoder = {}
 
     def calculate(self, data_loader, tickers):
+        base_df = data_loader.load_base_data()
+        is_fitted = True if len(self.col_to_encoder) > 0 else False
+        for col in self.cat_columns:
+            base_df[col] = base_df[col].fillna('None')
+            if is_fitted:
+                base_df[col] = self.col_to_encoder[col].transform(base_df[col])                    
+            else:      
+                le = LabelEncoder()      
+                base_df[col] = le.fit_transform(base_df[col])        
+                self.col_to_encoder[col] = le
+          
+           
         result = pd.DataFrame()
         result['ticker'] = tickers
-        tickers_df = data_loader.load_base_data()
-        result = pd.merge(result, tickers_df[['ticker'] + self.cat_columns],
+        
+        result = pd.merge(result, base_df[['ticker'] + self.cat_columns],
                           on='ticker', how='left')
-
-        le = LabelEncoder()
-        for col in self.cat_columns:
-            result[col] = le.fit_transform(result[col].fillna('None'))
         
         result = result.set_index(['ticker'])
         
