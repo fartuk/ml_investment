@@ -244,20 +244,50 @@ class TestBaseCompanyFeatures:
 
 
 
+class TestFeatureMerger:
+    @pytest.mark.parametrize(
+        "tickers",
+        [['AAPL', 'TSLA'], ['NVDA', 'TSLA'], 
+        ['AAPL', 'NVDA', 'TSLA', 'WORK'], ['AAPL', 'ZLG']]
+    )    
+    def test_calculate(self, tickers):                            
+        data_loader = SF1Data(config['sf1_data_path'])
+        fc1 = QuarterlyFeatures(columns=['ebit'],
+                                quarter_counts=[2],
+                                max_back_quarter=10)
 
+        fc2 = QuarterlyDiffFeatures(columns=['ebit', 'debt'], 
+                                    compare_quarter_idxs=[1, 4],
+                                    max_back_quarter=10)
 
+        fc3 = BaseCompanyFeatures(cat_columns=['sector', 'sicindustry'])
 
+        X1 = fc1.calculate(data_loader, tickers)
+        X2 = fc2.calculate(data_loader, tickers)
+        X3 = fc3.calculate(data_loader, tickers)
+        
+        fm1 = FeatureMerger(fc1, fc2, on=['ticker', 'date'])
+        Xm1 = fm1.calculate(data_loader, tickers)
 
+        fm2 = FeatureMerger(fc1, fc3, on='ticker')
+        Xm2 = fm2.calculate(data_loader, tickers)
 
+        assert Xm1.shape[0] == X1.shape[0]
+        assert Xm2.shape[0] == X1.shape[0]
+        assert Xm1.shape[1] == X1.shape[1] + X2.shape[1]
+        assert Xm2.shape[1] == X1.shape[1] + X3.shape[1]
+        assert (Xm1.index == X1.index).min()
+        assert (Xm2.index == X1.index).min()
+        
+        new_cols = Xm1.columns[:X1.shape[1]]
+        old_cols = X1.columns
+        for nc, oc in zip(new_cols, old_cols):
+            assert (Xm1[nc] == X1[oc]).min()
 
-
-
-
-
-
-
-
-
+        new_cols = Xm2.columns[:X1.shape[1]]
+        old_cols = X1.columns
+        for nc, oc in zip(new_cols, old_cols):
+            assert (Xm2[nc] == X1[oc]).min()
 
 
 
