@@ -21,6 +21,7 @@ class QuarterlyTarget:
         quarter_dates = quarterly_data['date'].astype(np.datetime64).values
         vals = []
         for date in dates:
+            assert np.datetime64(date) in quarter_dates
             curr_date_mask = quarter_dates == np.datetime64(date)
             curr_quarter_idx = np.where(curr_date_mask)[0][0]
             idx = curr_quarter_idx + self.quarter_shift
@@ -55,6 +56,7 @@ class QuarterlyTarget:
             result.append(ticker_result)
 
         result = pd.concat(result, axis=0)
+        result = result.drop_duplicates(['ticker', 'date'])
         result = pd.merge(info_df, result, on=['ticker', 'date'], how='left')
         result = result.set_index(['ticker', 'date'])
         
@@ -73,7 +75,7 @@ class QuarterlyDiffTarget:
         last_df = self.last_target.calculate(data_loader, info_df)
         curr_df['y'] = curr_df['y'] - last_df['y']
         if self.norm:
-            curr_df['y'] = curr_df['y'] / last_df['y']
+            curr_df['y'] = curr_df['y'] / np.abs(last_df['y'])
 
         return curr_df
 
@@ -83,9 +85,9 @@ class QuarterlyBinDiffTarget:
         self.target = QuarterlyDiffTarget(col=col, norm=False)
     
     def calculate(self, data_loader, info_df):
-        target_df = self.curr_target.calculate(data_loader, info_df)
-        target_df['y'] = target_df['y'] > 0
-
+        target_df = self.target.calculate(data_loader, info_df)
+        target_df.loc[target_df['y'].isnull() == False, 'y'] = \
+            target_df.loc[target_df['y'].isnull() == False, 'y'] > 0
         return target_df
 
 

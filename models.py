@@ -30,7 +30,7 @@ class AnsambleModel:
             idxs = np.random.randint(0, len(X), 
                                      int(len(X) * self.bagging_fraction))
             curr_model = deepcopy(np.random.choice(self.base_models))
-            curr_model.fit(X.iloc[idxs], y.iloc[idxs])
+            curr_model.fit(X[idxs], y[idxs])
             self.models.append(curr_model)
                 
     
@@ -150,10 +150,10 @@ class TimeSeriesOOFModel:
             X_curr = X[curr_mask]
             if len(X_curr) == 0:
                 continue
-            try:            
-                pred = self.base_models[fold_id].predict(X_curr)
+            try:   
+                pred = self.base_models[fold_id].predict_proba(X_curr)[:, 0]         
             except:
-                pred = self.base_models[fold_id].predict_proba(X_curr)[:, 0]
+                pred = self.base_models[fold_id].predict(X_curr)
                                  
             curr_pred_df = pd.DataFrame()
             curr_pred_df['pred'] = pred
@@ -166,10 +166,7 @@ class TimeSeriesOOFModel:
                       
         return pred_df['pred'].values
         
-                    
 
-class OneVsAllModel:
-    None
 
 
 
