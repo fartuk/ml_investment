@@ -67,17 +67,6 @@ class BasePipeline:
 
 
 
-class MiltiTargetPipeline:
-    def __init__(self):
-        None
-        
-    def execute(self, x):
-        return x ** 2
-
-
-
-
-
 
 
 

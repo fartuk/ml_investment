@@ -57,18 +57,6 @@ python3 train/marketcap_diff.py --config_path config.json
 ![plot](./images/marketcap_diff_prediction.png?raw=true "marketcap_prediction")
 Similarly, a higher predicted capitalization may indicate that the company has fundamentally grown more than its value.
 
-### Down-std prediction
-Model is used to evaluate quarter-to-quarter(q2q) company fundamental progress.
-Pipeline consist of calculating q2q results progress(e.g. 30% revenue increase, decrease in debt by 15%) and prediction real q2q marketcap difference. So model prediction may be interpreted as "fair" marketcap change according this fundamental change.
-
-To fit default pre-defined marketcap prediction pipeline run:
-```properties
-python3 train/marketcap_diff.py --config_path config.json
-```
-
-![plot](./images/marketcap_diff_prediction.png?raw=true "marketcap_prediction")
-Similarly, a higher predicted capitalization may indicate that the company has fundamentally grown more than its value.
-
 
 
 ## Features
@@ -77,7 +65,7 @@ Similarly, a higher predicted capitalization may indicate that the company has f
 ## Data
 Expected data from https://www.quandl.com/databases/SF1
 
-    cf1
+    sf1
     ├── core_fundamental        # data from route 
     │   ├── AAPL.json
     │   ├── FB.json
