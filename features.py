@@ -7,12 +7,28 @@ from itertools import repeat
 from sklearn.preprocessing import LabelEncoder
 from tqdm import tqdm
 from copy import deepcopy
+from typing import Optional, Union, List, Dict
 
 from data import SF1Data
 from utils import load_json
 
 
-def calc_series_stats(series, name_prefix=''):
+def calc_series_stats(series: Union[List[float], np.array],
+                      name_prefix: str='') -> Dict[str, np.float]:
+    '''
+    Calculate base statistics on series
+            
+    Parameters
+    ----------
+    series:
+        series by which statistics are calculated
+    name_prefix:
+        string prefix of returned features
+        
+    Returns
+    -------
+        Dict with calculated features 
+    '''
     series = np.array(series).astype('float')
     series = series[~np.isnan(series)] 
     series = list(series)
@@ -32,13 +48,48 @@ def calc_series_stats(series, name_prefix=''):
               
                 
 class FeatureMerger:
-    def __init__(self, fc1, fc2, on):
+    '''
+    Feature calculator that combined two other feature calculators.
+    Both should implements calculate(data_loader, tickers) interface
+    Merge is executed by left. 
+    '''
+    def __init__(self, fc1, fc2, on=Union[str, List[str]]):
+        '''     
+        Parameters
+        ----------
+        fc1:
+            first feature calculator 
+            implements calculate(data_loader, tickers: List[str]) ->
+                                 pd.DataFrame interface
+        fc2:
+            second feature calculator 
+            implements calculate(data_loader, tickers: List[str]) ->
+                                 pd.DataFrame interface
+        on:
+            columns on which merge the results of executed calculate methods
+        '''
         self.fc1 = fc1
         self.fc2 = fc2
         self.on = on
         
         
-    def calculate(self, data_loader, tickers):
+    def calculate(self, data_loader, tickers: List[str]) -> pd.DataFrame:
+        '''     
+        Interface to calculate features for tickers 
+        based on data from data_loader
+        
+        Parameters
+        ----------
+        data_loader:
+            class implements necessary for feature calculators
+            interfaces of data loading
+        tickers:
+            tickers of companies to calculate features for 
+                        
+        Returns
+        -------
+            pd.DataFrame with resulted combined features
+        '''
         X1 = self.fc1.calculate(data_loader, tickers)
         X2 = self.fc2.calculate(data_loader, tickers)
         X = pd.merge(X1, X2, on=self.on, how='left')        
@@ -48,17 +99,39 @@ class FeatureMerger:
 
 
 class QuarterlyFeatures:
+    '''
+    Feature calculator for qaurtrly-based statistics. 
+    Return features for company slices in time.
+    '''
     def __init__(self, 
-                 columns,
-                 quarter_counts=[2, 4, 10],
-                 max_back_quarter=10):
+                 columns: List[str],
+                 quarter_counts: List[int]=[2, 4, 10],
+                 max_back_quarter: int=10):
+        '''     
+        Parameters
+        ----------
+        columns:
+            column names for feature calculation(like revenue, debt etc)
+        quarter_counts:
+            list of number of quarters for statistics calculation. 
+            e.g. if quarter_counts = [2] than statistics will be calculated
+            on current and previous quarter
+        max_back_quarter:
+            max number of company slices in time. 
+            If max_back_quarter = 1 than features will be calculated
+            for only current company quarter. 
+            If max_back_quarter is larger than total number of
+            quarters for company than features will be calculated 
+            for all quarters 
+        '''
         self.columns = columns
         self.quarter_counts = quarter_counts
         self.max_back_quarter = max_back_quarter
         self._data_loader = None
         
 
-    def _calc_series_feats(self, data, str_prefix=''):
+    def _calc_series_feats(self, data: pd.DataFrame,
+                           str_prefix: str='') -> Dict[str, float]:
         result = {}
         for quarter_cnt in self.quarter_counts:
             for col in self.columns:
@@ -67,7 +140,8 @@ class QuarterlyFeatures:
 
                 feats = calc_series_stats(series, name_prefix=name_prefix)
                 diff_feats = calc_series_stats(np.diff(series), 
-                                name_prefix='{}_diff'.format(name_prefix))
+                                               name_prefix='{}_diff'.format(
+                                                    name_prefix))
 
                 result.update(feats)
                 result.update(diff_feats)
@@ -75,7 +149,7 @@ class QuarterlyFeatures:
         return result  
         
         
-    def _single_ticker(self, ticker):
+    def _single_ticker(self, ticker:str) -> List[Dict[str, float]]:
         result = []
         quarterly_data = self._data_loader.load_quarterly_data([ticker])        
         max_back_quarter = min(self.max_back_quarter, len(quarterly_data) - 1)
@@ -95,7 +169,27 @@ class QuarterlyFeatures:
         return result
         
         
-    def calculate(self, data_loader, tickers, n_jobs=10):
+    def calculate(self, data_loader, tickers: List[str],
+                  n_jobs: int=10) -> pd.DataFrame:
+        '''     
+        Interface to calculate features for tickers 
+        based on data from data_loader
+        
+        Parameters
+        ----------
+        data_loader:
+            class implements load_quarterly_data(tickers: List[str]) -> 
+                                                 pd.DataFrame interface
+        tickers:
+            tickers of companies to calculate features for 
+        n_jobs:
+            number of threads                
+                      
+        Returns
+        -------
+            pd.DataFrame with result features and
+            having index ['ticker', 'date']
+        '''
         self._data_loader = data_loader
         p = Pool(n_jobs)
         X = []
@@ -108,17 +202,41 @@ class QuarterlyFeatures:
     
 
 class QuarterlyDiffFeatures:
+    '''
+    Feature calculator for qaurtr-to-another-quarter company
+    indicators(revenue, debt etc) progress evaluation.
+    Return features for company slices in time.
+    '''
     def __init__(self, 
-                 columns,
-                 compare_quarter_idxs=[1, 4],
-                 max_back_quarter=10):
+                 columns: List[str],
+                 compare_quarter_idxs: List[int]=[1, 4],
+                 max_back_quarter: int=10):
+        '''     
+        Parameters
+        ----------
+        columns:
+            column names for feature calculation(like revenue, debt etc)
+        compare_quarter_idxs:
+            list of back quarter idxs for progress calculation. 
+            e.g. if compare_quarter_idxs = [1] than current quarter 
+            will be compared with previous quarter. 
+            If compare_quarter_idxs = [4] than current quarter 
+            will be compared with previous year quarter.
+        max_back_quarter:
+            max number of company slices in time. 
+            If max_back_quarter = 1 than features will be calculated
+            for only current company quarter. 
+            If max_back_quarter is larger than total number of
+            quarters for company than features will be calculated 
+            for all quarters 
+        '''
         self.columns = columns
         self.compare_quarter_idxs = compare_quarter_idxs
         self.max_back_quarter = max_back_quarter
         self._data_loader = None
         
 
-    def _calc_diff_feats(self, data):
+    def _calc_diff_feats(self, data: pd.DataFrame) -> Dict[str, float]:
         result = {}   
         curr_quarter = np.array([data[col].values[0] 
                                     for col in self.columns], dtype='float')              
@@ -137,7 +255,7 @@ class QuarterlyDiffFeatures:
         return result
         
         
-    def _single_ticker(self, ticker):
+    def _single_ticker(self, ticker: str) -> List[Dict[str, float]]:
         result = []
         quarterly_data = self._data_loader.load_quarterly_data([ticker])        
         max_back_quarter = min(self.max_back_quarter, len(quarterly_data) - 1)
@@ -156,7 +274,27 @@ class QuarterlyDiffFeatures:
         return result
         
         
-    def calculate(self, data_loader, tickers, n_jobs=10):
+    def calculate(self, data_loader, tickers: List[str],
+                  n_jobs: int=10) -> pd.DataFrame:
+        '''     
+        Interface to calculate features for tickers 
+        based on data from data_loader
+        
+        Parameters
+        ----------
+        data_loader:
+            class implements load_quarterly_data(tickers: List[str]) -> 
+                                                 pd.DataFrame interface
+        tickers:
+            tickers of companies to calculate features for 
+        n_jobs:
+            number of threads                
+                      
+        Returns
+        -------
+            pd.DataFrame with result features and
+            having index ['ticker', 'date']
+        '''
         self._data_loader = data_loader
         p = Pool(n_jobs)
         X = []
@@ -170,11 +308,40 @@ class QuarterlyDiffFeatures:
 
 
 class BaseCompanyFeatures:
-    def __init__(self, cat_columns):
+    '''
+    Feature calculator for base calculating/processing base
+    company information(sector, industry etc). 
+    Encode categorical columns via label encoding. 
+    Return features for current company state.
+    '''
+    def __init__(self, cat_columns:List[str]):
+        '''     
+        Parameters
+        ----------
+        cat_columns:
+            column names of categorical features for encoding
+        '''
         self.cat_columns = cat_columns
         self.col_to_encoder = {}
 
-    def calculate(self, data_loader, tickers):
+    def calculate(self, data_loader, tickers: List[str]) -> pd.DataFrame:
+        '''     
+        Interface to calculate features for tickers 
+        based on data from data_loader
+        
+        Parameters
+        ----------
+        data_loader:
+            class implements load_base_data(tickers: List[str]) -> 
+                                            pd.DataFrame interface
+        tickers:
+            tickers of companies to calculate features for             
+                      
+        Returns
+        -------
+            pd.DataFrame with result features and
+            having index ['ticker']
+        '''        
         base_df = data_loader.load_base_data()
         is_fitted = True if len(self.col_to_encoder) > 0 else False
         for col in self.cat_columns:
@@ -197,9 +364,6 @@ class BaseCompanyFeatures:
         
         return result
 
-
-class PriceFeatures:
-    None
 
 
 

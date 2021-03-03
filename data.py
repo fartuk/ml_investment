@@ -92,7 +92,7 @@ class SF1Data:
         
         
     def load_quarterly_data(self, 
-                            ticker_list: List[str], 
+                            tickers: List[str], 
                             quarter_count: Optional[int]=None,
                             dimension: Optional[str]='ARQ') -> pd.DataFrame:
         '''
@@ -100,7 +100,7 @@ class SF1Data:
         
         Parameters
         ----------
-        ticker_list:
+        tickers:
             tickers of returned companies
         quarter_count:
             maximum last quarter to return  
@@ -112,7 +112,7 @@ class SF1Data:
             pd.DataFrame with quarterly information
         '''
         result = []
-        for ticker in ticker_list:
+        for ticker in tickers:
             path = '{}/core_fundamental/{}.json'.format(self.data_path, ticker)
             if not os.path.exists(path):
                 continue
@@ -128,14 +128,14 @@ class SF1Data:
         return result
 
 
-    def load_daily_data(self, ticker_list: List[str], 
+    def load_daily_data(self, tickers: List[str], 
                         back_days:Optional[int]=None) -> pd.DataFrame:
         '''
         Load daily information about company(marketcap, pe etc)
         
         Parameters
         ----------
-        ticker_list:
+        tickers:
             tickers of returned companies 
         back_days:
             SF1 dataset-based parameter
@@ -147,7 +147,7 @@ class SF1Data:
         if back_days is None:
             back_days = int(1e5)    
         result = []
-        for ticker in tqdm(ticker_list):
+        for ticker in tqdm(tickers):
             path = '{}/daily/{}.json'.format(self.data_path, ticker)
             if not os.path.exists(path):
                 continue
