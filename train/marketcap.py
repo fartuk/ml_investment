@@ -20,7 +20,7 @@ if __name__ == '__main__':
     pipeline_config = config['pipelines']['marketcap']
 
     data_loader = SF1Data(config['sf1_data_path'])
-    tickers_df = data_loader.load_tickers(
+    tickers_df = data_loader.load_base_data(
         currency=pipeline_config['currency'],
         scalemarketcap=pipeline_config['scalemarketcap'])
     ticker_list = tickers_df['ticker'].unique().tolist()
@@ -49,7 +49,8 @@ if __name__ == '__main__':
                             model=model, 
                             metric=median_absolute_relative_error)
                             
-    pipeline.fit(data_loader, ticker_list)
+    result = pipeline.fit(data_loader, ticker_list)
+    print(result)
     pipeline.export_core('models_data/marketcap')    
     
     

@@ -21,7 +21,7 @@ if __name__ == '__main__':
     pipeline_config = config['pipelines']['marketcap_diff']
 
     data_loader = SF1Data(config['sf1_data_path'])
-    tickers_df = data_loader.load_tickers(
+    tickers_df = data_loader.load_base_data(
         currency=pipeline_config['currency'],
         scalemarketcap=pipeline_config['scalemarketcap'])
     ticker_list = tickers_df['ticker'].unique().tolist()
@@ -36,7 +36,7 @@ if __name__ == '__main__':
         
     fc3 = QuarterlyDiffFeatures(
         columns=pipeline_config['quarter_columns'],
-        compare_idxs=[1, 4],
+        compare_quarter_idxs=pipeline_config['compare_quarter_idxs'],
         max_back_quarter=pipeline_config['max_back_quarter'])
                             
     feature = FeatureMerger(fc1, fc2, on='ticker')

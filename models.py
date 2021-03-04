@@ -45,12 +45,12 @@ class AnsambleModel:
         self.models = []
         
      
-    def fit(self, X, y):
+    def fit(self, X: pd.DataFrame, y: pd.Series):
         for _ in tqdm(range(self.model_cnt)):
             idxs = np.random.randint(0, len(X), 
                                      int(len(X) * self.bagging_fraction))
             curr_model = deepcopy(np.random.choice(self.base_models))
-            curr_model.fit(X[idxs], y[idxs])
+            curr_model.fit(X.iloc[idxs], y.iloc[idxs])
             self.models.append(curr_model)
                 
     

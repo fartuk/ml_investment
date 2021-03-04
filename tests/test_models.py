@@ -20,8 +20,8 @@ def gen_data(cnt):
     x2 = np.expand_dims(x2, axis=1)
     X = np.concatenate([x1, x2], axis=1)
     y = np.exp(y)
-
-    return X, y
+    
+    return pd.DataFrame(X), pd.DataFrame(y).rename({0: 'y'}, axis=1)
     
     
 class TestLogExpModel:
@@ -62,16 +62,16 @@ class TestAnsambleModel:
     def test_fit_predict(self):
         X, y = gen_data(1000)
         base_model = LinearRegression()
-        base_model.fit(X[:600], y[:600])
+        base_model.fit(X[:600], y['y'][:600])
         pred = base_model.predict(X[600:])
-        base_score = mean_squared_error(y[600:], pred)
+        base_score = mean_squared_error(y['y'][600:], pred)
 
         model = AnsambleModel([LinearRegression(), 
                                lgbm.sklearn.LGBMRegressor()], 
                                bagging_fraction=0.8,
                                model_cnt=20)
                                
-        model.fit(X[:600], y[:600])
+        model.fit(X[:600], y['y'][:600])
         pred = model.predict(X[600:])
         ans_score = mean_squared_error(y[600:], pred)
         assert len(model.models) == 20
@@ -83,7 +83,7 @@ class TestAnsambleModel:
                                ConstModel(1)], 
                                bagging_fraction=0.8,
                                model_cnt=5000)
-        model.fit(X[:600], y[:600])
+        model.fit(X[:600], y['y'][:600])
         pred = model.predict(X[600:])
         assert len(set(pred)) == 1
         assert np.abs(pred[0]) < 0.1
@@ -92,7 +92,7 @@ class TestAnsambleModel:
                                ConstModel(1)], 
                                bagging_fraction=0.8,
                                model_cnt=5000)
-        model.fit(X[:600], y[:600])
+        model.fit(X[:600], y['y'][:600])
         pred = model.predict(X[600:])
         assert len(set(pred)) == 1
         assert pred[0] == 1
@@ -101,7 +101,7 @@ class TestAnsambleModel:
                                lgbm.sklearn.LGBMClassifier()], 
                                bagging_fraction=0.8,
                                model_cnt=20)
-        model.fit(X[:600], np.log(y)[:600] > 0)
+        model.fit(X[:600], np.log(y['y'])[:600] > 0)
         pred = model.predict(X[600:])
         assert (pred >= 0).min()
         assert (pred <= 1).min()

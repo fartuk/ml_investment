@@ -52,7 +52,7 @@ class QuandlDownloader:
 
             
     def ticker_download(self, base_url_route, ticker_list, save_dirpath,
-                 skip_exists=False, batch_size=10, n_jobs=12):
+                 skip_exists=False, batch_size=5, n_jobs=12):
         self._save_dirpath = save_dirpath
         self._base_url_route = base_url_route
         os.makedirs(save_dirpath, exist_ok=True)
