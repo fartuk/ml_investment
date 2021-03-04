@@ -13,7 +13,7 @@ Simple example of pipeline creation:
     fc1 = QuarterlyFeatures(
         columns=["revenue", "netinc", "debt"],
         quarter_counts=[2, 4, 10],
-        max_back_quarter=10)
+        max_back_quarter=5)
 
     fc2 = BaseCompanyFeatures(
         cat_columns=["sector", "sicindustry"])
@@ -32,6 +32,20 @@ Simple example of pipeline creation:
     pipeline.fit(data_loader, ['AAPL', 'TSLA', 'NVDA', 'K'])
     pipeline.export_core('models_data/marketcap')
 ```
+
+Example of loading and executing pipeline
+```python3
+pipeline = BasePipeline.load('models_data/marketcap.pickle')
+pipeline.execute(data_loader, ['INTC'])
+```
+ticker | date | y 
+--- | --- | --- 
+INTC | 2021-01-22 | 4.363793e+11 
+INTC | 2020-10-23 | 2.924576e+11
+INTC | 2020-07-24 | 3.738603e+11
+INTC | 2020-04-24 | 3.766202e+11 
+INTC | 2020-01-24 | 4.175332e+11
+
 
 ### Marketcap evaluation
 Model is used to estimate **current** fair company marketcap. 
@@ -72,7 +86,7 @@ class DataLoader:
     def load_daily_data(self, tickers: List[str]) -> pd.DataFrame:
         None
 ```
-There are pre-defined [SF1Data](data.py#L1) class implements this structure.
+There are pre-defined [SF1Data](data.py#L11) class implements this structure.
 It is based on the data from https://www.quandl.com/databases/SF1
 
     sf1
