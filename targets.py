@@ -2,6 +2,7 @@ import numpy as np
 import pandas as pd
 from multiprocessing import Pool
 from tqdm import tqdm
+from typing import List, Tuple
 from data import SF1Data
 
 
@@ -9,13 +10,33 @@ from data import SF1Data
 
 
 class QuarterlyTarget:
-    def __init__(self, col, quarter_shift:int=0):
+    '''
+    Calculator of target represented as column in quarter-based data.
+    Work with time slices of company.
+    '''
+    def __init__(self, col: str, quarter_shift: int=0):
+        '''     
+        Parameters
+        ----------
+        col:
+            column name for target calculation(like marketcap, revenue)
+        quarter_shift:
+            number of quarters to shift. 
+            e.g. if quarter_shift = 0 than value for current quarter 
+            will be returned. 
+            If quarter_shift = 1 than value for previous quarter 
+            will be returned.
+            If quarter_shift = -1 than value for next quarter 
+            will be returned.
+        '''
         self.col = col
         self.quarter_shift = quarter_shift
         self._data_loader = None
         
         
-    def _single_ticker_target(self, ticker_and_dates):
+    def _single_ticker_target(self, 
+                              ticker_and_dates: Tuple[str,
+                                                      List]) -> pd.DataFrame:
         ticker, dates = ticker_and_dates
         quarterly_data = self._data_loader.load_quarterly_data([ticker])[::-1]
         quarter_dates = quarterly_data['date'].astype(np.datetime64).values
@@ -40,9 +61,23 @@ class QuarterlyTarget:
         return result        
         
 
-    def calculate(self, data_loader, info_df):
-        '''
-        info_df: pd.DataFrame. Should have columns: ["ticker", "date"] 
+    def calculate(self, data_loader, info_df: pd.DataFrame) -> pd.DataFrame:
+        '''     
+        Interface to calculate targets for dates and tickers in info_df
+        based on data from data_loader
+        
+        Parameters
+        ----------
+        data_loader:
+            class implements load_quarterly_data(tickers: List[str]) -> 
+                                                 pd.DataFrame interface
+        info_df:
+            pd.DataFrame containing information of tickers and dates
+            to calculate targets for. Should have columns: ["ticker", "date"].               
+                      
+        Returns
+        -------
+            pd.DataFrame with targets having 'y' column
         '''
         self._data_loader = data_loader
         grouped = info_df.groupby('ticker')['date'].apply(lambda x:
@@ -64,13 +99,43 @@ class QuarterlyTarget:
 
 
 class QuarterlyDiffTarget:
-    def __init__(self, col, norm=True):
+    '''
+    Calculator of target represented as difference between column values
+    in current and previous quarter.
+    Work with time slices of company.
+    '''
+    def __init__(self, col: str, norm: bool=True):
+        '''     
+        Parameters
+        ----------
+        col:
+            column name for target calculation(like marketcap, revenue)
+        norm:
+            normalize difference to previous quarter or not
+        '''
         self.curr_target = QuarterlyTarget(col=col, quarter_shift=0)
         self.last_target = QuarterlyTarget(col=col, quarter_shift=-1)
         self.norm = norm
 
     
-    def calculate(self, data_loader, info_df):
+    def calculate(self, data_loader, info_df: pd.DataFrame) -> pd.DataFrame:
+        '''     
+        Interface to calculate targets for dates and tickers in info_df
+        based on data from data_loader
+        
+        Parameters
+        ----------
+        data_loader:
+            class implements load_quarterly_data(tickers: List[str]) -> 
+                                                 pd.DataFrame interface
+        info_df:
+            pd.DataFrame containing information of tickers and dates
+            to calculate targets for. Should have columns: ["ticker", "date"].               
+                      
+        Returns
+        -------
+            pd.DataFrame with targets having 'y' column
+        '''
         curr_df = self.curr_target.calculate(data_loader, info_df)
         last_df = self.last_target.calculate(data_loader, info_df)
         curr_df['y'] = curr_df['y'] - last_df['y']
@@ -81,13 +146,42 @@ class QuarterlyDiffTarget:
 
 
 class QuarterlyBinDiffTarget:
-    def __init__(self, col, norm=True):
+    '''
+    Calculator of target represented as binary difference 
+    between column values in current and previous quarter.
+    Work with time slices of company.
+    '''
+    def __init__(self, col):
+        '''     
+        Parameters
+        ----------
+        col:
+            column name for target calculation(like marketcap, revenue)
+        '''
         self.target = QuarterlyDiffTarget(col=col, norm=False)
     
-    def calculate(self, data_loader, info_df):
+    def calculate(self, data_loader, info_df: pd.DataFrame) -> pd.DataFrame:
+        '''
+        Interface to calculate targets for dates and tickers in info_df
+        based on data from data_loader
+        
+        Parameters
+        ----------
+        data_loader:
+            class implements load_quarterly_data(tickers: List[str]) -> 
+                                                 pd.DataFrame interface
+        info_df:
+            pd.DataFrame containing information of tickers and dates
+            to calculate targets for. Should have columns: ["ticker", "date"].               
+                      
+        Returns
+        -------
+            pd.DataFrame with targets having 'y' column
+        '''
         target_df = self.target.calculate(data_loader, info_df)
         target_df.loc[target_df['y'].isnull() == False, 'y'] = \
             target_df.loc[target_df['y'].isnull() == False, 'y'] > 0
+            
         return target_df
 
 

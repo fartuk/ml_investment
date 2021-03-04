@@ -7,7 +7,7 @@ from itertools import repeat
 from sklearn.preprocessing import LabelEncoder
 from tqdm import tqdm
 from copy import deepcopy
-from typing import Optional, Union, List, Dict
+from typing import Union, List, Dict
 
 from data import SF1Data
 from utils import load_json
@@ -228,7 +228,7 @@ class QuarterlyDiffFeatures:
             for only current company quarter. 
             If max_back_quarter is larger than total number of
             quarters for company than features will be calculated 
-            for all quarters 
+            for all quarters
         '''
         self.columns = columns
         self.compare_quarter_idxs = compare_quarter_idxs

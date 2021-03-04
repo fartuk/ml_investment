@@ -38,7 +38,8 @@ class BasePipeline:
 
         self.core['model'].fit(X, y['y'])
         pred = self.core['model'].predict(X)
-        print(self.metric(y['y'].values, pred))
+        
+        return {'metric': self.metric(y['y'].values, pred)}
 
 
     def execute(self, data_loader, tickers):
