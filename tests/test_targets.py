@@ -2,7 +2,8 @@ import pytest
 import pandas as pd
 import numpy as np
 from data import SF1Data
-from targets import QuarterlyTarget, QuarterlyDiffTarget, QuarterlyBinDiffTarget
+from targets import QuarterlyTarget, QuarterlyDiffTarget, \
+                    QuarterlyBinDiffTarget, DailyAggTarget
 from utils import load_json
 config = load_json('config.json')
 
@@ -18,6 +19,17 @@ class Data1:
         df['marketcap'] = [10, 3, -5, 25, 1e5, 2]
             
         return df
+
+
+    def load_daily_data(self, tickers):
+        df = pd.DataFrame()
+        df['date'] = ['2018-11-08', '2018-11-07', '2018-11-06', '2018-11-05',
+                      '2018-11-04', '2018-11-03', '2018-11-02', '2018-11-01'] 
+        df['ticker'] = ['A'] * 8
+        df['marketcap'] = [10, 3, -5, 25, 100, 2, 23., -7]
+            
+        return df
+
             
 class TestQuarterlyTarget:       
     @pytest.mark.parametrize(
@@ -151,6 +163,75 @@ class TestQuarterlyBinDiffTarget:
         info_df.columns = ['ticker', 'date']   
         y = target.calculate(data_loader, info_df)
         np.testing.assert_array_equal(y['y'].values.astype('float'), expected)
+
+
+class TestDailyAggTarget:
+    @pytest.mark.parametrize(
+        ["ticker_dates", "horizon", "foo", "expected"],
+        [([['A', '2018-11-05']], 1, np.mean, [25]), 
+         ([['A', '2018-11-05']], 3, np.mean, [23 / 3]), 
+         ([['A', '2018-11-05'], ['A', '2018-11-01']], -2, np.mean, 
+          [51, np.nan]),
+         ([['A', '2018-11-05'], ['A', '2018-11-01']], 3, np.max, 
+          [25, 23])]
+    )        
+    def test_calculate_synth(self, ticker_dates, horizon, foo, expected):
+        data_loader = Data1()
+        target = DailyAggTarget('marketcap', horizon=horizon, foo=foo)
+        info_df = pd.DataFrame(ticker_dates)
+        info_df.columns = ['ticker', 'date']   
+        y = target.calculate(data_loader, info_df)
+        np.testing.assert_array_equal(y['y'].values.astype('float'), expected)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

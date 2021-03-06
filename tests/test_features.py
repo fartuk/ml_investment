@@ -13,39 +13,46 @@ config = load_json('config.json')
 
 
 @pytest.mark.parametrize(
-    ["series", "expected"],
-    [([10, 0, 1], 
+    ["series", "norm", "expected"],
+    [([10, 0, 1], False,
       {'_mean': 3.6666666666666665,
        '_median': 1.0,
        '_max': 10.0,
        '_min': 0.0,
        '_std': 4.4969125210773475}),
-     ([10, -30, 1, 4, 15.2], 
+     ([10, -30, 1, 4, 15.2],  False,
       {'_mean': 0.039999999999999855,
        '_median': 4.0,
        '_max': 15.2,
        '_min': -30.0,
        '_std': 15.798936673080249}), 
-     ([1],
+     ([1],  False,
       {'_mean': 1.0,
        '_median': 1.0,
        '_max': 1.0,
        '_min': 1.0,
-       '_std': 0.0} )]
+       '_std': 0.0} ),
+     ([10, -30, 1, 4, 15.2],  True,
+      {'_mean': 0.0039999999999999855,
+       '_median': .4,
+       '_max': 1.52,
+       '_min': -3.0,
+       '_std': 1.5798936673080249})]
 )
-def test_calc_series_stats(series, expected):
-    result = calc_series_stats(series)
+def test_calc_series_stats(series, norm, expected):
+    result = calc_series_stats(series, norm=norm)
     assert type(result) == dict
     assert len(result) == len(expected)
     assert result.keys() == expected.keys()
     for key in result:
         assert np.isclose(result[key], expected[key])
         
-    np.random.seed(0)
-    np.random.shuffle(series)
-    result = calc_series_stats(series)
-    for key in result:
-        assert np.isclose(result[key], expected[key])
+    if norm == False:
+        np.random.seed(0)
+        np.random.shuffle(series)
+        result = calc_series_stats(series, norm=norm)
+        for key in result:
+            assert np.isclose(result[key], expected[key])
 
 
 def test_calc_series_stats_nans():

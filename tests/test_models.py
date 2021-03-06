@@ -28,19 +28,19 @@ class TestLogExpModel:
     def test_fit_predict(self):
         X, y = gen_data(1000)
         model = LogExpModel(lgbm.sklearn.LGBMRegressor())
-        model.fit(X[:600], y[:600])
+        model.fit(X[:600], y['y'][:600])
         pred = model.predict(X[600:])
         base_pred = model.base_model.predict(X[600:])
         np.testing.assert_array_almost_equal(base_pred, np.log(pred))    
         assert type(model.base_model) == lgbm.sklearn.LGBMRegressor
 
         base_model = LinearRegression()
-        base_model.fit(X[:600], y[:600])
+        base_model.fit(X[:600], y['y'][:600])
         pred = base_model.predict(X[600:])
-        base_score = mean_squared_error(y[600:], pred)
+        base_score = mean_squared_error(y['y'][600:], pred)
 
         model = LogExpModel(LinearRegression())
-        model.fit(X[:600], y[:600])
+        model.fit(X[:600], y['y'][:600])
         pred = model.predict(X[600:])
         logexp_score = mean_squared_error(y[600:], pred)
 

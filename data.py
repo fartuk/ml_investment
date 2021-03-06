@@ -124,7 +124,8 @@ class SF1Data:
             result.append(df)
             
         result = pd.concat(result, axis=0).reset_index(drop=True)
-                         
+        result['date'] = result['date'].astype(np.datetime64) 
+         
         return result
 
 
@@ -147,7 +148,7 @@ class SF1Data:
         if back_days is None:
             back_days = int(1e5)    
         result = []
-        for ticker in tqdm(tickers):
+        for ticker in tickers:
             path = '{}/daily/{}.json'.format(self.data_path, ticker)
             if not os.path.exists(path):
                 continue
@@ -155,6 +156,8 @@ class SF1Data:
             result.append(daily_df)
             
         result = pd.concat(result, axis=0).reset_index(drop=True)
+        result = result.infer_objects()
+        result['marketcap'] = result['marketcap'].astype(float) * 1e6
         
         return result
 

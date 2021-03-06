@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 from multiprocessing import Pool
 from tqdm import tqdm
-from typing import List, Tuple
+from typing import List, Tuple, Callable
 from data import SF1Data
 
 
@@ -24,9 +24,9 @@ class QuarterlyTarget:
             number of quarters to shift. 
             e.g. if quarter_shift = 0 than value for current quarter 
             will be returned. 
-            If quarter_shift = 1 than value for previous quarter 
+            If quarter_shift = 1 than value for next quarter 
             will be returned.
-            If quarter_shift = -1 than value for next quarter 
+            If quarter_shift = -1 than value for previous quarter 
             will be returned.
         '''
         self.col = col
@@ -187,7 +187,92 @@ class QuarterlyBinDiffTarget:
 
 
 
+class DailyAggTarget:
+    '''
+    Calculator of target represented as aggregation function of daily values.
+    Work with daily slices of company.
+    '''
+    def __init__(self, col: str, horizon: int=100, foo: Callable=np.mean):
+        '''     
+        Parameters
+        ----------
+        col:
+            column name for target calculation(like marketcap, pe)
+        horizon:
+            number of days for target calculation.
+            If horizon > 0 than values will be get 
+            from the feuture of current date
+            If horizon < 0 than values will be get 
+            from the past of current date
+        foo:
+            function processing target aggregation
+        '''
+        self.col = col
+        self.horizon = horizon
+        self.foo = foo
+        self._data_loader = None
+        
+        
+    def _single_ticker_target(self, 
+                              ticker_and_dates: Tuple[str,
+                                                      List]) -> pd.DataFrame:
+        ticker, dates = ticker_and_dates
+        daily_data = self._data_loader.load_daily_data([ticker])[::-1]
+        daily_dates = daily_data['date'].astype(np.datetime64).values
+        vals = []
+        for date in dates:
+            if self.horizon >= 0:
+                series = daily_data[daily_dates >= np.datetime64(date)]
+                series = series[self.col].values[:self.horizon]
+            else:
+                series = daily_data[daily_dates < np.datetime64(date)]
+                series = series[self.col].values[self.horizon:]                
+                               
+            vals.append(self.foo(series.astype(float)))
 
+        result = pd.DataFrame()
+        result['y'] = vals
+        result['date'] = dates
+        result['ticker'] = ticker
+
+        return result        
+        
+
+    def calculate(self, data_loader, info_df: pd.DataFrame) -> pd.DataFrame:
+        '''
+        Interface to calculate targets for dates and tickers in info_df
+        based on data from data_loader
+        
+        Parameters
+        ----------
+        data_loader:
+            class implements load_daily_data(tickers: List[str]) -> 
+                                                 pd.DataFrame interface
+        info_df:
+            pd.DataFrame containing information of tickers and dates
+            to calculate targets for. Should have columns: ["ticker", "date"].               
+                      
+        Returns
+        -------
+            pd.DataFrame with targets having 'y' column
+        '''
+        self._data_loader = data_loader
+        grouped = info_df.groupby('ticker')['date'].apply(lambda x:
+                  x.tolist()).reset_index()
+        params = [(ticker, dates) for ticker, dates in grouped.values]
+
+        n_jobs=10
+        p = Pool(n_jobs)
+        result = []
+        for ticker_result in tqdm(p.imap(self._single_ticker_target, params)):
+            result.append(ticker_result)
+
+        result = pd.concat(result, axis=0)
+        result = result.drop_duplicates(['ticker', 'date'])
+        result = pd.merge(info_df, result, on=['ticker', 'date'], how='left')
+        result = result.set_index(['ticker', 'date'])
+        
+        return result
 
 
 

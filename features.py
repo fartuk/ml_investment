@@ -14,7 +14,8 @@ from utils import load_json
 
 
 def calc_series_stats(series: Union[List[float], np.array],
-                      name_prefix: str='') -> Dict[str, np.float]:
+                      name_prefix: str='',
+                      norm: bool=False) -> Dict[str, np.float]:
     '''
     Calculate base statistics on series
             
@@ -24,6 +25,8 @@ def calc_series_stats(series: Union[List[float], np.array],
         series by which statistics are calculated
     name_prefix:
         string prefix of returned features
+    norm:
+        normilize resulted statistics to first element or not
         
     Returns
     -------
@@ -42,6 +45,9 @@ def calc_series_stats(series: Union[List[float], np.array],
             '{}_min'.format(name_prefix): np.min(series),
             '{}_std'.format(name_prefix): np.std(series),
             }
+    
+    if norm:
+        stats = {key: stats[key] / series[0] for key in stats}
     
     return stats
     
@@ -101,7 +107,7 @@ class FeatureMerger:
 class QuarterlyFeatures:
     '''
     Feature calculator for qaurtrly-based statistics. 
-    Return features for company slices in time.
+    Return features for company quarter slices.
     '''
     def __init__(self, 
                  columns: List[str],
@@ -205,7 +211,7 @@ class QuarterlyDiffFeatures:
     '''
     Feature calculator for qaurtr-to-another-quarter company
     indicators(revenue, debt etc) progress evaluation.
-    Return features for company slices in time.
+    Return features for company quarter slices.
     '''
     def __init__(self, 
                  columns: List[str],
@@ -366,11 +372,91 @@ class BaseCompanyFeatures:
 
 
 
+class DailyAggQuarterFeatures:
+    '''
+    Feature calculator for daily-based statistics for quarter slices.
+    Return features for company quarter slices.
+    '''
+    def __init__(self, 
+                 columns: List[str], 
+                 agg_day_counts: List[int] = [100, 200], 
+                 max_back_quarter: int=10):
+        self.columns = columns
+        self.agg_day_counts = agg_day_counts
+        self.max_back_quarter = max_back_quarter
+        
+        
+    def _calc_series_feats(self, data: pd.DataFrame,
+                           str_prefix: str='') -> Dict[str, float]:
+        result = {}
+        for day_cnt in self.agg_day_counts:
+            for col in self.columns:
+                series = data[col].values[:day_cnt][::-1].astype('float')
+                name_prefix = 'days{}_{}'.format(day_cnt, col)
+                feats = calc_series_stats(series, name_prefix=name_prefix,
+                                          norm=True)
 
+                result.update(feats)
+                               
+        return result   
+           
+        
+    def _single_ticker(self, ticker: str) -> List[Dict[str, float]]:
+        result = []
+        quarterly_data = self._data_loader.load_quarterly_data([ticker])
+        daily_data = self._data_loader.load_daily_data([ticker])     
+        daily_dates = daily_data['date'].astype(np.datetime64).values      
+        max_back_quarter = min(self.max_back_quarter, len(quarterly_data) - 1)
+        for back_quarter in range(max_back_quarter):
+            curr_data = quarterly_data[back_quarter:]
+            curr_date = curr_data['date'].values[0]
+            
+            feats = {
+                'ticker': ticker, 
+                'date': curr_date,
+            }
+            
+            curr_daily_data = daily_data[daily_dates < np.datetime64(curr_date)]
+            daily_feats = calc_series_stats(curr_daily_data)
+            feats.update(daily_feats)
 
+            result.append(feats)
+           
+        return result
+        
+                
+    def calculate(self, data_loader, tickers: List[str],
+                  n_jobs: int=10) -> pd.DataFrame:
+        '''     
+        Interface to calculate features for tickers 
+        based on data from data_loader
+        
+        Parameters
+        ----------
+        data_loader:
+            class implements 
+            load_quarterly_data(tickers: List[str]) -> pd.DataFrame 
+            load_daily_data(tickers: List[str]) -> pd.DataFrame             
+            interfaces
+        tickers:
+            tickers of companies to calculate features for 
+        n_jobs:
+            number of threads                
+                      
+        Returns
+        -------
+            pd.DataFrame with result features and
+            having index ['ticker', 'date']
+        '''
+        self._data_loader = data_loader
+        p = Pool(n_jobs)
+        X = []
+        for ticker_feats_arr in tqdm(p.imap(self._single_ticker, tickers)):
+            X.extend(ticker_feats_arr)
 
+        X = pd.DataFrame(X).set_index(['ticker', 'date'])
 
-
+        return X
 
 
 
