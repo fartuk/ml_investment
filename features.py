@@ -47,7 +47,7 @@ def calc_series_stats(series: Union[List[float], np.array],
             }
     
     if norm:
-        stats = {key: stats[key] / series[0] for key in stats}
+        stats = {key: stats[key] / np.abs(series[0]) for key in stats}
     
     return stats
     
@@ -417,7 +417,7 @@ class DailyAggQuarterFeatures:
             }
             
             curr_daily_data = daily_data[daily_dates < np.datetime64(curr_date)]
-            daily_feats = calc_series_stats(curr_daily_data)
+            daily_feats = self._calc_series_feats(curr_daily_data)
             feats.update(daily_feats)
 
             result.append(feats)

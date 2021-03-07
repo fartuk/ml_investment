@@ -4,7 +4,8 @@ import pandas as pd
 import numpy as np
 from data import SF1Data
 from features import calc_series_stats, QuarterlyFeatures, BaseCompanyFeatures,\
-                     QuarterlyDiffFeatures, FeatureMerger
+                     QuarterlyDiffFeatures, FeatureMerger, \
+                     DailyAggQuarterFeatures
 from utils import load_json
 config = load_json('config.json')
 
@@ -89,6 +90,18 @@ class Data:
             df[col] = np.random.uniform(-1e5, 1e5, size)
         
         return df
+        
+    def load_daily_data(self, tickers):
+        size=500
+        df = pd.DataFrame()
+        df['ticker'] = tickers * size
+        df['date'] = np.datetime64('now')
+        np.random.seed(int_hash(str(tickers)))
+        for col in self.columns:
+            df[col] = np.random.uniform(-1e5, 1e5, size)
+        
+        return df        
+        
         
     def load_base_data(self):
          df = pd.DataFrame()
@@ -299,7 +312,43 @@ class TestFeatureMerger:
 
 
 
+class TestDailyAggQuarterFeatures:
+    @pytest.mark.parametrize(
+        ["tickers", "columns", "agg_day_counts", "max_back_quarter"],
+        [(['AAPL', 'TSLA'], ['marketcap'], [100], 10), 
+         (['NVDA', 'TSLA'], ['marketcap'], [100, 200], 5), 
+         (['AAPL', 'NVDA', 'TSLA', 'WORK'], ['marketcap', 'pe'], [50, 200], 10), 
+         (['AAPL', 'ZLG'], ['marketcap', 'pe'], [50, 200], 5)]
+    )
+    def test_calculate(self, tickers, columns, 
+                       agg_day_counts, max_back_quarter):
+        fc = DailyAggQuarterFeatures(columns=columns,
+                                     agg_day_counts=agg_day_counts,
+                                     max_back_quarter=max_back_quarter)
+                            
+        data_loader = SF1Data(config['sf1_data_path'])
+        X = fc.calculate(data_loader, tickers)
+                
+        assert type(X) == pd.DataFrame
+        assert 'ticker' in X.index.names
+        assert 'date' in X.index.names
+       
+        assert X.shape[0] <= max_back_quarter * len(tickers)     
+        assert X.shape[1] == len(calc_series_stats([])) * \
+                             len(columns) * len(agg_day_counts)
+                                    
 
+        for col in columns:
+            for count in agg_day_counts:
+                min_col = 'days{}_{}_min'.format(count, col)
+                max_col = 'days{}_{}_max'.format(count, col)
+                mean_col = 'days{}_{}_mean'.format(count, col)
+                median_col = 'days{}_{}_median'.format(count, col)
+                assert (X[max_col] >= X[min_col]).min()                
+                assert (X[max_col] >= X[mean_col]).min()                
+                assert (X[max_col] >= X[median_col]).min()                
+                assert (X[mean_col] >= X[min_col]).min()                
+                assert (X[median_col] >= X[min_col]).min()  
 
 
 

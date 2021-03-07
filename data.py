@@ -158,7 +158,8 @@ class SF1Data:
         result = pd.concat(result, axis=0).reset_index(drop=True)
         result = result.infer_objects()
         result['marketcap'] = result['marketcap'].astype(float) * 1e6
-        
+        result['date'] = result['date'].astype(np.datetime64) 
+                
         return result
 
 
