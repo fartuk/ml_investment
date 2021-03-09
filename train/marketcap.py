@@ -3,7 +3,8 @@ import lightgbm as lgbm
 import catboost as ctb
 from utils import load_json
 from data import SF1Data
-from features import QuarterlyFeatures, BaseCompanyFeatures, FeatureMerger
+from features import QuarterlyFeatures, BaseCompanyFeatures, FeatureMerger, \
+                     DailyAggQuarterFeatures
 from targets import QuarterlyTarget
 from models import GroupedOOFModel, AnsambleModel, LogExpModel
 from metrics import median_absolute_relative_error
@@ -33,14 +34,25 @@ if __name__ == '__main__':
     fc2 = BaseCompanyFeatures(
         cat_columns=pipeline_config['cat_columns'])
 
+    # Daily agss on marketcap and pe is possible here because it 
+    # normalized and there are no leakage.
+    fc3 = DailyAggQuarterFeatures(
+        columns=pipeline_config['daily_agg_columns'],
+        agg_day_counts=pipeline_config['agg_day_counts'],
+        max_back_quarter=pipeline_config['max_back_quarter'])
+    
     feature = FeatureMerger(fc1, fc2, on='ticker')
+    feature = FeatureMerger(feature, fc3, on=['ticker', 'date'])
+
     target = QuarterlyTarget(col='marketcap', quarter_shift=0)
 
     base_models = [LogExpModel(lgbm.sklearn.LGBMRegressor()),
                    LogExpModel(ctb.CatBoostRegressor(verbose=False))]
                    
-    ansamble = AnsambleModel(base_models=base_models, 
-                             bagging_fraction=0.7, model_cnt=20)
+    ansamble = AnsambleModel(
+        base_models=base_models, 
+        bagging_fraction=pipeline_config['bagging_fraction'],
+        model_cnt=pipeline_config['model_cnt'])
 
     model = GroupedOOFModel(ansamble, group_column='ticker', fold_cnt=5)
 

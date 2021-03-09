@@ -50,9 +50,10 @@ class SF1Data:
         if len(df) == 0:
             columns = [x['name'] for x in data['datatable']['columns']]
             df = pd.DataFrame(columns=columns)
-            df = df.infer_objects()
         else:
             df.columns = [x['name'] for x in data['datatable']['columns']]
+
+        df = df.infer_objects()
  
         return df
         

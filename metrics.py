@@ -12,7 +12,7 @@ def median_absolute_relative_error(gt, pred):
 
 
 
-def max_rize_norm(series):
+def max_rise_norm(series):
     if len(series) == 0:
         return np.nan
     result = (series.max() - series[0]) / series[0]

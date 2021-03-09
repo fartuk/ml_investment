@@ -1,16 +1,10 @@
-import json
 import numpy as np
 import pandas as pd
 
 from multiprocessing import Pool
-from itertools import repeat
 from sklearn.preprocessing import LabelEncoder
 from tqdm import tqdm
-from copy import deepcopy
 from typing import Union, List, Dict
-
-from data import SF1Data
-from utils import load_json
 
 
 def calc_series_stats(series: Union[List[float], np.array],
@@ -245,7 +239,7 @@ class QuarterlyDiffFeatures:
     def _calc_diff_feats(self, data: pd.DataFrame) -> Dict[str, float]:
         result = {}   
         curr_quarter = np.array([data[col].values[0] 
-                                    for col in self.columns], dtype='float')              
+                                 for col in self.columns], dtype='float')              
         for quarter_idx in self.compare_quarter_idxs:
             if len(data) >= quarter_idx + 1:
                 compare_quarter = np.array([data[col].values[quarter_idx] 

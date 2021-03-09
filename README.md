@@ -1,6 +1,6 @@
 
-# clever_investment
-Investment tools
+# Ml_investment
+Machine learning tools for investment tasks. The purpose of these tools is to obtain deeper analytics about companies traded on the stock exchange.
 
 
 ## Pipelines
@@ -80,11 +80,11 @@ Most of feature calculators expect data_loader to have folowing structure:
 ```python3
 class DataLoader:
     def load_base_data(self) -> pd.DataFrame:
-        None
+        # returned pd.DataFrame should have ["ticker"] column
     def load_quartely_data(self, tickers: List[str]) -> pd.DataFrame:
-        None
+        # returned pd.DataFrame should have ["ticker", "date"] columns
     def load_daily_data(self, tickers: List[str]) -> pd.DataFrame:
-        None
+        # returned pd.DataFrame should have ["ticker", "date"] columns
 ```
 There are pre-defined [SF1Data](data.py#L11) class implements this structure.
 It is based on the data from https://www.quandl.com/databases/SF1

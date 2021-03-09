@@ -94,6 +94,7 @@ class QuarterlyTarget:
         result = result.drop_duplicates(['ticker', 'date'])
         result = pd.merge(info_df, result, on=['ticker', 'date'], how='left')
         result = result.set_index(['ticker', 'date'])
+        result = result.infer_objects()
         
         return result
 
