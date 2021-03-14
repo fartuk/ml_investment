@@ -3,7 +3,8 @@ import pandas as pd
 import numpy as np
 from data import SF1Data
 from targets import QuarterlyTarget, QuarterlyDiffTarget, \
-                    QuarterlyBinDiffTarget, DailyAggTarget
+                    QuarterlyBinDiffTarget, DailyAggTarget, \
+                    ReportGapTarget
 from utils import load_json
 config = load_json('config.json')
 
@@ -182,6 +183,27 @@ class TestDailyAggTarget:
         info_df.columns = ['ticker', 'date']   
         y = target.calculate(data_loader, info_df)
         np.testing.assert_array_equal(y['y'].values.astype('float'), expected)
+
+
+class TestReportGapTarget:
+    @pytest.mark.parametrize(
+        ["ticker_dates", "norm", "expected"],
+        [([['A', '2018-11-05']], False, [(25-100)]), 
+         ([['A', '2018-11-05']], True, [(25-100)/100]), 
+         ([['A', '2018-11-05'], ['A', '2018-11-01']], False, 
+          [25-100, np.nan]),
+         ([['A', '2018-11-05'], ['A', '2018-11-08']], False, 
+          [25-100, 7])
+        ]
+    )        
+    def test_calculate_synth(self, ticker_dates, norm, expected):
+        data_loader = Data1()
+        target = ReportGapTarget('marketcap', norm=norm)
+        info_df = pd.DataFrame(ticker_dates)
+        info_df.columns = ['ticker', 'date']   
+        y = target.calculate(data_loader, info_df)
+        np.testing.assert_array_equal(y['y'].values.astype('float'), expected)
+
 
 
 

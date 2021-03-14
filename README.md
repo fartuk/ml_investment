@@ -8,29 +8,29 @@ All investment tools represented as pipelines composed of feature and target cal
 Simple example of pipeline creation:
 
 ```python3
-    data_loader = SF1Data(config['sf1_data_path'])
-    
-    fc1 = QuarterlyFeatures(
-        columns=["revenue", "netinc", "debt"],
-        quarter_counts=[2, 4, 10],
-        max_back_quarter=5)
+data_loader = SF1Data(config['sf1_data_path'])
 
-    fc2 = BaseCompanyFeatures(
-        cat_columns=["sector", "sicindustry"])
+fc1 = QuarterlyFeatures(
+    columns=["revenue", "netinc", "debt"],
+    quarter_counts=[2, 4, 10],
+    max_back_quarter=5)
 
-    feature = FeatureMerger(fc1, fc2, on='ticker')
-    target = QuarterlyTarget(col='marketcap', quarter_shift=0)
+fc2 = BaseCompanyFeatures(
+    cat_columns=["sector", "sicindustry"])
 
-    model = GroupedOOFModel(LogExpModel(lgbm.sklearn.LGBMRegressor()),
-                            group_column='ticker', fold_cnt=5)
+feature = FeatureMerger(fc1, fc2, on='ticker')
+target = QuarterlyTarget(col='marketcap', quarter_shift=0)
 
-    pipeline = BasePipeline(feature=feature, 
-                            target=target, 
-                            model=model, 
-                            metric=median_absolute_relative_error)
-                            
-    pipeline.fit(data_loader, ['AAPL', 'TSLA', 'NVDA', 'K'])
-    pipeline.export_core('models_data/marketcap')
+model = GroupedOOFModel(LogExpModel(lgbm.sklearn.LGBMRegressor()),
+                        group_column='ticker', fold_cnt=5)
+
+pipeline = BasePipeline(feature=feature, 
+                        target=target, 
+                        model=model, 
+                        metric=median_absolute_relative_error)
+
+pipeline.fit(data_loader, ['AAPL', 'TSLA', 'NVDA', 'K'])
+pipeline.export_core('models_data/marketcap')
 ```
 
 Example of loading and executing pipeline

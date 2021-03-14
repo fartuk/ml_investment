@@ -64,6 +64,8 @@ class QuandlDownloader:
                         for k in range(0, len(ticker_list), batch_size)]
         p = Pool(n_jobs)
         for _ in tqdm(p.imap(self._batch_ticker_download, batches)):
+#         for batch in tqdm(batches):
+#             self._batch_ticker_download(batch)
             None
             
             
@@ -108,7 +110,7 @@ class TinkoffDownloader:
 
         end = np.datetime64('now')
         end = str(end) + '%2B00%3A00'
-        start = np.datetime64('now') - np.timedelta64(7, 'D')
+        start = np.datetime64('now') - np.timedelta64(3, 'D')
         start = str(start) + '%2B00%3A00'
         
         url = url.format(figi, start, end)

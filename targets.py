@@ -12,7 +12,7 @@ from data import SF1Data
 class QuarterlyTarget:
     '''
     Calculator of target represented as column in quarter-based data.
-    Work with time slices of company.
+    Work with quarterly slices of company.
     '''
     def __init__(self, col: str, quarter_shift: int=0):
         '''     
@@ -103,7 +103,7 @@ class QuarterlyDiffTarget:
     '''
     Calculator of target represented as difference between column values
     in current and previous quarter.
-    Work with time slices of company.
+    Work with quarterly slices of company.
     '''
     def __init__(self, col: str, norm: bool=True):
         '''     
@@ -150,7 +150,7 @@ class QuarterlyBinDiffTarget:
     '''
     Calculator of target represented as binary difference 
     between column values in current and previous quarter.
-    Work with time slices of company.
+    Work with quarterly slices of company.
     '''
     def __init__(self, col):
         '''     
@@ -277,9 +277,94 @@ class DailyAggTarget:
 
 
 
+class ReportGapTarget:
+    '''
+    Calculator of target represented as gap at the quarter report date.
+    Work with quarterly slices of company.
+    '''
+    def __init__(self, col: str, norm: bool=True):
+        '''     
+        Parameters
+        ----------
+        col:
+            column name for target calculation(like marketcap, pe)
+        '''
+        self.curr_target = DailyAggTarget(col=col, horizon=1, foo = np.mean)
+        self.last_target = DailyAggTarget(col=col, horizon=-1, foo = np.mean)
+        self.norm = norm
+        
+        
+    def calculate(self, data_loader, info_df: pd.DataFrame) -> pd.DataFrame:
+        '''     
+        Interface to calculate targets for dates and tickers in info_df
+        based on data from data_loader
+        
+        Parameters
+        ----------
+        data_loader:
+            class implements load_daily_data(tickers: List[str]) -> 
+                                                 pd.DataFrame interface
+        info_df:
+            pd.DataFrame containing information of tickers and dates
+            to calculate targets for. Should have columns: ["ticker", "date"].               
+                      
+        Returns
+        -------
+            pd.DataFrame with targets having 'y' column
+        '''        
+        
+        curr_df = self.curr_target.calculate(data_loader, info_df)
+        last_df = self.last_target.calculate(data_loader, info_df)
+        curr_df['y'] = curr_df['y'] - last_df['y']
+        if self.norm:
+            curr_df['y'] = curr_df['y'] / np.abs(last_df['y'])
 
-
-
+        return curr_df        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
 
 
 
