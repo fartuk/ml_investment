@@ -20,6 +20,7 @@ class BasePipeline:
         self.core['target'] = target
         self.core['model'] = model
         self.metric = metric
+        
 
     @classmethod
     def load(cls, path):

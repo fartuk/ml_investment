@@ -68,5 +68,6 @@ if __name__ == '__main__':
                             model=model, 
                             metric=median_absolute_relative_error)
                             
-    pipeline.fit(data_loader, ticker_list)
+    result = pipeline.fit(data_loader, ticker_list)
+    print(result)
     pipeline.export_core('models_data/marketcap_down_std') 
