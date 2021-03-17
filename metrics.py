@@ -1,5 +1,5 @@
 import numpy as np
-
+from sklearn.metrics import log_loss
 
 
 def median_absolute_relative_error(gt, pred):
@@ -10,8 +10,15 @@ def median_absolute_relative_error(gt, pred):
     vals = vals[~np.isnan(vals)]
     return np.median(vals)
 
-
-
+def nan_log_loss(gt, pred):
+    gt = np.array(gt)
+    pred = np.array(pred)
+    mask = np.isnan(gt) | np.isnan(pred)
+    gt = gt[~mask]
+    pred = pred[~mask]
+    return log_loss(gt, pred)
+    
+    
 def max_rise_norm(series):
     if len(series) == 0:
         return np.nan

@@ -182,7 +182,8 @@ class QuarterlyBinDiffTarget:
         target_df = self.target.calculate(data_loader, info_df)
         target_df.loc[target_df['y'].isnull() == False, 'y'] = \
             target_df.loc[target_df['y'].isnull() == False, 'y'] > 0
-            
+        target_df['y'] = target_df['y'].astype(bool)
+        
         return target_df
 
 
@@ -289,8 +290,8 @@ class ReportGapTarget:
         col:
             column name for target calculation(like marketcap, pe)
         '''
-        self.curr_target = DailyAggTarget(col=col, horizon=1, foo = np.mean)
-        self.last_target = DailyAggTarget(col=col, horizon=-1, foo = np.mean)
+        self.curr_target = DailyAggTarget(col=col, horizon=2, foo = np.mean)
+        self.last_target = DailyAggTarget(col=col, horizon=-2, foo = np.mean)
         self.norm = norm
         
         

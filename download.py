@@ -33,7 +33,14 @@ class QuandlDownloader:
         time.sleep(np.random.uniform(0, self.sleep_time))
         url = self._base_url_route.format(ticker=','.join(ticker_list))
         url = self._form_quandl_url(url)
-        response = requests.get(url)
+        for _ in range(10):
+            try:
+                response = requests.get(url)
+                break
+            except:
+                print(11)
+                time.sleep(np.random.uniform(0, self.sleep_time))
+
         if response.status_code != 200:
             return
         data = response.json()
@@ -64,8 +71,8 @@ class QuandlDownloader:
                         for k in range(0, len(ticker_list), batch_size)]
         p = Pool(n_jobs)
         for _ in tqdm(p.imap(self._batch_ticker_download, batches)):
-#         for batch in tqdm(batches):
-#             self._batch_ticker_download(batch)
+#        for batch in tqdm(batches):
+#            self._batch_ticker_download(batch)
             None
             
             

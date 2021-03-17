@@ -75,6 +75,21 @@ Similarly, a higher predicted capitalization may indicate that the company has f
 
 
 
+### Future down-std prediction
+Model is used to predict future down-std value.
+Pipeline consist of time-series model training and validation on real marketcap values. Model prediction may be interpreted as "risk" for the next quarter.
+
+To fit default pre-defined down-std prediction pipeline run [train/marketcap_down_std.py](train/marketcap_down_std.py):
+```properties
+python3 train/marketcap_down_std.py --config_path config.json
+```
+
+![plot](./images/marketcap_down_std_prediction.png?raw=true "marketcap_down_std_prediction")
+Lower predicted down-std may be associated with higher risk.
+
+
+
+
 ## Data
 Most of feature calculators expect data_loader to have folowing structure:
 ```python3

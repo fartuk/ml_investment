@@ -60,7 +60,7 @@ class AnsambleModel:
         preds = []
         for k in range(self.model_cnt):
             try:
-                model_pred = self.models[k].predict_proba(X)[:, 0]
+                model_pred = self.models[k].predict_proba(X)[:, 1]
             except:
                 model_pred = self.models[k].predict(X)
                 
@@ -146,7 +146,7 @@ class GroupedOOFModel:
             if len(X_curr) == 0:
                 continue
             try:
-                pred = self.base_models[fold_id].predict_proba(X_curr)[:, 0]
+                pred = self.base_models[fold_id].predict_proba(X_curr)[:, 1]
             except:
                 pred = self.base_models[fold_id].predict(X_curr)
 
@@ -242,7 +242,7 @@ class TimeSeriesOOFModel:
             if len(X_curr) == 0:
                 continue
             try:   
-                pred = self.base_models[fold_id].predict_proba(X_curr)[:, 0]         
+                pred = self.base_models[fold_id].predict_proba(X_curr)[:, 1]         
             except:
                 pred = self.base_models[fold_id].predict(X_curr)
                                  

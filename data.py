@@ -123,8 +123,12 @@ class SF1Data:
                 df = df[:quarter_count]
             df['date'] = df['datekey']
             result.append(df)
-            
-        result = pd.concat(result, axis=0).reset_index(drop=True)
+           
+        
+        try:
+            result = pd.concat(result, axis=0).reset_index(drop=True)
+        except:
+            print(tickers)
         result['date'] = result['date'].astype(np.datetime64) 
          
         return result
