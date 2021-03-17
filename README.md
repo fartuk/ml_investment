@@ -85,7 +85,7 @@ python3 train/marketcap_down_std.py --config_path config.json
 ```
 
 ![plot](./images/marketcap_down_std_prediction.png?raw=true "marketcap_down_std_prediction")
-Lower predicted down-std may be associated with higher risk.
+Higher predicted down-std may be associated with higher risk.
 
 
 
