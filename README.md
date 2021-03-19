@@ -51,9 +51,9 @@ INTC | 2020-01-24 | 4.175332e+11
 Model is used to estimate **current** fair company marketcap. 
 Pipeline consist of calculating quarterly-based statistics of fundamental company indicators(revenue, netinc etc) and training to predict real market capitalizations. Since some companies are overvalued and some are undervalued, the model makes an average "fair" prediction.
 
-To fit default pre-defined marketcap prediction pipeline run [train/marketcap.py](train/marketcap.py):
+To fit default pre-defined marketcap prediction pipeline run [train/fair_marketcap.py](train/fair_marketcap.py):
 ```properties
-python3 train/marketcap.py --config_path config.json
+python3 train/fair_marketcap.py
 ```
 
 ![plot](./images/marketcap_prediction.png?raw=true "marketcap_prediction")
@@ -65,9 +65,9 @@ Lower predicted marketcap may indicates that company is overvalued according its
 Model is used to evaluate quarter-to-quarter(q2q) company fundamental progress.
 Pipeline consist of calculating q2q results progress(e.g. 30% revenue increase, decrease in debt by 15% etc) and prediction real q2q marketcap difference. So model prediction may be interpreted as "fair" marketcap change according this fundamental change.
 
-To fit default pre-defined marketcap prediction pipeline run [train/marketcap_diff.py](train/marketcap_diff.py):
+To fit default pre-defined marketcap prediction pipeline run [train/fair_marketcap_diff.py](train/fair_marketcap_diff.py):
 ```properties
-python3 train/marketcap_diff.py --config_path config.json
+python3 train/fair_marketcap_diff.py
 ```
 
 ![plot](./images/marketcap_diff_prediction.png?raw=true "marketcap_prediction")
@@ -81,7 +81,7 @@ Pipeline consist of time-series model training and validation on real marketcap 
 
 To fit default pre-defined down-std prediction pipeline run [train/marketcap_down_std.py](train/marketcap_down_std.py):
 ```properties
-python3 train/marketcap_down_std.py --config_path config.json
+python3 train/marketcap_down_std.py
 ```
 
 ![plot](./images/marketcap_down_std_prediction.png?raw=true "marketcap_down_std_prediction")

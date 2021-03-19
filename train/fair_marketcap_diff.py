@@ -4,26 +4,23 @@ import catboost as ctb
 from utils import load_json
 from data import SF1Data
 from features import QuarterlyFeatures, BaseCompanyFeatures, FeatureMerger, \
-                     QuarterlyDiffFeatures, DailyAggQuarterFeatures
-from targets import DailyAggTarget
-from models import TimeSeriesOOFModel, AnsambleModel
-from metrics import median_absolute_relative_error, down_std_norm
+                     QuarterlyDiffFeatures
+from targets import QuarterlyDiffTarget
+from models import GroupedOOFModel, AnsambleModel
+from metrics import median_absolute_relative_error
 from pipelines import BasePipeline
 
 
-SAVE_PATH = 'models_data/marketcap_down_std'
-OUT_NAME = 'fair_marketcap'
+SAVE_PATH = 'models_data/fair_marketcap_diff'
+OUT_NAME = 'fair_marketcap_diff'
 CURRENCY = 'USD'
-TARGET_HORIZON = 90
 MAX_BACK_QUARTER = 10
 BAGGING_FRACTION = 0.7
 MODEL_CNT = 20
-FOLD_CNT = 20
+FOLD_CNT = 5
 QUARTER_COUNTS = [2, 4, 10]
 COMPARE_QUARTER_IDXS = [1, 4]
-AGG_DAY_COUNTS = [100, 200, 400, 800]
 SCALE_MARKETCAP = ["4 - Mid", "5 - Large", "6 - Mega"]
-DAILY_AGG_COLUMNS = ["marketcap", "pe"]
 CAT_COLUMNS = ["sector", "sicindustry"]
 QUARTER_COLUMNS = [
             "revenue",
@@ -63,21 +60,11 @@ if __name__ == '__main__':
         columns=QUARTER_COLUMNS,
         compare_quarter_idxs=COMPARE_QUARTER_IDXS,
         max_back_quarter=MAX_BACK_QUARTER)
-    
-    fc4 = DailyAggQuarterFeatures(
-        columns=DAILY_AGG_COLUMNS,
-        agg_day_counts=AGG_DAY_COUNTS,
-        max_back_quarter=MAX_BACK_QUARTER)
-
-
+                            
     feature = FeatureMerger(fc1, fc2, on='ticker')
     feature = FeatureMerger(feature, fc3, on=['ticker', 'date'])
-    feature = FeatureMerger(feature, fc4, on=['ticker', 'date'])
 
-    target = DailyAggTarget(
-        col='marketcap',
-        horizon=TARGET_HORIZON,
-        foo=down_std_norm)
+    target = QuarterlyDiffTarget(col='marketcap')
 
     base_models = [lgbm.sklearn.LGBMRegressor(),
                    ctb.CatBoostRegressor(verbose=False)]
@@ -86,14 +73,15 @@ if __name__ == '__main__':
                              bagging_fraction=BAGGING_FRACTION,
                              model_cnt=MODEL_CNT)
 
-    model = TimeSeriesOOFModel(ansamble,
-                               time_column='date',
-                               fold_cnt=FOLD_CNT)
+    model = GroupedOOFModel(ansamble,
+                            group_column='ticker',
+                            fold_cnt=FOLD_CNT)
 
     pipeline = BasePipeline(feature=feature, 
                             target=target, 
                             model=model, 
-                            metric=median_absolute_relative_error)
+                            metric=median_absolute_relative_error,
+                            out_name=OUT_NAME)
                             
     result = pipeline.fit(data_loader, ticker_list)
     print(result)
