@@ -6,30 +6,12 @@ from targets import QuarterlyTarget, QuarterlyDiffTarget, \
                     QuarterlyBinDiffTarget, DailyAggTarget, \
                     ReportGapTarget
 from utils import load_json
+from synthetic_data import PreDefinedData
 config = load_json('config.json')
 
 
 
 
-class Data1:
-    def load_quarterly_data(self, tickers):
-        df = pd.DataFrame()
-        df['date'] = ['2018-12-05', '2018-11-05', '2018-10-05',
-                      '2018-09-05', '2018-08-05', '2018-07-05'] 
-        df['ticker'] = ['A'] * 6
-        df['marketcap'] = [10, 3, -5, 25, 1e5, 2]
-            
-        return df
-
-
-    def load_daily_data(self, tickers):
-        df = pd.DataFrame()
-        df['date'] = ['2018-11-08', '2018-11-07', '2018-11-06', '2018-11-05',
-                      '2018-11-04', '2018-11-03', '2018-11-02', '2018-11-01'] 
-        df['ticker'] = ['A'] * 8
-        df['marketcap'] = [10, 3, -5, 25, 100, 2, 23., -7]
-            
-        return df
 
             
 class TestQuarterlyTarget:       
@@ -50,7 +32,7 @@ class TestQuarterlyTarget:
           ]
     )        
     def test_calculate_synth(self, ticker_dates, quarter_shift, expected):
-        data_loader = Data1()
+        data_loader = PreDefinedData()
         target = QuarterlyTarget('marketcap', quarter_shift=quarter_shift)
         info_df = pd.DataFrame(ticker_dates)
         info_df.columns = ['ticker', 'date']   
@@ -116,7 +98,7 @@ class TestQuarterlyDiffTarget:
           [-30, 1e5-2])]
     )        
     def test_calculate_synth(self, ticker_dates, norm, expected):
-        data_loader = Data1()
+        data_loader = PreDefinedData()
         target = QuarterlyDiffTarget('marketcap', norm=norm)
         info_df = pd.DataFrame(ticker_dates)
         info_df.columns = ['ticker', 'date']   
@@ -158,7 +140,7 @@ class TestQuarterlyBinDiffTarget:
           [True, True, np.nan])]
     )        
     def test_calculate_synth(self, ticker_dates, expected):
-        data_loader = Data1()
+        data_loader = PreDefinedData()
         target = QuarterlyBinDiffTarget('marketcap')
         info_df = pd.DataFrame(ticker_dates)
         info_df.columns = ['ticker', 'date']   
@@ -177,7 +159,7 @@ class TestDailyAggTarget:
           [25, 23])]
     )        
     def test_calculate_synth(self, ticker_dates, horizon, foo, expected):
-        data_loader = Data1()
+        data_loader = PreDefinedData()
         target = DailyAggTarget('marketcap', horizon=horizon, foo=foo)
         info_df = pd.DataFrame(ticker_dates)
         info_df.columns = ['ticker', 'date']   
@@ -197,7 +179,7 @@ class TestReportGapTarget:
         ]
     )        
     def test_calculate_synth(self, ticker_dates, norm, expected):
-        data_loader = Data1()
+        data_loader = PreDefinedData()
         target = ReportGapTarget('marketcap', norm=norm)
         info_df = pd.DataFrame(ticker_dates)
         info_df.columns = ['ticker', 'date']   

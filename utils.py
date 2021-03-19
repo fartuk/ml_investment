@@ -1,6 +1,9 @@
 import json
+import hashlib
 import pandas as pd
 import numpy as np
+from copy import deepcopy
+
 
 def save_json(path, data):
     with open(path, "w") as write_file:
@@ -13,6 +16,14 @@ def load_json(path):
         
     return in_data
 
+
+def copy_repeat(data, cnt: int):
+    result = [deepcopy(data) for _ in range(cnt)]
+    
+    return result
+
+def int_hash_of_str(text:str):
+    return int(hashlib.md5(text.encode('utf-8')).hexdigest()[:8], 16)
 
 def make_step_function(df, x_col, y_col):
     '''

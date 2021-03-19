@@ -1,15 +1,13 @@
 import pytest
-import hashlib
 import pandas as pd
 import numpy as np
 from data import SF1Data
 from features import calc_series_stats, QuarterlyFeatures, BaseCompanyFeatures,\
                      QuarterlyDiffFeatures, FeatureMerger, \
                      DailyAggQuarterFeatures
-from utils import load_json
+from utils import load_json, int_hash_of_str
+from synthetic_data import GeneratedData
 config = load_json('config.json')
-
-
 
 
 
@@ -70,51 +68,12 @@ def test_calc_series_stats_nans():
         assert np.isnan(result[key])        
 
 
-def int_hash(text):
-    return int(hashlib.md5(text.encode('utf-8')).hexdigest()[:8], 16)
-     
-        
-class Data:
-    def __init__(self, columns, cat_columns=None, tickers=None):
-        self.columns = columns
-        self.cat_columns = cat_columns
-        self.tickers = tickers
-    
-    def load_quarterly_data(self, tickers, quarter_count=None):
-        size=50
-        df = pd.DataFrame()
-        df['ticker'] = tickers * size
-        df['date'] = np.nan
-        np.random.seed(int_hash(str(tickers)))
-        for col in self.columns:
-            df[col] = np.random.uniform(-1e5, 1e5, size)
-        
-        return df
-        
-    def load_daily_data(self, tickers):
-        size=500
-        df = pd.DataFrame()
-        df['ticker'] = tickers * size
-        df['date'] = np.datetime64('now')
-        np.random.seed(int_hash(str(tickers)))
-        for col in self.columns:
-            df[col] = np.random.uniform(-1e5, 1e5, size)
-        
-        return df        
-        
-        
-    def load_base_data(self):
-         df = pd.DataFrame()
-         df['ticker'] = self.tickers
-         for col in self.cat_columns:
-            np.random.seed(0)
-            df[col] = np.random.randint(-2, 2, len(self.tickers))
-            
-         return df
-       
+
         
 
 class TestQuarterlyFeatures:
+    @pytest.mark.parametrize('data_loader', 
+                             [GeneratedData(), SF1Data(config['sf1_data_path'])])    
     @pytest.mark.parametrize(
         ["tickers", "columns", "quarter_counts", "max_back_quarter"],
         [(['AAPL', 'TSLA'], ['ebit'], [2], 10), 
@@ -122,69 +81,69 @@ class TestQuarterlyFeatures:
          (['AAPL', 'NVDA', 'TSLA', 'WORK'], ['ebit', 'debt'], [2, 4, 10], 10), 
          (['AAPL', 'ZLG'], ['ebit', 'debt'], [2, 4, 10], 5)]
     )
-    def test_calculate(self, tickers, columns, 
+    def test_calculate(self, data_loader, tickers, columns, 
                                  quarter_counts, max_back_quarter):
         fc = QuarterlyFeatures(columns=columns,
                                quarter_counts=quarter_counts,
                                max_back_quarter=max_back_quarter)
                             
-        loaders = [Data(columns), SF1Data(config['sf1_data_path'])]   
-        for data_loader in loaders:
-            X = fc.calculate(data_loader, tickers)
-                    
-            assert type(X) == pd.DataFrame
-            assert 'ticker' in X.index.names
-            assert 'date' in X.index.names
-            
-            if type(data_loader) == Data:
-                assert X.shape[0] == max_back_quarter * len(tickers)
-            else:
-                assert X.shape[0] <= max_back_quarter * len(tickers)
-                
-            assert X.shape[1] == 2 * len(calc_series_stats([])) * \
-                                 len(columns) * len(quarter_counts)
-                             
-            # Minimum can not be lower with reduction of quarter_count    
-            sorted_quarter_counts = np.sort(quarter_counts)
-            for col in columns:
-                for k in range(len(sorted_quarter_counts) - 1):
-                    lower_count = sorted_quarter_counts[k]
-                    higher_count = sorted_quarter_counts[k + 1]
-                    l_col = 'quarter{}_{}_min'.format(lower_count, col)
-                    h_col = 'quarter{}_{}_min'.format(higher_count, col)
-                    
-                    assert (X[h_col] <= X[l_col]).min()
+        X = fc.calculate(data_loader, tickers)
 
-            # Maximum can not be higher with reduction of quarter_count    
-            sorted_quarter_counts = np.sort(quarter_counts)
-            for col in columns:
-                for k in range(len(sorted_quarter_counts) - 1):
-                    lower_count = sorted_quarter_counts[k]
-                    higher_count = sorted_quarter_counts[k + 1]
-                    l_col = 'quarter{}_{}_max'.format(lower_count, col)
-                    h_col = 'quarter{}_{}_max'.format(higher_count, col)
-                    
-                    assert (X[h_col] >= X[l_col]).min()                
+        assert type(X) == pd.DataFrame
+        assert 'ticker' in X.index.names
+        assert 'date' in X.index.names
 
-            std_cols = [x for x in X.columns if '_std' in x]
-            for col in std_cols:
-                assert X[col].min() >= 0
+        if type(data_loader) == GeneratedData:
+            assert X.shape[0] == max_back_quarter * len(tickers)
+        else:
+            assert X.shape[0] <= max_back_quarter * len(tickers)
 
-            for col in columns:
-                for count in quarter_counts:
-                    min_col = 'quarter{}_{}_min'.format(count, col)
-                    max_col = 'quarter{}_{}_max'.format(count, col)
-                    mean_col = 'quarter{}_{}_mean'.format(count, col)
-                    median_col = 'quarter{}_{}_median'.format(count, col)
-                    assert (X[max_col] >= X[min_col]).min()                
-                    assert (X[max_col] >= X[mean_col]).min()                
-                    assert (X[max_col] >= X[median_col]).min()                
-                    assert (X[mean_col] >= X[min_col]).min()                
-                    assert (X[median_col] >= X[min_col]).min()                
+        assert X.shape[1] == 2 * len(calc_series_stats([])) * \
+                             len(columns) * len(quarter_counts)
+
+        # Minimum can not be lower with reduction of quarter_count    
+        sorted_quarter_counts = np.sort(quarter_counts)
+        for col in columns:
+            for k in range(len(sorted_quarter_counts) - 1):
+                lower_count = sorted_quarter_counts[k]
+                higher_count = sorted_quarter_counts[k + 1]
+                l_col = 'quarter{}_{}_min'.format(lower_count, col)
+                h_col = 'quarter{}_{}_min'.format(higher_count, col)
+
+                assert (X[h_col] <= X[l_col]).min()
+
+        # Maximum can not be higher with reduction of quarter_count    
+        sorted_quarter_counts = np.sort(quarter_counts)
+        for col in columns:
+            for k in range(len(sorted_quarter_counts) - 1):
+                lower_count = sorted_quarter_counts[k]
+                higher_count = sorted_quarter_counts[k + 1]
+                l_col = 'quarter{}_{}_max'.format(lower_count, col)
+                h_col = 'quarter{}_{}_max'.format(higher_count, col)
+
+                assert (X[h_col] >= X[l_col]).min()                
+
+        std_cols = [x for x in X.columns if '_std' in x]
+        for col in std_cols:
+            assert X[col].min() >= 0
+
+        for col in columns:
+            for count in quarter_counts:
+                min_col = 'quarter{}_{}_min'.format(count, col)
+                max_col = 'quarter{}_{}_max'.format(count, col)
+                mean_col = 'quarter{}_{}_mean'.format(count, col)
+                median_col = 'quarter{}_{}_median'.format(count, col)
+                assert (X[max_col] >= X[min_col]).min()                
+                assert (X[max_col] >= X[mean_col]).min()                
+                assert (X[max_col] >= X[median_col]).min()                
+                assert (X[mean_col] >= X[min_col]).min()                
+                assert (X[median_col] >= X[min_col]).min()                
 
 
 
 class TestQuarterlyDiffFeatures:
+    @pytest.mark.parametrize('data_loader', 
+                         [GeneratedData(), SF1Data(config['sf1_data_path'])]) 
     @pytest.mark.parametrize(
         ["tickers", "columns", "compare_quarter_idxs", "max_back_quarter"],
         [(['AAPL', 'TSLA'], ['ebit'], [1], 10), 
@@ -192,26 +151,24 @@ class TestQuarterlyDiffFeatures:
          (['AAPL', 'NVDA', 'TSLA', 'WORK'], ['ebit', 'debt'], [1, 4, 10], 10), 
          (['AAPL', 'ZLG'], ['ebit', 'debt'], [1, 4, 10], 5)]
     )
-    def test_calculate(self, tickers, columns, 
+    def test_calculate(self, data_loader, tickers, columns, 
                                  compare_quarter_idxs, max_back_quarter):
         fc = QuarterlyDiffFeatures(columns=columns,
                                    compare_quarter_idxs=compare_quarter_idxs,
                                    max_back_quarter=max_back_quarter)
                             
-        loaders = [Data(columns), SF1Data(config['sf1_data_path'])]   
-        for data_loader in loaders:
-            X = fc.calculate(data_loader, tickers)
-            
-            assert type(X) == pd.DataFrame
-            assert 'ticker' in X.index.names
-            assert 'date' in X.index.names
-            
-            if type(data_loader) == Data:
-                assert X.shape[0] == max_back_quarter * len(tickers)
-            else:
-                assert X.shape[0] <= max_back_quarter * len(tickers)
+        X = fc.calculate(data_loader, tickers)
 
-            assert X.shape[1] == len(compare_quarter_idxs) * len(columns)
+        assert type(X) == pd.DataFrame
+        assert 'ticker' in X.index.names
+        assert 'date' in X.index.names
+
+        if type(data_loader) == GeneratedData:
+            assert X.shape[0] == max_back_quarter * len(tickers)
+        else:
+            assert X.shape[0] <= max_back_quarter * len(tickers)
+
+        assert X.shape[1] == len(compare_quarter_idxs) * len(columns)
 
 
 class WrapData:
@@ -227,6 +184,8 @@ class WrapData:
     
 
 class TestBaseCompanyFeatures:
+    @pytest.mark.parametrize('data_loader', 
+                         [GeneratedData(), SF1Data(config['sf1_data_path'])]) 
     @pytest.mark.parametrize(
         ["tickers", "cat_columns"],
         [(['AAPL', 'TSLA'], ['sector']), 
@@ -234,44 +193,41 @@ class TestBaseCompanyFeatures:
          (['AAPL', 'NVDA', 'TSLA', 'WORK'], ['sector', 'sicindustry']), 
          (['AAPL', 'ZLG'], ['sector', 'sicindustry'])]
     )
-    def test_calculate(self, tickers, cat_columns):                            
-        loaders = [Data(columns=[], cat_columns=cat_columns,
-                        tickers=tickers),
-                   SF1Data(config['sf1_data_path'])]   
-        for data_loader in loaders[:]:
-            fc = BaseCompanyFeatures(cat_columns=cat_columns)
-            X = fc.calculate(data_loader, tickers)
-            
-            assert type(X) == pd.DataFrame
-            assert 'ticker' in X.index.names
-            base_data = data_loader.load_base_data()
-            for col in cat_columns:
-               assert len(base_data[col].unique()) ==\
-                      len(fc.col_to_encoder[col].classes_)
+    def test_calculate(self, data_loader, tickers, cat_columns):                             
+        fc = BaseCompanyFeatures(cat_columns=cat_columns)
+        X = fc.calculate(data_loader, tickers)
 
-            # Reuse fitted after first calculate fc
-            for col in cat_columns:
-                assert col in fc.col_to_encoder
-            new_X = fc.calculate(data_loader, tickers)
-            for col in cat_columns:
-                assert (new_X[col] == X[col]).min()
-            
-            wd = WrapData(data_loader, tickers)
-            new_X = fc.calculate(wd, tickers)
-            for col in cat_columns:
-                assert (new_X[col] == X[col]).min()
+        assert type(X) == pd.DataFrame
+        assert 'ticker' in X.index.names
+        base_data = data_loader.load_base_data()
+        for col in cat_columns:
+            assert len(base_data[col].unique()) ==\
+                   len(fc.col_to_encoder[col].classes_)
+
+        # Reuse fitted after first calculate fc
+        for col in cat_columns:
+            assert col in fc.col_to_encoder
+        new_X = fc.calculate(data_loader, tickers)
+        for col in cat_columns:
+            assert (new_X[col] == X[col]).min()
+
+        wd = WrapData(data_loader, tickers)
+        new_X = fc.calculate(wd, tickers)
+        for col in cat_columns:
+            assert (new_X[col] == X[col]).min()
 
 
 
 
 class TestFeatureMerger:
+    @pytest.mark.parametrize('data_loader', 
+                         [GeneratedData(), SF1Data(config['sf1_data_path'])]) 
     @pytest.mark.parametrize(
         "tickers",
         [['AAPL', 'TSLA'], ['NVDA', 'TSLA'], 
         ['AAPL', 'NVDA', 'TSLA', 'WORK'], ['AAPL', 'ZLG']]
     )    
-    def test_calculate(self, tickers):                            
-        data_loader = SF1Data(config['sf1_data_path'])
+    def test_calculate(self, data_loader, tickers):                            
         fc1 = QuarterlyFeatures(columns=['ebit'],
                                 quarter_counts=[2],
                                 max_back_quarter=10)
@@ -313,6 +269,8 @@ class TestFeatureMerger:
 
 
 class TestDailyAggQuarterFeatures:
+    @pytest.mark.parametrize('data_loader', 
+                         [GeneratedData(), SF1Data(config['sf1_data_path'])]) 
     @pytest.mark.parametrize(
         ["tickers", "columns", "agg_day_counts", "max_back_quarter"],
         [(['AAPL', 'TSLA'], ['marketcap'], [100], 10), 
@@ -320,13 +278,12 @@ class TestDailyAggQuarterFeatures:
          (['AAPL', 'NVDA', 'TSLA', 'WORK'], ['marketcap', 'pe'], [50, 200], 10), 
          (['AAPL', 'ZLG'], ['marketcap', 'pe'], [50, 200], 5)]
     )
-    def test_calculate(self, tickers, columns, 
+    def test_calculate(self, data_loader, tickers, columns, 
                        agg_day_counts, max_back_quarter):
         fc = DailyAggQuarterFeatures(columns=columns,
                                      agg_day_counts=agg_day_counts,
                                      max_back_quarter=max_back_quarter)
                             
-        data_loader = SF1Data(config['sf1_data_path'])
         X = fc.calculate(data_loader, tickers)
                 
         assert type(X) == pd.DataFrame

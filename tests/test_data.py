@@ -6,7 +6,7 @@ from utils import load_json
 config = load_json('config.json')
 
 
-
+@pytest.mark.skipif(config['sf1_data_path'] is None, reason="There are no SF1 dataset")
 class TestSF1Data:
     def test_load_base_data(self):
         data_loader = SF1Data(config['sf1_data_path'])
