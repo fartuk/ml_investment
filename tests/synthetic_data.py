@@ -6,7 +6,8 @@ from utils import int_hash_of_str
 
 class GeneratedData:
     def __init__(self):
-        self.quarterly_columns = ['marketcap', 'ebit', 'debt', 'netinc']
+        self.quarterly_columns = ['marketcap', 'ebit', 'debt', 'netinc', \
+                                  'ncf', 'fcf', 'revenue', 'ebitda']
         self.daily_columns = ['marketcap', 'pe']
         self.cat_columns = ['sector', 'sicindustry']
         self.tickers = ['AAPL', 'TSLA', 'NVDA', 'WORK', 'ZLG']
@@ -20,7 +21,10 @@ class GeneratedData:
                       for k in range(self.quart_cnt)] * len(tickers)
         np.random.seed(int_hash_of_str(str(tickers)))
         for col in self.quarterly_columns:
-            df[col] = np.random.uniform(-1e5, 1e5, self.quart_cnt * len(tickers))
+            if col == 'marketcap':
+                df[col] = np.random.uniform(1000, 1e5, self.quart_cnt * len(tickers))            
+            else:
+                df[col] = np.random.uniform(-1e5, 1e5, self.quart_cnt * len(tickers))
         
         return df
         

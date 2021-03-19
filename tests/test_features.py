@@ -9,7 +9,10 @@ from utils import load_json, int_hash_of_str
 from synthetic_data import GeneratedData
 config = load_json('config.json')
 
-
+loaders = [GeneratedData()]
+if config['sf1_data_path'] is not None:
+    loaders.append(SF1Data(config['sf1_data_path']))
+    
 
 @pytest.mark.parametrize(
     ["series", "norm", "expected"],
@@ -72,8 +75,7 @@ def test_calc_series_stats_nans():
         
 
 class TestQuarterlyFeatures:
-    @pytest.mark.parametrize('data_loader', 
-                             [GeneratedData(), SF1Data(config['sf1_data_path'])])    
+    @pytest.mark.parametrize('data_loader', loaders)    
     @pytest.mark.parametrize(
         ["tickers", "columns", "quarter_counts", "max_back_quarter"],
         [(['AAPL', 'TSLA'], ['ebit'], [2], 10), 
@@ -142,8 +144,7 @@ class TestQuarterlyFeatures:
 
 
 class TestQuarterlyDiffFeatures:
-    @pytest.mark.parametrize('data_loader', 
-                         [GeneratedData(), SF1Data(config['sf1_data_path'])]) 
+    @pytest.mark.parametrize('data_loader', loaders) 
     @pytest.mark.parametrize(
         ["tickers", "columns", "compare_quarter_idxs", "max_back_quarter"],
         [(['AAPL', 'TSLA'], ['ebit'], [1], 10), 
@@ -184,8 +185,7 @@ class WrapData:
     
 
 class TestBaseCompanyFeatures:
-    @pytest.mark.parametrize('data_loader', 
-                         [GeneratedData(), SF1Data(config['sf1_data_path'])]) 
+    @pytest.mark.parametrize('data_loader', loaders) 
     @pytest.mark.parametrize(
         ["tickers", "cat_columns"],
         [(['AAPL', 'TSLA'], ['sector']), 
@@ -220,8 +220,7 @@ class TestBaseCompanyFeatures:
 
 
 class TestFeatureMerger:
-    @pytest.mark.parametrize('data_loader', 
-                         [GeneratedData(), SF1Data(config['sf1_data_path'])]) 
+    @pytest.mark.parametrize('data_loader', loaders) 
     @pytest.mark.parametrize(
         "tickers",
         [['AAPL', 'TSLA'], ['NVDA', 'TSLA'], 
@@ -269,8 +268,7 @@ class TestFeatureMerger:
 
 
 class TestDailyAggQuarterFeatures:
-    @pytest.mark.parametrize('data_loader', 
-                         [GeneratedData(), SF1Data(config['sf1_data_path'])]) 
+    @pytest.mark.parametrize('data_loader', loaders) 
     @pytest.mark.parametrize(
         ["tickers", "columns", "agg_day_counts", "max_back_quarter"],
         [(['AAPL', 'TSLA'], ['marketcap'], [100], 10), 
