@@ -6,7 +6,7 @@ from data import SF1Data
 from features import QuarterlyFeatures, BaseCompanyFeatures, FeatureMerger, \
                      QuarterlyDiffFeatures, DailyAggQuarterFeatures
 from targets import DailyAggTarget
-from models import TimeSeriesOOFModel, AnsambleModel
+from models import TimeSeriesOOFModel, AnsambleModel, LogExpModel
 from metrics import median_absolute_relative_error, down_std_norm
 from pipelines import BasePipeline
 
