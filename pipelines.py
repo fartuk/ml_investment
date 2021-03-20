@@ -6,6 +6,7 @@ import numpy as np
 import pandas as pd
 import lightgbm as lgbm
 from copy import deepcopy
+from functools import reduce
 from typing import List
 from utils import load_json, copy_repeat
 from data import SF1Data
@@ -181,6 +182,138 @@ class BasePipeline:
 
 
 
+class ExecuteMergePipeline:
+    '''
+    Class combining list of executive pipelines to 
+    single pipilene.
+    '''
+    def __init__(self, pipeline_list:List, on):
+        '''     
+        Parameters
+        ----------
+        pipeline_list:
+            list of classes implementing 
+                execute(data_loader, tickers) -> 
+                            pd.DataFrame interfaces
+            Order is important: merging results during execute()
+            will be done from left to right.
+        on:
+            column names for merging pipelines results on.
 
+        '''
+        self.pipeline_list = pipeline_list
+        self.on = on
+        
+    def execute(self, data_loader, tickers:List[str]):
+        '''     
+        Interface for executing pipeline for tickers.
+        Features will be based on data from data_loader
+        
+        Parameters
+        ----------
+        data_loader:
+            class implements all interfaces needed for all 
+            pipelines feature calculators
+            
+        tickers:
+            tickers of companies to execute pipeline for       
+                      
+        Returns
+        -------
+            pd.DataFrame with resulted pipelines values
+        '''   
+        dfs = []
+        for pipeline in self.pipeline_list:
+            curr_df = pipeline.execute(data_loader, tickers)
+            dfs.append(curr_df)
+            
+        result_df = reduce(lambda l, r: pd.merge(l, r, on=self.on, how='left'), dfs)
+
+        return result_df
+            
+            
+class QuarterlyLoadPipeline:
+    '''
+    Wrapper for data_loader for loading quarterly data
+    in execute(data_loader, tickers:List[str]) -> pd.DataFrame
+    interface
+    '''
+    def __init__(self, columns:List[str]):
+        '''     
+        Parameters
+        ----------
+        columns:
+            column names for loading
+        '''
+        self.columns = columns
+        
+    def execute(self, data_loader, tickers:List[str]):
+        '''     
+        Interface for executing pipeline(lading data) for
+        tickers using data_loader.
+        
+        Parameters
+        ----------
+        data_loader:
+            class implements load_quarterly_data(tickers: List[str]) -> 
+                                                 pd.DataFrame interface
+            
+        tickers:
+            tickers of companies to load data for      
+                      
+        Returns
+        -------
+            pd.DataFrame with quarterly data
+        '''  
+        quarterly_data = data_loader.load_quarterly_data(tickers)
+        quarterly_df = quarterly_data[self.columns]
+        return quarterly_df            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
 
 

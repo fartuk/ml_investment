@@ -12,7 +12,7 @@ from pipelines import BasePipeline
 
 
 SAVE_PATH = 'models_data/marketcap_down_std'
-OUT_NAME = 'fair_marketcap'
+OUT_NAME = 'marketcap_down_std'
 CURRENCY = 'USD'
 TARGET_HORIZON = 90
 MAX_BACK_QUARTER = 10
@@ -79,8 +79,8 @@ if __name__ == '__main__':
         horizon=TARGET_HORIZON,
         foo=down_std_norm)
 
-    base_models = [lgbm.sklearn.LGBMRegressor(),
-                   ctb.CatBoostRegressor(verbose=False)]
+    base_models = [LogExpModel(lgbm.sklearn.LGBMRegressor()),
+                   LogExpModel(ctb.CatBoostRegressor(verbose=False))]
                    
     ansamble = AnsambleModel(base_models=base_models, 
                              bagging_fraction=BAGGING_FRACTION,
@@ -93,7 +93,8 @@ if __name__ == '__main__':
     pipeline = BasePipeline(feature=feature, 
                             target=target, 
                             model=model, 
-                            metric=median_absolute_relative_error)
+                            metric=median_absolute_relative_error,
+                            out_name=OUT_NAME)
                             
     result = pipeline.fit(data_loader, ticker_list)
     print(result)

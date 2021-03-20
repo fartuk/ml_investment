@@ -8,7 +8,7 @@ from data import SF1Data
 from features import QuarterlyFeatures
 from targets import QuarterlyTarget
 from models import GroupedOOFModel
-from pipelines import BasePipeline
+from pipelines import BasePipeline, ExecuteMergePipeline, QuarterlyLoadPipeline
 from metrics import median_absolute_relative_error, mean_absolute_relative_error
 from utils import load_json
 from synthetic_data import GeneratedData
@@ -168,7 +168,71 @@ class TestBasePipeline:
 
 
 
+class TestExecuteMergePipeline:       
+    @pytest.mark.parametrize('data_loader', loaders)
+    def test_execute_simple(self, data_loader):
+        columns = ['revenue', 'netinc', 'ncf', 'ebitda', 'debt', 'fcf']
+        f1 = QuarterlyFeatures(columns=columns,
+                               quarter_counts=[2, 10],
+                               max_back_quarter=1)
 
+        target1 = QuarterlyTarget(col='marketcap', quarter_shift=0)
+        target2 = QuarterlyTarget(col='marketcap', quarter_shift=-1)
+
+        model = lgbm.sklearn.LGBMRegressor()
+    
+        pipeline1 = BasePipeline(feature=f1, 
+                                target=target1,
+                                model=model, 
+                                metric=median_absolute_relative_error,
+                                out_name='p1')
+
+        pipeline2 = BasePipeline(feature=f1, 
+                                target=target2,
+                                model=model, 
+                                metric=median_absolute_relative_error,
+                                out_name='p2')        
+
+        pipeline3 = QuarterlyLoadPipeline(['ticker', 'date', 'marketcap'])
+
+        pipeline1.fit(data_loader, tickers)
+        pipeline2.fit(data_loader, tickers)
+        
+        merge1 = ExecuteMergePipeline(
+            pipeline_list=[pipeline1, pipeline2, pipeline3],
+            on=['ticker', 'date'])
+        
+        df1 = pipeline1.execute(data_loader, tickers)
+        df2 = pipeline2.execute(data_loader, tickers)
+        df3 = pipeline3.execute(data_loader, tickers)
+               
+        df = merge1.execute(data_loader, tickers)
+        assert type(df) == pd.DataFrame
+        assert len(df) == len(df1)
+        np.testing.assert_array_equal(df.columns, 
+                                      ['ticker', 'date', 'p1', 'p2', 'marketcap'])
+
+        np.testing.assert_array_equal(df1['p1'], df['p1'])        
+        np.testing.assert_array_equal(df2['p2'], df['p2'])        
+
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
         
         
         
