@@ -24,7 +24,7 @@ class LogExpModel:
         return np.exp(self.base_model.predict(X))
 
 
-class AnsambleModel:
+class EnsembleModel:
     '''
     Class for training ansamble of base models. 
     '''

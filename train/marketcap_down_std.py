@@ -6,7 +6,7 @@ from data import SF1Data
 from features import QuarterlyFeatures, BaseCompanyFeatures, FeatureMerger, \
                      QuarterlyDiffFeatures, DailyAggQuarterFeatures
 from targets import DailyAggTarget
-from models import TimeSeriesOOFModel, AnsambleModel, LogExpModel
+from models import TimeSeriesOOFModel, EnsembleModel, LogExpModel
 from metrics import median_absolute_relative_error, down_std_norm
 from pipelines import BasePipeline
 
@@ -82,11 +82,11 @@ if __name__ == '__main__':
     base_models = [LogExpModel(lgbm.sklearn.LGBMRegressor()),
                    LogExpModel(ctb.CatBoostRegressor(verbose=False))]
                    
-    ansamble = AnsambleModel(base_models=base_models, 
+    ansamble = EnsembleModel(base_models=base_models, 
                              bagging_fraction=BAGGING_FRACTION,
                              model_cnt=MODEL_CNT)
 
-    model = TimeSeriesOOFModel(ansamble,
+    model = TimeSeriesOOFModel(base_model=ansamble,
                                time_column='date',
                                fold_cnt=FOLD_CNT)
 

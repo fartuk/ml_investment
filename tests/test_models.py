@@ -4,7 +4,7 @@ import numpy as np
 import lightgbm as lgbm
 from sklearn.linear_model import LinearRegression
 from sklearn.metrics import mean_squared_error
-from models import LogExpModel, AnsambleModel, GroupedOOFModel, \
+from models import LogExpModel, EnsembleModel, GroupedOOFModel, \
                    TimeSeriesOOFModel
 from utils import load_json
 config = load_json('config.json')
@@ -58,7 +58,7 @@ class ConstModel:
         return np.array([self.const] * len(X))
 
 
-class TestAnsambleModel:
+class TestEnsembleModel:
     def test_fit_predict(self):
         X, y = gen_data(1000)
         base_model = LinearRegression()

@@ -6,7 +6,7 @@ from data import SF1Data
 from features import QuarterlyFeatures, BaseCompanyFeatures, FeatureMerger, \
                      QuarterlyDiffFeatures
 from targets import QuarterlyDiffTarget
-from models import GroupedOOFModel, AnsambleModel
+from models import GroupedOOFModel, EnsembleModel
 from metrics import median_absolute_relative_error
 from pipelines import BasePipeline
 
@@ -69,7 +69,7 @@ if __name__ == '__main__':
     base_models = [lgbm.sklearn.LGBMRegressor(),
                    ctb.CatBoostRegressor(verbose=False)]
                    
-    ansamble = AnsambleModel(base_models=base_models, 
+    ansamble = EnsembleModel(base_models=base_models, 
                              bagging_fraction=BAGGING_FRACTION,
                              model_cnt=MODEL_CNT)
 
