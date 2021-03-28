@@ -72,12 +72,12 @@ if __name__ == '__main__':
     base_models = [LogExpModel(lgbm.sklearn.LGBMRegressor()),
                    LogExpModel(ctb.CatBoostRegressor(verbose=False))]
                    
-    ansamble = EnsembleModel(
+    ensemble = EnsembleModel(
         base_models=base_models, 
         bagging_fraction=BAGGING_FRACTION,
         model_cnt=MODEL_CNT)
 
-    model = GroupedOOFModel(ansamble,
+    model = GroupedOOFModel(ensemble,
                             group_column='ticker',
                             fold_cnt=FOLD_CNT)
 

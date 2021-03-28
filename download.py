@@ -70,9 +70,9 @@ class QuandlDownloader:
         batches = [ticker_list[k:k+batch_size] 
                         for k in range(0, len(ticker_list), batch_size)]
         p = Pool(n_jobs)
-#         for _ in tqdm(p.imap(self._batch_ticker_download, batches)):
-        for batch in tqdm(batches):
-            self._batch_ticker_download(batch)
+        for _ in tqdm(p.imap(self._batch_ticker_download, batches)):
+#         for batch in tqdm(batches):
+#             self._batch_ticker_download(batch)
             None
             
             

@@ -82,11 +82,11 @@ if __name__ == '__main__':
     base_models = [LogExpModel(lgbm.sklearn.LGBMRegressor()),
                    LogExpModel(ctb.CatBoostRegressor(verbose=False))]
                    
-    ansamble = EnsembleModel(base_models=base_models, 
+    ensemble = EnsembleModel(base_models=base_models, 
                              bagging_fraction=BAGGING_FRACTION,
                              model_cnt=MODEL_CNT)
 
-    model = TimeSeriesOOFModel(base_model=ansamble,
+    model = TimeSeriesOOFModel(base_model=ensemble,
                                time_column='date',
                                fold_cnt=FOLD_CNT)
 
