@@ -66,7 +66,7 @@ class TestEnsembleModel:
         pred = base_model.predict(X[600:])
         base_score = mean_squared_error(y['y'][600:], pred)
 
-        model = AnsambleModel([LinearRegression(), 
+        model = EnsembleModel([LinearRegression(), 
                                lgbm.sklearn.LGBMRegressor()], 
                                bagging_fraction=0.8,
                                model_cnt=20)
@@ -79,7 +79,7 @@ class TestEnsembleModel:
         assert ans_score < base_score
 
 
-        model = AnsambleModel([ConstModel(-1), 
+        model = EnsembleModel([ConstModel(-1), 
                                ConstModel(1)], 
                                bagging_fraction=0.8,
                                model_cnt=5000)
@@ -88,7 +88,7 @@ class TestEnsembleModel:
         assert len(set(pred)) == 1
         assert np.abs(pred[0]) < 0.1
 
-        model = AnsambleModel([ConstModel(1), 
+        model = EnsembleModel([ConstModel(1), 
                                ConstModel(1)], 
                                bagging_fraction=0.8,
                                model_cnt=5000)
@@ -97,7 +97,7 @@ class TestEnsembleModel:
         assert len(set(pred)) == 1
         assert pred[0] == 1
 
-        model = AnsambleModel([lgbm.sklearn.LGBMClassifier(max_depth=3), 
+        model = EnsembleModel([lgbm.sklearn.LGBMClassifier(max_depth=3), 
                                lgbm.sklearn.LGBMClassifier()], 
                                bagging_fraction=0.8,
                                model_cnt=20)

@@ -10,7 +10,6 @@ from utils import load_json, save_json
 
 
 
-
 class QuandlDownloader:
     def __init__(self, config, secrets, retry_cnt=10, sleep_time=1.4):
         self.config = config
