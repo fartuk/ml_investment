@@ -203,7 +203,26 @@ class SF1Data:
         return df
 
 
-    
+class ComboData:
+    '''
+    Class to combine data loaders in single object with union of all 
+    methods.
+    '''
+    def __init__(self, data_loaders_list: List):
+        '''
+        Parameters
+        ----------
+        data_loaders_list:
+            list of classes implementing different data loading interfaces. 
+            If there are several the same names, then method belongs
+            to the earlier class in data_loaders_list will be used
+        '''
+        self.data_loaders_list = data_loaders_list
+        for data_loader in self.data_loaders_list[::-1]:
+            for f_name in dir(data_loader):
+                if callable(getattr(data_loader, f_name)) and \
+                        not f_name.startswith("_"):
+                    setattr(self, f_name, getattr(data_loader, f_name))
     
     
     

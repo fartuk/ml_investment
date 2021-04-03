@@ -1,7 +1,7 @@
 import pytest
 import pandas as pd
 import numpy as np
-from data import SF1Data
+from data import SF1Data, ComboData
 from utils import load_json
 config = load_json('config.json')
 
@@ -120,6 +120,31 @@ class TestSF1Data:
 
 
 
+class Cl1:
+    def a(self):
+        return 1
+    def b(self):
+        return 2
+    def ba(self):
+        return 20
+    
+class Cl2:
+    def a(self):
+        return 3
+    def b(self):
+        return 4
+    def c(self):
+        return 5
+
+
+class TestComboData:
+    def test_execute(self):
+        cl1 = Cl1()
+        cl2 = Cl2()
+        combo = ComboData([cl1, cl2])
+        assert combo.a() == 1
+        assert combo.b() == 2 
+        assert combo.c() == 5
 
 
 
