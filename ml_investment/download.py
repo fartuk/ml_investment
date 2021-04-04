@@ -6,7 +6,8 @@ import copy
 from tqdm import tqdm
 from multiprocessing import Pool
 from itertools import repeat
-from utils import load_json, save_json
+from .utils import load_json, save_json
+from .data import SF1Data
 
 
 
@@ -74,7 +75,25 @@ class QuandlDownloader:
 #             self._batch_ticker_download(batch)
             None
             
-            
+
+    def single_download(self, url, save_filepath):
+        if '?' not in url:
+            url = url + '?'
+        url = self._form_quandl_url(url)
+        for _ in range(10):
+            try:
+                response = requests.get(url)
+                break
+            except:
+                print(11)
+                time.sleep(np.random.uniform(0, 2))    
+        if response.status_code != 200:
+            print(12)
+        data = response.json()
+
+        save_json(save_filepath, data)
+    
+        
             
 class TinkoffDownloader:
     def __init__(self, secrets):
@@ -127,7 +146,6 @@ class TinkoffDownloader:
         return close_price
             
         
-from data import SF1Data
 
 if __name__ == '__main__':
     config = load_json("config.json")

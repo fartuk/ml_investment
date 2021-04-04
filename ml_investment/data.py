@@ -4,7 +4,7 @@ import numpy as np
 import pandas as pd
 from tqdm import tqdm
 from typing import Optional, Union, List
-from utils import load_json
+from .utils import load_json
 
 
 

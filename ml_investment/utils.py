@@ -1,4 +1,5 @@
 import json
+import os
 import hashlib
 import pandas as pd
 import numpy as np
@@ -6,6 +7,10 @@ from copy import deepcopy
 
 
 def save_json(path, data):
+    if '/' in path:
+        folder_path = '/'.join(path.split('/')[:-1])
+        if not os.path.exists(folder_path):
+            os.makedirs(folder_path)
     with open(path, "w") as write_file:
         json.dump(data, write_file, ensure_ascii=False)
         
