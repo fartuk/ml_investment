@@ -13,6 +13,7 @@ pip install git+https://github.com/fartuk/ml_investment
 ```
 ### Run tests
 ```
+cd /path/to/ml_investmant
 pytest
 ```
 ## Pipelines
