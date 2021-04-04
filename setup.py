@@ -1,4 +1,5 @@
 import setuptools
+from setuptools import find_packages
 import os
 
 here = os.path.abspath(os.path.dirname(__file__))
@@ -34,7 +35,6 @@ setuptools.setup(
         "License :: OSI Approved :: MIT License",
         "Operating System :: OS Independent",
     ],
-    package_dir={"": "ml_investment"},
-    packages=setuptools.find_packages(where="ml_investment"),
+    packages=find_packages(exclude=('tests', 'train', 'images', 'examples')),
     python_requires=PYTHON_REQUIRES,
 )
