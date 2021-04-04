@@ -4,13 +4,13 @@ import pandas as pd
 import numpy as np
 import lightgbm as lgbm
 import catboost as ctb
-from data import SF1Data
-from features import QuarterlyFeatures
-from targets import QuarterlyTarget
-from models import GroupedOOFModel
-from pipelines import BasePipeline, ExecuteMergePipeline, QuarterlyLoadPipeline
-from metrics import median_absolute_relative_error, mean_absolute_relative_error
-from utils import load_json
+from ml_investment.data import SF1Data
+from ml_investment.features import QuarterlyFeatures
+from ml_investment.targets import QuarterlyTarget
+from ml_investment.models import GroupedOOFModel
+from ml_investment.pipelines import BasePipeline, ExecuteMergePipeline, QuarterlyLoadPipeline
+from ml_investment.metrics import median_absolute_relative_error, mean_absolute_relative_error
+from ml_investment.utils import load_json
 from synthetic_data import GeneratedData
 config = load_json('config.json')
 

@@ -4,9 +4,9 @@ import numpy as np
 import lightgbm as lgbm
 from sklearn.linear_model import LinearRegression
 from sklearn.metrics import mean_squared_error
-from models import LogExpModel, EnsembleModel, GroupedOOFModel, \
+from ml_investment.models import LogExpModel, EnsembleModel, GroupedOOFModel, \
                    TimeSeriesOOFModel
-from utils import load_json
+from ml_investment.utils import load_json
 config = load_json('config.json')
 
 

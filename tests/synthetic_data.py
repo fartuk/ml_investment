@@ -1,6 +1,6 @@
 import numpy as np
 import pandas as pd
-from utils import int_hash_of_str            
+from ml_investment.utils import int_hash_of_str            
 
 
 

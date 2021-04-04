@@ -1,11 +1,11 @@
 import pytest
 import pandas as pd
 import numpy as np
-from data import SF1Data
-from features import calc_series_stats, QuarterlyFeatures, BaseCompanyFeatures,\
+from ml_investment.data import SF1Data
+from ml_investment.features import calc_series_stats, QuarterlyFeatures, BaseCompanyFeatures,\
                      QuarterlyDiffFeatures, FeatureMerger, \
                      DailyAggQuarterFeatures
-from utils import load_json, int_hash_of_str
+from ml_investment.utils import load_json, int_hash_of_str
 from synthetic_data import GeneratedData
 config = load_json('config.json')
 

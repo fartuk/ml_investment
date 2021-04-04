@@ -3,7 +3,7 @@ import pandas as pd
 from multiprocessing import Pool
 from tqdm import tqdm
 from typing import List, Tuple, Callable
-from data import SF1Data
+from .data import SF1Data
 
 
 

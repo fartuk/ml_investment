@@ -2,7 +2,19 @@
 # Ml_investment
 Machine learning tools for investment tasks. The purpose of these tools is to obtain deeper analytics about companies traded on the stock exchange.
 
-
+## Installation
+### PyPI package
+```
+pip install ml-investment
+```
+### Source latest version
+```
+pip install git+https://github.com/fartuk/ml_investment
+```
+### Run tests
+```
+pytest
+```
 ## Pipelines
 All investment tools represented as pipelines composed of feature and target calculation, model training and validation.
 Simple example of pipeline creation:

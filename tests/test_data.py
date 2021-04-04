@@ -1,8 +1,8 @@
 import pytest
 import pandas as pd
 import numpy as np
-from data import SF1Data, ComboData
-from utils import load_json
+from ml_investment.data import SF1Data, ComboData
+from ml_investment.utils import load_json
 config = load_json('config.json')
 
 

@@ -1,19 +1,16 @@
 import pytest
 import pandas as pd
 import numpy as np
-from data import SF1Data
-from targets import QuarterlyTarget, QuarterlyDiffTarget, \
+from ml_investment.data import SF1Data
+from ml_investment.targets import QuarterlyTarget, QuarterlyDiffTarget, \
                     QuarterlyBinDiffTarget, DailyAggTarget, \
                     ReportGapTarget
-from utils import load_json
+from ml_investment.utils import load_json
 from synthetic_data import PreDefinedData
 config = load_json('config.json')
 
 
-
-
-
-            
+     
 class TestQuarterlyTarget:       
     @pytest.mark.parametrize(
         ["ticker_dates", "quarter_shift", "expected"],
@@ -41,7 +38,7 @@ class TestQuarterlyTarget:
 
 
 
-
+    @pytest.mark.skipif(config['sf1_data_path'] is None, reason="There are no SF1 dataset")
     @pytest.mark.parametrize(
         "tickers",
         [['AAPL', 'TSLA'], ['NVDA', 'TSLA'], 
@@ -105,7 +102,7 @@ class TestQuarterlyDiffTarget:
         y = target.calculate(data_loader, info_df)
         np.testing.assert_array_equal(y['y'].values, expected)
 
-
+    @pytest.mark.skipif(config['sf1_data_path'] is None, reason="There are no SF1 dataset")
     @pytest.mark.parametrize(
         "tickers",
         [['AAPL', 'TSLA'], ['NVDA', 'TSLA'], 

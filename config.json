@@ -1,4 +1,5 @@
 {
-   "sf1_data_path":"/workdir/ml_investment_data/sf1",
+   "sf1_data_path":null,
+   "commodities_data_path":null,
    "quandl_api_url":"https://www.quandl.com/api/v3"
 }
