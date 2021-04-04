@@ -1,0 +1,6 @@
+pandas>=1.0.4
+lightgbm>=2.3.1
+catboost>=0.24.4
+tqdm>=4.46.1
+requests>=2.23.0
+pytest>=6.2.2
