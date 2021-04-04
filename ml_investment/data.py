@@ -78,8 +78,9 @@ class SF1Data:
         -------
             pd.DataFrame with base information
         '''
-        path = '{}/tickers.csv'.format(self.data_path)
+        path = '{}/tickers.zip'.format(self.data_path)
         tickers_df = pd.read_csv(path)
+        tickers_df = tickers_df[tickers_df.table == 'SF1']
         if currency is not None:
             tickers_df = tickers_df[tickers_df['currency'] == currency]
             

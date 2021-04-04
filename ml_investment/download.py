@@ -98,6 +98,12 @@ class QuandlDownloader:
         info_response = requests.get(url)
         zip_link = info_response.json()['datatable_bulk_download']['file']['link']
         data_response = requests.get(zip_link)
+        
+        if '/' in save_filepath:
+            folder_path = '/'.join(save_filepath.split('/')[:-1])
+            if not os.path.exists(folder_path):
+                os.makedirs(folder_path)
+            
         with open(save_filepath, 'wb') as f:
             f.write(data_response.content)
 

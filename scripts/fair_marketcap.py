@@ -1,17 +1,17 @@
 import argparse
 import lightgbm as lgbm
 import catboost as ctb
-from utils import load_json
-from data import SF1Data
-from features import QuarterlyFeatures, BaseCompanyFeatures, FeatureMerger, \
-                     DailyAggQuarterFeatures
-from targets import QuarterlyTarget
-from models import GroupedOOFModel, EnsembleModel, LogExpModel
-from metrics import median_absolute_relative_error
-from pipelines import BasePipeline
+from ml_investment.utils import load_json
+from ml_investment.data import SF1Data
+from ml_investment.features import QuarterlyFeatures, BaseCompanyFeatures, \
+                                   FeatureMerger, DailyAggQuarterFeatures
+from ml_investment.targets import QuarterlyTarget
+from ml_investment.models import GroupedOOFModel, EnsembleModel, LogExpModel
+from ml_investment.metrics import median_absolute_relative_error
+from ml_investment.pipelines import BasePipeline
 
 
-SAVE_PATH = 'models_data/fair_marketcap'
+SAVE_PATH = 'models_data/fair_marketcap_'
 OUT_NAME = 'fair_marketcap'
 CURRENCY = 'USD'
 MAX_BACK_QUARTER = 10
@@ -43,7 +43,13 @@ QUARTER_COLUMNS = [
          ]
 
 if __name__ == '__main__':
-    config = load_json('config.json')
+    parser = argparse.ArgumentParser()
+    arg = parser.add_argument
+    arg('--config_path', type=str)
+    args = parser.parse_args()
+    
+    config = load_json(args.config_path)
+    
     data_loader = SF1Data(config['sf1_data_path'])
     tickers_df = data_loader.load_base_data(
         currency=CURRENCY,
