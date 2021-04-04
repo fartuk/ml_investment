@@ -76,10 +76,10 @@ class QuandlDownloader:
             None
             
 
-    def single_download(self, url, save_filepath):
-        if '?' not in url:
-            url = url + '?'
-        url = self._form_quandl_url(url)
+    def single_download(self, base_url_route, save_filepath):
+        if '?' not in base_url_route:
+            base_url_route = base_url_route + '?'
+        url = self._form_quandl_url(base_url_route)
         for _ in range(10):
             try:
                 response = requests.get(url)
@@ -90,10 +90,19 @@ class QuandlDownloader:
         if response.status_code != 200:
             print(12)
         data = response.json()
-
         save_json(save_filepath, data)
     
-        
+    
+    def zip_download(self, base_url_route, save_filepath):
+        url = self._form_quandl_url(base_url_route)
+        info_response = requests.get(url)
+        zip_link = info_response.json()['datatable_bulk_download']['file']['link']
+        data_response = requests.get(zip_link)
+        with open(save_filepath, 'wb') as f:
+            f.write(data_response.content)
+
+
+    
             
 class TinkoffDownloader:
     def __init__(self, secrets):
@@ -151,15 +160,13 @@ if __name__ == '__main__':
     config = load_json("config.json")
     secrets = load_json("secrets.json")  
 
-    data_loader = SF1Data(config['sf1_data_path'])
-    tickers_df = data_loader.load_base_data(
-        currency='USD',
-        scalemarketcap=['4 - Mid', '5 - Large', '6 - Mega'])
-    ticker_list = tickers_df['ticker'].unique().tolist()
-
-#     all_ticker_list = data_loader.load_base_data()['ticker'].unique().tolist()
-
     downloader = QuandlDownloader(config, secrets, sleep_time=0.8)
+    downloader.zip_download('datatables/SHARADAR/TICKERS?qopts.export=true',
+                            '{}/tickers.csv'.format(config['sf1_data_path']))
+
+    data_loader = SF1Data(config['sf1_data_path'])
+    ticker_list = data_loader.load_base_data()['ticker'].unique().tolist()
+    
     downloader.ticker_download('datatables/SHARADAR/SF1?ticker={ticker}', ticker_list, 
                                save_dirpath='{}/core_fundamental'.format(config['sf1_data_path']), 
                                skip_exists=False,  batch_size=10, n_jobs=4)
