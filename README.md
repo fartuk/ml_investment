@@ -11,6 +11,12 @@ pip install ml-investment
 ```
 pip install git+https://github.com/fartuk/ml_investment
 ```
+or 
+```
+git clone https://github.com/fartuk/ml_investment
+cd ml_investment
+pip install .
+```
 ### Run tests
 ```
 cd /path/to/ml_investmant
