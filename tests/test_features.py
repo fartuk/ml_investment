@@ -1,10 +1,10 @@
 import pytest
 import pandas as pd
 import numpy as np
-from ml_investment.data import SF1Data
+from ml_investment.data import SF1Data, QuandlCommoditiesData, ComboData
 from ml_investment.features import calc_series_stats, QuarterlyFeatures, BaseCompanyFeatures,\
                      QuarterlyDiffFeatures, FeatureMerger, \
-                     DailyAggQuarterFeatures
+                     DailyAggQuarterFeatures, CommoditiesAggQuarterFeatures
 from ml_investment.utils import load_json, int_hash_of_str
 from synthetic_data import GeneratedData
 config = load_json('config.json')
@@ -306,6 +306,51 @@ class TestDailyAggQuarterFeatures:
                 assert (X[median_col] >= X[min_col]).min()  
 
 
+loaders = [GeneratedData()]
+if config['sf1_data_path'] is not None and \
+   config['commodities_data_path'] is not None:
+    dl1 = SF1Data(config['sf1_data_path'])
+    dl2 = QuandlCommoditiesData(config['commodities_data_path'])
+    data_loader = ComboData([dl1, dl2])
+    loaders.append(data_loader)
+    
+class TestCommoditiesAggQuarterFeatures:
+    @pytest.mark.parametrize('data_loader', loaders) 
+    @pytest.mark.parametrize(
+        ["tickers", "commodities", "agg_day_limits", "max_back_quarter"],
+        [(['AAPL', 'TSLA'], ['LBMA/GOLD'], [100], 10), 
+         (['NVDA', 'TSLA'], ['LBMA/GOLD'], [100, 200], 5), 
+         (['AAPL', 'NVDA', 'TSLA', 'WORK'], ['LBMA/GOLD', 'LBMA/SILVER'], [50, 200], 10), 
+         (['AAPL', 'ZLG'], ['LBMA/GOLD', 'LBMA/SILVER'], [50, 200], 5)]
+    )
+    def test_calculate(self, data_loader, tickers, commodities, 
+                       agg_day_limits, max_back_quarter):
+        fc = CommoditiesAggQuarterFeatures(commodities=commodities,
+                                     agg_day_limits=agg_day_limits,
+                                     max_back_quarter=max_back_quarter)
+                            
+        X = fc.calculate(data_loader, tickers)
+                
+        assert type(X) == pd.DataFrame
+        assert 'ticker' in X.index.names
+        assert 'date' in X.index.names
+       
+        assert X.shape[0] <= max_back_quarter * len(tickers)     
+        assert X.shape[1] == len(calc_series_stats([])) * \
+                             len(commodities) * len(agg_day_limits)
+                                    
+
+        for code in commodities:
+            for count in agg_day_limits:
+                min_col = 'day_limit{}_{}_min'.format(count, code)
+                max_col = 'day_limit{}_{}_max'.format(count, code)
+                mean_col = 'day_limit{}_{}_mean'.format(count, code)
+                median_col = 'day_limit{}_{}_median'.format(count, code)
+                assert (X[max_col] >= X[min_col]).min()                
+                assert (X[max_col] >= X[mean_col]).min()                
+                assert (X[max_col] >= X[median_col]).min()                
+                assert (X[mean_col] >= X[min_col]).min()                
+                assert (X[median_col] >= X[min_col]).min()  
 
 
 

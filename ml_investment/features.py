@@ -375,6 +375,23 @@ class DailyAggQuarterFeatures:
                  columns: List[str], 
                  agg_day_counts: List[int] = [100, 200], 
                  max_back_quarter: int=10):
+        '''     
+        Parameters
+        ----------
+        columns:
+            column names for feature calculation(like marketcap, pe)
+        agg_day_counts:
+            list of days counts to calculate statistics on. 
+            e.g. if agg_day_counts = [100, 200] statistics will be 
+            calculated based on last 100 and 200 days(separetly). 
+        max_back_quarter:
+            max number of company slices in time. 
+            If max_back_quarter = 1 than features will be calculated
+            for only current company quarter. 
+            If max_back_quarter is larger than total number of
+            quarters for company than features will be calculated 
+            for all quarters
+        '''
         self.columns = columns
         self.agg_day_counts = agg_day_counts
         self.max_back_quarter = max_back_quarter
@@ -455,6 +472,113 @@ class DailyAggQuarterFeatures:
 
 
 
+class CommoditiesAggQuarterFeatures:
+    '''
+    Feature calculator for commodities price statistics for quarter slices.
+    Return features for company quarter slices.
+    '''
+    def __init__(self, 
+                 commodities: List[str], 
+                 agg_day_limits: List[int] = [100, 200], 
+                 max_back_quarter: int=10):
+        '''     
+        Parameters
+        ----------
+        commodities:
+            list of commodities codes to calculate features for
+        agg_day_limits:
+            list of days limits to calculate statistics on. 
+            e.g. if agg_day_counts = [100, 200] statistics will be 
+            calculated based on last 100 and 200 days(separetly). 
+        max_back_quarter:
+            max number of company slices in time. 
+            If max_back_quarter = 1 than features will be calculated
+            for only current company quarter. 
+            If max_back_quarter is larger than total number of
+            quarters for company than features will be calculated 
+            for all quarters
+        '''
+        self.commodities = commodities
+        self.agg_day_limits = agg_day_limits
+        self.max_back_quarter = max_back_quarter
+        
+        
+    def _calc_series_feats(self, curr_date: np.datetime64) -> Dict[str, float]:
+        result = {}
+
+        for commodity_code in self.commodities:
+            for day_limit in self.agg_day_limits:
+                date_mask = self._commodities_dict[commodity_code]['date'] >= \
+                            curr_date - np.timedelta64(day_limit, 'D')
+                curr_data = self._commodities_dict[commodity_code][date_mask]
+                series = curr_data['price'].values[::-1].astype('float')
+                name_prefix = 'day_limit{}_{}'.format(day_limit, commodity_code)
+                feats = calc_series_stats(series, name_prefix=name_prefix,
+                                          norm=True)
+
+                result.update(feats)
+
+        return result   
+           
+        
+    def _single_ticker(self, ticker: str) -> List[Dict[str, float]]:
+        result = []
+        quarterly_data = self._data_loader.load_quarterly_data([ticker])
+   
+        max_back_quarter = min(self.max_back_quarter, len(quarterly_data) - 1)
+        for back_quarter in range(max_back_quarter):
+            curr_data = quarterly_data[back_quarter:]
+            curr_date = curr_data['date'].values[0]
+            
+            feats = {
+                'ticker': ticker, 
+                'date': curr_date,
+            }
+            
+            commodities_feats = self._calc_series_feats(curr_date)
+            feats.update(commodities_feats)
+
+            result.append(feats)
+           
+        return result
+        
+                
+    def calculate(self, data_loader, tickers: List[str],
+                  n_jobs: int=10) -> pd.DataFrame:
+        '''     
+        Interface to calculate features for tickers 
+        based on data from data_loader
+        
+        Parameters
+        ----------
+        data_loader:
+            class implements 
+            load_quarterly_data(tickers: List[str]) -> pd.DataFrame 
+            load_commodities_data(commodities_codes: List[str]) -> pd.DataFrame             
+            interfaces
+        tickers:
+            tickers of companies to calculate features for 
+        n_jobs:
+            number of threads                
+                      
+        Returns
+        -------
+            pd.DataFrame with result features and
+            having index ['ticker', 'date']
+        '''
+        self._data_loader = data_loader
+        self._commodities_dict = {}
+        for code in self.commodities:
+            self._commodities_dict[code] = self._data_loader.load_commodities_data([code])   
+            
+        p = Pool(n_jobs)
+        X = []
+        for ticker_feats_arr in tqdm(p.imap(self._single_ticker, tickers)):
+            X.extend(ticker_feats_arr)
+
+        X = pd.DataFrame(X).set_index(['ticker', 'date'])
+
+        return X
 
 
 

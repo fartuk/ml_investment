@@ -28,7 +28,6 @@ quandl_commodities_codes = ['LBMA/GOLD',
                            ]
 
 
-
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     arg = parser.add_argument

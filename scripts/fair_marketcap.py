@@ -2,9 +2,10 @@ import argparse
 import lightgbm as lgbm
 import catboost as ctb
 from ml_investment.utils import load_json
-from ml_investment.data import SF1Data
+from ml_investment.data import SF1Data, QuandlCommoditiesData, ComboData
 from ml_investment.features import QuarterlyFeatures, BaseCompanyFeatures, \
-                                   FeatureMerger, DailyAggQuarterFeatures
+                                   FeatureMerger, DailyAggQuarterFeatures, \
+                                   CommoditiesAggQuarterFeatures
 from ml_investment.targets import QuarterlyTarget
 from ml_investment.models import GroupedOOFModel, EnsembleModel, LogExpModel
 from ml_investment.metrics import median_absolute_relative_error
@@ -20,6 +21,7 @@ MODEL_CNT = 20
 FOLD_CNT = 5
 QUARTER_COUNTS = [2, 4, 10]
 AGG_DAY_COUNTS = [100, 200, 400, 800]
+COMMODITIES_AGG_DAY_LIMITS = [100, 200, 400, 800]
 SCALE_MARKETCAP = ["4 - Mid", "5 - Large", "6 - Mega"]
 DAILY_AGG_COLUMNS = ["marketcap", "pe"]
 CAT_COLUMNS = ["sector", "sicindustry"]
@@ -41,6 +43,29 @@ QUARTER_COLUMNS = [
             "currentratio",
             "netinccmn"
          ]
+COMMODITIES_CODES = [
+            'LBMA/GOLD',
+            'LBMA/SILVER',
+            'JOHNMATT/PALL',
+            'ODA/PBARL_USD',
+            'TFGRAIN/CORN', 
+            'ODA/PRICENPQ_USD',  
+            'CHRIS/CME_DA1',
+            'ODA/PBEEF_USD',
+            'ODA/PPOULT_USD', 
+            'ODA/PPORK_USD',  
+            'ODA/PWOOLC_USD',
+            'CHRIS/CME_CL1',
+            'ODA/POILBRE_USD',
+            'CHRIS/CME_NG1', 
+            'ODA/PCOFFOTM_USD',
+            'ODA/PCOCO_USD',
+            'ODA/PORANG_USD',
+            'ODA/PBANSOP_USD',
+            'ODA/POLVOIL_USD',
+            'ODA/PLOGSK_USD',
+            'ODA/PCOTTIND_USD'
+                           ]
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
@@ -49,8 +74,11 @@ if __name__ == '__main__':
     args = parser.parse_args()
     
     config = load_json(args.config_path)
+        
+    dl1 = SF1Data(config['sf1_data_path'])
+    dl2 = QuandlCommoditiesData(config['commodities_data_path'])
+    data_loader = ComboData([dl1, dl2])
     
-    data_loader = SF1Data(config['sf1_data_path'])
     tickers_df = data_loader.load_base_data(
         currency=CURRENCY,
         scalemarketcap=SCALE_MARKETCAP)
@@ -70,8 +98,14 @@ if __name__ == '__main__':
         agg_day_counts=AGG_DAY_COUNTS,
         max_back_quarter=MAX_BACK_QUARTER)
     
+    fc4 = CommoditiesAggQuarterFeatures(
+        commodities=COMMODITIES_CODES, 
+        agg_day_limits=COMMODITIES_AGG_DAY_LIMITS, 
+        max_back_quarter=MAX_BACK_QUARTER)
+    
     feature = FeatureMerger(fc1, fc2, on='ticker')
     feature = FeatureMerger(feature, fc3, on=['ticker', 'date'])
+    feature = FeatureMerger(feature, fc4, on=['ticker', 'date'])
 
     target = QuarterlyTarget(col='marketcap', quarter_shift=0)
 
