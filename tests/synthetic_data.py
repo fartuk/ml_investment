@@ -38,8 +38,7 @@ class GeneratedData:
         for col in self.daily_columns:
             df[col] = np.random.uniform(-1e5, 1e5, self.day_cnt * len(tickers))
         
-        return df        
-        
+        return df       
         
     def load_base_data(self):
         df = pd.DataFrame()
@@ -47,6 +46,18 @@ class GeneratedData:
         for col in self.cat_columns:
             np.random.seed(int_hash_of_str(col))
             df[col] = np.random.randint(-2, 2, len(self.tickers))
+
+        return df
+
+    def load_commodities_data(self, commodities_codes):
+        df = pd.DataFrame()
+        df['commodity_code'] = [x for x in commodities_codes for _ in range(self.day_cnt)]
+        df['date'] = [np.datetime64('2020-01-17') - np.timedelta64(k, 'D')
+                      for k in range(self.day_cnt)] * len(commodities_codes)
+        
+        np.random.seed(int_hash_of_str(str(commodities_codes)))
+        df['price'] = np.random.uniform(0, 1e5, self.day_cnt * len(commodities_codes))
+        
 
         return df
     

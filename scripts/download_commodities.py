@@ -1,4 +1,5 @@
 import argparse
+from tqdm import tqdm
 from ml_investment.data import SF1Data
 from ml_investment.download import QuandlDownloader
 from ml_investment.utils import load_json, save_json
@@ -40,7 +41,7 @@ if __name__ == '__main__':
 
     downloader = QuandlDownloader(config, secrets, sleep_time=0.8)
 
-    for code in quandl_commodities_codes:
+    for code in tqdm(quandl_commodities_codes):
         downloader.single_download('datasets/{}'.format(code),
                                    '{}/{}.json'.format(config['commodities_data_path'],
                                                   code.replace('/', '_')))

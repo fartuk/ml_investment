@@ -1,7 +1,7 @@
 import pytest
 import pandas as pd
 import numpy as np
-from ml_investment.data import SF1Data, ComboData
+from ml_investment.data import SF1Data, ComboData, QuandlCommoditiesData
 from ml_investment.utils import load_json
 config = load_json('config.json')
 
@@ -118,7 +118,28 @@ class TestSF1Data:
             diff = diff[~np.isnan(diff)]
             assert diff.max() < 0.1
 
+            
+            
+    @pytest.mark.skipif(config['commodities_data_path'] is None, 
+                        reason="There are no commodities dataset")
+    class TestQuandlCommoditiesData:
+        @pytest.mark.parametrize(
+            ["commodities_codes"],
+            [(['LBMA/GOLD', 'CHRIS/CME_CL1'], ),
+             (['LBMA/GOLD'], )]
+        )
+        def test_load_commodities_data(self, commodities_codes):
+            data_loader = QuandlCommoditiesData(config['commodities_data_path'])
+            df = data_loader.load_commodities_data(commodities_codes)
+            assert type(df) == pd.DataFrame
+            assert len(df) > 0
+            assert 'commodity_code' in df.columns
+            assert df['commodity_code'].isnull().max() == False
+            assert len(set(df['commodity_code'].values).difference(set(commodities_codes))) == 0
 
+        
+        
+        
 
 class Cl1:
     def a(self):

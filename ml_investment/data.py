@@ -11,6 +11,7 @@ from .utils import load_json
 class SF1Data: 
     '''
     Loading data provided by https://www.quandl.com/databases/SF1
+    Script for downloading: /scripts/download_sf1.py
     '''
     def __init__(self, data_path: str):
         '''
@@ -27,7 +28,7 @@ class SF1Data:
             │   ├── AAPL.json
             │   ├── FB.json
             │   └── ...
-            └── tickers.csv       
+            └── tickers.zip       
         '''
         self.data_path = data_path
 
@@ -69,7 +70,8 @@ class SF1Data:
         Parameters
         ----------
         currency:
-            currency of returned companies  
+            currency of returned companies(like USD, EUR etc)
+            only companies with this currency will be returned
         scalemarketcap: possible values ['1 - Nano', '2 - Micro', '3 - Small',
                                          '4 - Mid', '5 - Large', '6 - Mega']
             scalemarketcap of returned companies
@@ -204,6 +206,57 @@ class SF1Data:
         return df
 
 
+class QuandlCommoditiesData:
+    '''
+    Loading data provided by https://blog.quandl.com/api-for-commodity-data
+    Script for downloading: /scripts/download_commodities.py
+    '''
+    def __init__(self, data_path: str):
+        '''
+        Parameters
+        ----------
+        data_path:
+            path to commodities data folder with structure
+            commodities
+            ├── LBMA_GOLD.json
+            ├── CHRIS_CME_CL1.json
+            └── ...       
+        '''
+        self.data_path = data_path
+
+        
+    def load_commodities_data(self, commodities_codes: List[str]) -> pd.DataFrame:
+        '''
+        Load time-series information about commodity price
+        
+        Parameters
+        ----------
+        commodities_codes:
+            codes of returned commodities
+            
+        Returns
+        -------
+            pd.DataFrame with time series price information
+        '''  
+        result = []
+        for code in commodities_codes:
+            path = '{}/{}.json'.format(self.data_path, code.replace('/', '_'))
+            if not os.path.exists(path):
+                continue
+            data = load_json(path)
+            data = np.array(data['dataset']['data'])
+            df = pd.DataFrame()
+            df['date'] = data[:, 0].astype(np.datetime64)
+            df['price'] = data[:, 1].astype('float')
+            df['date'] = df['date'].astype(np.datetime64)
+            df['commodity_code'] = code
+            result.append(df)
+        
+        result = pd.concat(result, axis=0)
+        
+        return result    
+    
+    
 class ComboData:
     '''
     Class to combine data loaders in single object with union of all 
