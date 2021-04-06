@@ -22,6 +22,14 @@ pip install .
 cd /path/to/ml_investmant
 pytest
 ```
+
+### Run tests in Docker
+
+```
+docker build . -t tests
+docker run tests
+```
+
 ## Pipelines
 All investment tools represented as pipelines composed of feature and target calculation, model training and validation.
 Simple example of pipeline creation:

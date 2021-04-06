@@ -37,4 +37,5 @@ setuptools.setup(
     ],
     packages=find_packages(exclude=('tests', 'train', 'images', 'examples')),
     python_requires=PYTHON_REQUIRES,
+    install_requires=REQUIRED,
 )
