@@ -3,8 +3,8 @@ import lightgbm as lgbm
 import catboost as ctb
 from ml_investment.utils import load_json
 from ml_investment.data import SF1Data
-from ml_investment.features import QuarterlyFeatures, BaseCompanyFeatures, \ 
-                                   FeatureMerger, QuarterlyDiffFeatures, \ 
+from ml_investment.features import QuarterlyFeatures, BaseCompanyFeatures, \
+                                   FeatureMerger, QuarterlyDiffFeatures, \
                                    DailyAggQuarterFeatures
 from ml_investment.targets import DailyAggTarget
 from ml_investment.models import TimeSeriesOOFModel, EnsembleModel, LogExpModel
