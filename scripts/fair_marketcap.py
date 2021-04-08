@@ -12,7 +12,6 @@ from ml_investment.metrics import median_absolute_relative_error
 from ml_investment.pipelines import BasePipeline
 
 
-SAVE_PATH = 'models_data/fair_marketcap_'
 OUT_NAME = 'fair_marketcap'
 CURRENCY = 'USD'
 MAX_BACK_QUARTER = 10
@@ -129,7 +128,7 @@ if __name__ == '__main__':
                             
     result = pipeline.fit(data_loader, ticker_list)
     print(result)
-    pipeline.export_core(SAVE_PATH)    
+    pipeline.export_core('{}/{}'.format(config['models_data'], OUT_NAME))    
     
     
     

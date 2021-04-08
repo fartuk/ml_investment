@@ -1,5 +1,6 @@
 {
    "sf1_data_path":null,
    "commodities_data_path":null,
+   "models_path":"/workdir/models_data",
    "quandl_api_url":"https://www.quandl.com/api/v3"
 }

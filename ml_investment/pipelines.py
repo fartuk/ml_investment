@@ -158,6 +158,11 @@ class BasePipeline:
             now = time.strftime("%d.%m.%y_%H:%M", time.localtime(time.time()))
             path = 'models_data/pipeline_{}'.format(now)
 
+        if '/' in path:
+            folder_path = '/'.join(path.split('/')[:-1])
+            if not os.path.exists(folder_path):
+                os.makedirs(folder_path)
+
         with open('{}.pickle'.format(path), 'wb') as f:
             pickle.dump(self.core, f)
 

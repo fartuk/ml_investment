@@ -4,7 +4,7 @@ import catboost as ctb
 from ml_investment.utils import load_json
 from ml_investment.data import SF1Data
 from ml_investment.features import QuarterlyFeatures, BaseCompanyFeatures, \ 
-                                   FeatureMerger, QuarterlyDiffFeatures, \
+                                   FeatureMerger, QuarterlyDiffFeatures, \ 
                                    DailyAggQuarterFeatures
 from ml_investment.targets import DailyAggTarget
 from ml_investment.models import TimeSeriesOOFModel, EnsembleModel, LogExpModel
@@ -12,7 +12,6 @@ from ml_investment.metrics import median_absolute_relative_error, down_std_norm
 from ml_investment.pipelines import BasePipeline
 
 
-SAVE_PATH = 'models_data/marketcap_down_std'
 OUT_NAME = 'marketcap_down_std'
 CURRENCY = 'USD'
 TARGET_HORIZON = 90
@@ -105,4 +104,13 @@ if __name__ == '__main__':
                             
     result = pipeline.fit(data_loader, ticker_list)
     print(result)
-    pipeline.export_core(SAVE_PATH) 
+    pipeline.export_core('{}/{}'.format(config['models_data'], OUT_NAME)) 
+
+
+
+
+
+
+
+
+

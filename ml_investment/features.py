@@ -9,7 +9,7 @@ from typing import Union, List, Dict
 
 def calc_series_stats(series: Union[List[float], np.array],
                       name_prefix: str='',
-                      norm: bool=False) -> Dict[str, np.float]:
+                      norm: bool=False) -> Dict[str, float]:
     '''
     Calculate base statistics on series
             
