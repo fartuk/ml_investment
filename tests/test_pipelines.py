@@ -12,7 +12,9 @@ from ml_investment.pipelines import BasePipeline, ExecuteMergePipeline, Quarterl
 from ml_investment.metrics import median_absolute_relative_error, mean_absolute_relative_error
 from ml_investment.utils import load_json
 from synthetic_data import GeneratedData
-config = load_json('config.json')
+
+config = load_json(pytest.config_path)
+
 
 loaders = [GeneratedData()]
 if config['sf1_data_path'] is not None:

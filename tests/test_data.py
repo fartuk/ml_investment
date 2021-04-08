@@ -3,7 +3,9 @@ import pandas as pd
 import numpy as np
 from ml_investment.data import SF1Data, ComboData, QuandlCommoditiesData
 from ml_investment.utils import load_json
-config = load_json('config.json')
+
+
+config = load_json(pytest.config_path)
 
 
 @pytest.mark.skipif(config['sf1_data_path'] is None, reason="There are no SF1 dataset")

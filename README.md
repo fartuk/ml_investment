@@ -20,7 +20,7 @@ pip install .
 ### Run tests
 ```
 cd /path/to/ml_investmant
-pytest
+pytest --config_path=config_example.json
 ```
 
 ### Run tests in Docker

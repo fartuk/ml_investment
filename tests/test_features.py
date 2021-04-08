@@ -7,7 +7,8 @@ from ml_investment.features import calc_series_stats, QuarterlyFeatures, BaseCom
                      DailyAggQuarterFeatures, CommoditiesAggQuarterFeatures
 from ml_investment.utils import load_json, int_hash_of_str
 from synthetic_data import GeneratedData
-config = load_json('config.json')
+
+config = load_json(pytest.config_path)
 
 loaders = [GeneratedData()]
 if config['sf1_data_path'] is not None:

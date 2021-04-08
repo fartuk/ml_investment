@@ -7,10 +7,10 @@ from ml_investment.targets import QuarterlyTarget, QuarterlyDiffTarget, \
                     ReportGapTarget
 from ml_investment.utils import load_json
 from synthetic_data import PreDefinedData
-config = load_json('config.json')
+
+config = load_json(pytest.config_path)
 
 
-     
 class TestQuarterlyTarget:       
     @pytest.mark.parametrize(
         ["ticker_dates", "quarter_shift", "expected"],
