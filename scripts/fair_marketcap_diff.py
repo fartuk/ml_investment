@@ -90,7 +90,7 @@ if __name__ == '__main__':
                             
     result = pipeline.fit(data_loader, ticker_list)
     print(result)
-    pipeline.export_core('{}/{}'.format(config['models_data'], OUT_NAME)) 
+    pipeline.export_core('{}/{}'.format(config['models_path'], OUT_NAME)) 
 
 
 
