@@ -77,7 +77,7 @@ if __name__ == '__main__':
             QuarterlyLoadPipeline(['ticker', 'date', 'marketcap'])],
         on=['ticker', 'date'])
 
-    quarterly_df = pipeline.execute(data_loader, ticker_list[:20])
+    quarterly_df = pipeline.execute(data_loader, ticker_list)
     quarterly_df = pipeline_postprocessing(quarterly_df)
 
     metrics_df = calc_metrics(quarterly_df)
