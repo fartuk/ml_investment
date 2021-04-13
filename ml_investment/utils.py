@@ -5,13 +5,16 @@ import pandas as pd
 import numpy as np
 from copy import deepcopy
 
-
-def save_json(path, data):
-    if '/' in path:
-        folder_path = '/'.join(path.split('/')[:-1])
+def check_create_folder(file_path):
+    if '/' in file_path:
+        folder_path = '/'.join(file_path.split('/')[:-1])
         if not os.path.exists(folder_path):
             os.makedirs(folder_path)
-    with open(path, "w") as write_file:
+
+
+def save_json(file_path, data):
+    check_create_folder(file_path)
+    with open(file_path, "w") as write_file:
         json.dump(data, write_file, ensure_ascii=False)
         
         

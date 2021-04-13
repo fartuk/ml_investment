@@ -8,7 +8,7 @@ import lightgbm as lgbm
 from copy import deepcopy
 from functools import reduce
 from typing import List
-from .utils import copy_repeat
+from .utils import copy_repeat, check_create_folder
 
 
 class BasePipeline:
@@ -158,11 +158,7 @@ class BasePipeline:
             now = time.strftime("%d.%m.%y_%H:%M", time.localtime(time.time()))
             path = 'models_data/pipeline_{}'.format(now)
 
-        if '/' in path:
-            folder_path = '/'.join(path.split('/')[:-1])
-            if not os.path.exists(folder_path):
-                os.makedirs(folder_path)
-
+        check_create_folder(path)
         with open('{}.pickle'.format(path), 'wb') as f:
             pickle.dump(self.core, f)
 
