@@ -1,6 +1,6 @@
 import numpy as np
 import pandas as pd
-from multiprocessing import Pool
+from multiprocessing import Pool, cpu_count
 from tqdm import tqdm
 from typing import List, Tuple, Callable
 from .data import SF1Data
@@ -61,7 +61,8 @@ class QuarterlyTarget:
         return result        
         
 
-    def calculate(self, data_loader, info_df: pd.DataFrame) -> pd.DataFrame:
+    def calculate(self, data_loader, info_df: pd.DataFrame,
+                  n_jobs: int = cpu_count()) -> pd.DataFrame:
         '''     
         Interface to calculate targets for dates and tickers in info_df
         based on data from data_loader
@@ -74,6 +75,8 @@ class QuarterlyTarget:
         info_df:
             pd.DataFrame containing information of tickers and dates
             to calculate targets for. Should have columns: ["ticker", "date"].               
+        n_jobs:
+            number of threads
                       
         Returns
         -------
@@ -84,7 +87,6 @@ class QuarterlyTarget:
                   x.tolist()).reset_index()
         params = [(ticker, dates) for ticker, dates in grouped.values]
 
-        n_jobs=10
         p = Pool(n_jobs)
         result = []
         for ticker_result in tqdm(p.imap(self._single_ticker_target, params)):
@@ -119,7 +121,8 @@ class QuarterlyDiffTarget:
         self.norm = norm
 
     
-    def calculate(self, data_loader, info_df: pd.DataFrame) -> pd.DataFrame:
+    def calculate(self, data_loader, info_df: pd.DataFrame, 
+                  n_jobs: int = cpu_count()) -> pd.DataFrame:
         '''     
         Interface to calculate targets for dates and tickers in info_df
         based on data from data_loader
@@ -132,13 +135,15 @@ class QuarterlyDiffTarget:
         info_df:
             pd.DataFrame containing information of tickers and dates
             to calculate targets for. Should have columns: ["ticker", "date"].               
-                      
+        n_jobs:
+            number of threads
+
         Returns
         -------
             pd.DataFrame with targets having 'y' column
         '''
-        curr_df = self.curr_target.calculate(data_loader, info_df)
-        last_df = self.last_target.calculate(data_loader, info_df)
+        curr_df = self.curr_target.calculate(data_loader, info_df, n_jobs)
+        last_df = self.last_target.calculate(data_loader, info_df, n_jobs)
         curr_df['y'] = curr_df['y'] - last_df['y']
         if self.norm:
             curr_df['y'] = curr_df['y'] / np.abs(last_df['y'])
@@ -161,7 +166,7 @@ class QuarterlyBinDiffTarget:
         '''
         self.target = QuarterlyDiffTarget(col=col, norm=False)
     
-    def calculate(self, data_loader, info_df: pd.DataFrame) -> pd.DataFrame:
+    def calculate(self, data_loader, info_df: pd.DataFrame, n_jobs: int = cpu_count()) -> pd.DataFrame:
         '''
         Interface to calculate targets for dates and tickers in info_df
         based on data from data_loader
@@ -174,12 +179,14 @@ class QuarterlyBinDiffTarget:
         info_df:
             pd.DataFrame containing information of tickers and dates
             to calculate targets for. Should have columns: ["ticker", "date"].               
-                      
+        n_jobs:
+            number of threads
+
         Returns
         -------
             pd.DataFrame with targets having 'y' column
         '''
-        target_df = self.target.calculate(data_loader, info_df)
+        target_df = self.target.calculate(data_loader, info_df, n_jobs)
         target_df.loc[target_df['y'].isnull() == False, 'y'] = \
             target_df.loc[target_df['y'].isnull() == False, 'y'] > 0
         target_df['y'] = target_df['y'].astype(float)
@@ -240,7 +247,8 @@ class DailyAggTarget:
         return result        
         
 
-    def calculate(self, data_loader, info_df: pd.DataFrame) -> pd.DataFrame:
+    def calculate(self, data_loader, info_df: pd.DataFrame, 
+                  n_jobs: int = cpu_count()) -> pd.DataFrame:
         '''
         Interface to calculate targets for dates and tickers in info_df
         based on data from data_loader
@@ -253,7 +261,9 @@ class DailyAggTarget:
         info_df:
             pd.DataFrame containing information of tickers and dates
             to calculate targets for. Should have columns: ["ticker", "date"].               
-                      
+        n_jobs:
+            number of threads
+
         Returns
         -------
             pd.DataFrame with targets having 'y' column
@@ -263,7 +273,6 @@ class DailyAggTarget:
                   x.tolist()).reset_index()
         params = [(ticker, dates) for ticker, dates in grouped.values]
 
-        n_jobs=10
         p = Pool(n_jobs)
         result = []
         for ticker_result in tqdm(p.imap(self._single_ticker_target, params)):
@@ -295,7 +304,8 @@ class ReportGapTarget:
         self.norm = norm
         
         
-    def calculate(self, data_loader, info_df: pd.DataFrame) -> pd.DataFrame:
+    def calculate(self, data_loader, info_df: pd.DataFrame, 
+                  n_jobs: int = cpu_count()) -> pd.DataFrame:
         '''     
         Interface to calculate targets for dates and tickers in info_df
         based on data from data_loader
@@ -308,14 +318,16 @@ class ReportGapTarget:
         info_df:
             pd.DataFrame containing information of tickers and dates
             to calculate targets for. Should have columns: ["ticker", "date"].               
-                      
+        n_jobs:
+            number of threads
+
         Returns
         -------
             pd.DataFrame with targets having 'y' column
         '''        
         
-        curr_df = self.curr_target.calculate(data_loader, info_df)
-        last_df = self.last_target.calculate(data_loader, info_df)
+        curr_df = self.curr_target.calculate(data_loader, info_df, n_jobs)
+        last_df = self.last_target.calculate(data_loader, info_df, n_jobs)
         curr_df['y'] = curr_df['y'] - last_df['y']
         if self.norm:
             curr_df['y'] = curr_df['y'] / np.abs(last_df['y'])

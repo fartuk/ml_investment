@@ -1,7 +1,7 @@
 import numpy as np
 import pandas as pd
 
-from multiprocessing import Pool
+from multiprocessing import Pool, cpu_count
 from sklearn.preprocessing import LabelEncoder
 from tqdm import tqdm
 from typing import Union, List, Dict
@@ -170,7 +170,7 @@ class QuarterlyFeatures:
         
         
     def calculate(self, data_loader, tickers: List[str],
-                  n_jobs: int=10) -> pd.DataFrame:
+                  n_jobs: int=cpu_count()) -> pd.DataFrame:
         '''     
         Interface to calculate features for tickers 
         based on data from data_loader
@@ -275,7 +275,7 @@ class QuarterlyDiffFeatures:
         
         
     def calculate(self, data_loader, tickers: List[str],
-                  n_jobs: int=10) -> pd.DataFrame:
+                  n_jobs: int=cpu_count()) -> pd.DataFrame:
         '''     
         Interface to calculate features for tickers 
         based on data from data_loader
@@ -437,7 +437,7 @@ class DailyAggQuarterFeatures:
         
                 
     def calculate(self, data_loader, tickers: List[str],
-                  n_jobs: int=10) -> pd.DataFrame:
+                  n_jobs: int=cpu_count()) -> pd.DataFrame:
         '''     
         Interface to calculate features for tickers 
         based on data from data_loader
@@ -544,7 +544,7 @@ class CommoditiesAggQuarterFeatures:
         
                 
     def calculate(self, data_loader, tickers: List[str],
-                  n_jobs: int=10) -> pd.DataFrame:
+                  n_jobs: int=cpu_count()) -> pd.DataFrame:
         '''     
         Interface to calculate features for tickers 
         based on data from data_loader

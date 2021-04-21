@@ -63,7 +63,7 @@ if __name__ == '__main__':
     dl2 = QuandlCommoditiesData(config['commodities_data_path'])
     data_loader = ComboData([dl1, dl2])
 
-    tickers_df = data_loader.load_base_data()
+    tickers_df = data_loader.load_base_data(currency='USD')
     ticker_list = tickers_df['ticker'].unique().tolist()
     
     pipeline = ExecuteMergePipeline(

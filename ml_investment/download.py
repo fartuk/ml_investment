@@ -143,7 +143,7 @@ class TinkoffDownloader:
         return figi
     
         
-    def get_price(self, ticker):
+    def get_last_price(self, ticker):
         figi = self.get_figi_by_ticker(ticker)      
         url = 'https://api-invest.tinkoff.ru/openapi/market/candles' \
               '?figi={}&from={}&to={}&interval=day'
@@ -159,7 +159,25 @@ class TinkoffDownloader:
         close_price = response.json()['payload']['candles'][-1]['c']
         
         return close_price
-            
+    
+    def get_price_history(self, ticker):
+        figi = self.get_figi_by_ticker(ticker)      
+        url = 'https://api-invest.tinkoff.ru/openapi/market/candles' \
+              '?figi={}&from={}&to={}&interval=day'
+
+        end = np.datetime64('now')
+        end = str(end) + '%2B00%3A00'
+        start = np.datetime64('now') - np.timedelta64(365*4, 'D')
+        start = str(start) + '%2B00%3A00'
+        
+        url = url.format(figi, start, end)
+
+        response = requests.get(url, headers=self.headers)
+        return response
+        close_price = response.json()['payload']['candles'][-1]['c']
+        
+        return close_price            
+        
         
 
 if __name__ == '__main__':
