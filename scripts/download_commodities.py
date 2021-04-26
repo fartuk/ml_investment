@@ -35,16 +35,9 @@ quandl_commodities_codes = ['LBMA/GOLD',
                             'ODA/PCOTTIND_USD'
                            ]
 
-
-if __name__ == '__main__':
-    parser = argparse.ArgumentParser()
-    arg = parser.add_argument
-    arg('--config_path', type=str)
-    arg('--secrets_path', type=str)
-    args = parser.parse_args()
-    
-    config = load_json(args.config_path)
-    secrets = load_json(args.secrets_path)  
+def main(config_path, secrets_path):
+    config = load_json(config_path)
+    secrets = load_json(secrets_path)  
 
     downloader = QuandlDownloader(config, secrets, sleep_time=0.8)
 
@@ -52,4 +45,14 @@ if __name__ == '__main__':
         downloader.single_download('datasets/{}'.format(code),
                                    '{}/{}.json'.format(config['commodities_data_path'],
                                                   code.replace('/', '_')))
+ 
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser()
+    arg = parser.add_argument
+    arg('--config_path', type=str, default="config.json")
+    arg('--secrets_path', type=str, default="secrets.json")
+    args = parser.parse_args()
     
+    main(args.config_path, args.secrets_path)
+   

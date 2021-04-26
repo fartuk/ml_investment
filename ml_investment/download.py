@@ -2,7 +2,9 @@ import os
 import requests
 import time
 import numpy as np
+import pandas as pd
 import copy
+import json
 from tqdm import tqdm
 from multiprocessing import Pool
 from itertools import repeat
@@ -108,7 +110,105 @@ class QuandlDownloader:
             f.write(data_response.content)
 
 
+            
+class YahooDownloader:
+    def __init__(self, config, secrets):
+        self.config = config
+        self.secrets = secrets
+
+    def _parse_quarterly_json(self, json_data):
+        new_data = []
+        for row in json_data:
+            new_row = {}
+            for key in row.keys():
+                if key == 'endDate':
+                    new_row['date'] = row[key]['fmt']
+                    continue
+                if type(row[key]) == dict and 'raw' in row[key]:
+                    new_row[key] = row[key]['raw']
+                    continue
+                if type(row[key]) == dict and len(row[key]) == 0:
+                    new_row[key] = None
+                    continue
+                new_row[key] = row[key]
+            new_data.append(new_row)
+        df = pd.DataFrame(new_data)
+        return df
     
+    def _parse_base_json(self, json_data):
+        new_row = {}
+        for key in json_data.keys():
+            if type(json_data[key]) == dict and 'raw' in json_data[key]:
+                new_row[key] = json_data[key]['raw']
+                continue
+            if type(json_data[key]) in [list, dict] and len(json_data[key]) == 0:
+                new_row[key] = None
+                continue
+            new_row[key] = json_data[key]
+
+        return new_row
+
+
+    def _download_quarterly_data_single(self, ticker):
+        url = 'https://query2.finance.yahoo.com/v10/finance/quoteSummary/{ticker}'
+        url += '?modules=incomeStatementHistoryQuarterly'
+        url += ',balanceSheetHistoryQuarterly'
+        url += ',cashflowStatementHistoryQuarterly'
+
+        r = requests.get(url.format(ticker=ticker))
+        if r.status_code != 200:
+            return
+        json_data = r.json()['quoteSummary']['result'][0]
+        
+        if len(json_data['incomeStatementHistoryQuarterly']['incomeStatementHistory']) == 0:
+            return
+        
+        q1 = self._parse_quarterly_json(json_data['incomeStatementHistoryQuarterly']['incomeStatementHistory'])
+        q2 = self._parse_quarterly_json(json_data['balanceSheetHistoryQuarterly']['balanceSheetStatements'])
+        q3 = self._parse_quarterly_json(json_data['cashflowStatementHistoryQuarterly']['cashflowStatements'])
+
+        quarterly_df = pd.merge(q1, q2, on='date', how='left')
+        quarterly_df = pd.merge(quarterly_df, q3, on='date', how='left')
+        
+        filepath = '{}/quarterly/{}.csv'.format(self.config['yahoo_data_path'], ticker)
+        quarterly_df.to_csv(filepath, index=False)
+
+        time.sleep(np.random.uniform(0, 1))
+
+    
+    def _download_base_data_single(self, ticker):
+        url = 'https://query2.finance.yahoo.com/v10/finance/quoteSummary/{ticker}'
+        url += '?modules=summaryProfile,defaultKeyStatistics'
+
+        r = requests.get(url.format(ticker=ticker))
+        if r.status_code != 200:
+            return
+        json_data = r.json()['quoteSummary']['result'][0]
+
+        base_data = {}
+        b1 = self._parse_base_json(json_data['summaryProfile'])
+        b2 = self._parse_base_json(json_data['defaultKeyStatistics'])
+        base_data.update(b1)
+        base_data.update(b2)   
+        filepath = '{}/base/{}.json'.format(self.config['yahoo_data_path'], ticker)
+        save_json(filepath, base_data)            
+        
+        time.sleep(np.random.uniform(0, 1))
+        
+
+    def download_quarterly_data(self, tickers, n_jobs=4):
+        os.makedirs('{}/quarterly'.format(self.config['yahoo_data_path']), exist_ok=True)
+        p = Pool(n_jobs)
+        for _ in tqdm(p.imap(self._download_quarterly_data_single, tickers)):
+            None        
+        
+    def download_base_data(self, tickers, n_jobs=4):
+        os.makedirs('{}/base'.format(self.config['yahoo_data_path']), exist_ok=True)
+        p = Pool(n_jobs)
+        for _ in tqdm(p.imap(self._download_base_data_single, tickers)):
+            None        
+        
+
             
 class TinkoffDownloader:
     def __init__(self, secrets):
@@ -178,28 +278,18 @@ class TinkoffDownloader:
         
         return close_price            
         
+    def post_market_order(self, ticker, side, lots):
+        figi = self.get_figi_by_ticker(ticker)
+        url = 'https://api-invest.tinkoff.ru/openapi/orders/market-order?figi={}&brokerAccountId={}'
+        url = url.format(figi, self.secrets['tinkoff_broker_account_id'])
+        data = {
+                "operation": side,
+                "lots": lots,
+               }
+        response = requests.post(url, data=json.dumps(data), headers=self.headers)
         
-
-if __name__ == '__main__':
-    config = load_json("config.json")
-    secrets = load_json("secrets.json")  
-
-    downloader = QuandlDownloader(config, secrets, sleep_time=0.8)
-    downloader.zip_download('datatables/SHARADAR/TICKERS?qopts.export=true',
-                            '{}/tickers.csv'.format(config['sf1_data_path']))
-
-    data_loader = SF1Data(config['sf1_data_path'])
-    ticker_list = data_loader.load_base_data()['ticker'].unique().tolist()
-    
-    downloader.ticker_download('datatables/SHARADAR/SF1?ticker={ticker}', ticker_list, 
-                               save_dirpath='{}/core_fundamental'.format(config['sf1_data_path']), 
-                               skip_exists=False,  batch_size=10, n_jobs=4)
-
-    downloader.ticker_download('datatables/SHARADAR/DAILY?ticker={ticker}', ticker_list, 
-                               save_dirpath='{}/daily'.format(config['sf1_data_path']), 
-                               skip_exists=False, batch_size=5, n_jobs=4)
-
-
+        return response
+        
 
 
 
