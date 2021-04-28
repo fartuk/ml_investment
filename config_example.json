@@ -1,7 +1,0 @@
-{
-   "sf1_data_path":null,
-   "commodities_data_path":null,
-   "models_path":"/workdir/ml_investment_models",
-   "oput_path":"/workdir/ml_investment_data/out",
-   "quandl_api_url":"https://www.quandl.com/api/v3"
-}
