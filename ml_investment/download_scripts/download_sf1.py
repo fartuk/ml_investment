@@ -1,22 +1,12 @@
 import argparse
 from ml_investment.data import SF1Data
 from ml_investment.download import QuandlDownloader
-from ml_investment.utils import load_json, save_json
+from ml_investment.utils import load_config, save_json
 
 
-
-
-if __name__ == '__main__':
-    parser = argparse.ArgumentParser()
-    arg = parser.add_argument
-    arg('--config_path', type=str)
-    arg('--secrets_path', type=str)
-    args = parser.parse_args()
-    
-    config = load_json(args.config_path)
-    secrets = load_json(args.secrets_path)  
-
-    downloader = QuandlDownloader(config, secrets, sleep_time=0.8)
+def main():
+    config = load_config()
+    downloader = QuandlDownloader(sleep_time=0.8)
     downloader.zip_download('datatables/SHARADAR/TICKERS?qopts.export=true',
                             '{}/tickers.zip'.format(config['sf1_data_path']))
 
@@ -33,4 +23,5 @@ if __name__ == '__main__':
 
 
 
-
+if __name__ == '__main__':
+    main()

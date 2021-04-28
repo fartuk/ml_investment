@@ -6,17 +6,20 @@ import pandas as pd
 import copy
 import json
 from tqdm import tqdm
+from functools import reduce
 from multiprocessing import Pool
 from itertools import repeat
-from .utils import load_json, save_json
+from .utils import load_config, load_secrets, load_json, save_json
 from .data import SF1Data
 
 
 
 class QuandlDownloader:
-    def __init__(self, config, secrets, retry_cnt=10, sleep_time=1.4):
-        self.config = config
-        self.secrets = secrets
+    def __init__(self, retry_cnt=10, sleep_time=1.4):
+        self.config = load_config()
+        self.secrets = load_secrets()
+        if self.secrets['quandl_api_key'] is None:
+            raise Exception('Paste quandl_api_key at ~/.ml_investment/secrets.json')
         self.retry_cnt = retry_cnt
         self.sleep_time = sleep_time
         self._save_dirpath = None
@@ -112,29 +115,42 @@ class QuandlDownloader:
 
             
 class YahooDownloader:
-    def __init__(self, config, secrets):
-        self.config = config
-        self.secrets = secrets
-
+    DEFAULT_TYPE_LIST = [
+        'quarterlyTotalCapitalization',
+        'quarterlyTotalRevenue',
+        'quarterlyNetIncome',
+        'quarterlyFreeCashFlow',
+        'quarterlyTotalAssets',
+        'quarterlyEBITDA',
+        'quarterlyNetDebt',
+        'quarterlyGrossProfit',
+        'quarterlyWorkingCapital',
+        'quarterlyCashAndCashEquivalents',
+        'quarterlyResearchAndDevelopment',
+        'quarterlyCashDividendsPaid',
+    ]   
+    def __init__(self):
+        self.config = load_config()
+        self.secrets = load_secrets()
+        
     def _parse_quarterly_json(self, json_data):
-        new_data = []
-        for row in json_data:
-            new_row = {}
-            for key in row.keys():
-                if key == 'endDate':
-                    new_row['date'] = row[key]['fmt']
-                    continue
-                if type(row[key]) == dict and 'raw' in row[key]:
-                    new_row[key] = row[key]['raw']
-                    continue
-                if type(row[key]) == dict and len(row[key]) == 0:
-                    new_row[key] = None
-                    continue
-                new_row[key] = row[key]
-            new_data.append(new_row)
-        df = pd.DataFrame(new_data)
-        return df
-    
+        json_data = json_data['timeseries']['result']
+        dfs = []
+        for data in json_data:
+            name_set = set(data.keys()).intersection(set(self.type_list))
+            if len(name_set) == 1:
+                name = list(name_set)[0]
+                new_data = [{'date': row['asOfDate'], name: row['reportedValue']['raw']}
+                            for row in data[name]]
+                dfs.append(pd.DataFrame(new_data))
+        if len(dfs) == 0:
+            return
+        result = reduce(lambda l, r: pd.merge(l, r, on='date', how='left'), dfs)
+        for key in set(self.type_list).difference(set(result.columns)):
+            result[key] = None
+                    
+        return result
+
     def _parse_base_json(self, json_data):
         new_row = {}
         for key in json_data.keys():
@@ -150,25 +166,21 @@ class YahooDownloader:
 
 
     def _download_quarterly_data_single(self, ticker):
-        url = 'https://query2.finance.yahoo.com/v10/finance/quoteSummary/{ticker}'
-        url += '?modules=incomeStatementHistoryQuarterly'
-        url += ',balanceSheetHistoryQuarterly'
-        url += ',cashflowStatementHistoryQuarterly'
-
-        r = requests.get(url.format(ticker=ticker))
+        base_url = 'https://query1.finance.yahoo.com/ws/fundamentals-timeseries/v1/finance/timeseries'
+        base_url += '/{ticker}?lang=en-US&region=US&symbol=AAPL&padTimeSeries=false&type={type_str}'
+        base_url += '&merge=false&period1=493590046&period2=1619519293&corsDomain=finance.yahoo.com'
+        url = base_url.format(ticker=ticker, type_str=','.join(self.type_list))
+        
+        r = requests.get(url)
         if r.status_code != 200:
             return
-        json_data = r.json()['quoteSummary']['result'][0]
+        json_data = r.json()
         
-        if len(json_data['incomeStatementHistoryQuarterly']['incomeStatementHistory']) == 0:
+        quarterly_df = self._parse_quarterly_json(json_data)
+        if quarterly_df is None:
             return
-        
-        q1 = self._parse_quarterly_json(json_data['incomeStatementHistoryQuarterly']['incomeStatementHistory'])
-        q2 = self._parse_quarterly_json(json_data['balanceSheetHistoryQuarterly']['balanceSheetStatements'])
-        q3 = self._parse_quarterly_json(json_data['cashflowStatementHistoryQuarterly']['cashflowStatements'])
-
-        quarterly_df = pd.merge(q1, q2, on='date', how='left')
-        quarterly_df = pd.merge(quarterly_df, q3, on='date', how='left')
+        quarterly_df['date'] = quarterly_df['date'].astype(np.datetime64)
+        quarterly_df = quarterly_df.sort_values('date', ascending=False)
         
         filepath = '{}/quarterly/{}.csv'.format(self.config['yahoo_data_path'], ticker)
         quarterly_df.to_csv(filepath, index=False)
@@ -196,7 +208,8 @@ class YahooDownloader:
         time.sleep(np.random.uniform(0, 1))
         
 
-    def download_quarterly_data(self, tickers, n_jobs=4):
+    def download_quarterly_data(self, tickers, type_list=DEFAULT_TYPE_LIST, n_jobs=4):
+        self.type_list = type_list
         os.makedirs('{}/quarterly'.format(self.config['yahoo_data_path']), exist_ok=True)
         p = Pool(n_jobs)
         for _ in tqdm(p.imap(self._download_quarterly_data_single, tickers)):
@@ -211,8 +224,9 @@ class YahooDownloader:
 
             
 class TinkoffDownloader:
-    def __init__(self, secrets):
-        self.secrets = secrets
+    def __init__(self):
+        self.config = load_config()
+        self.secrets = load_secrets()
         self.headers = {"Authorization": 
                         "Bearer {}".format(secrets['tinkoff_token'])}
         

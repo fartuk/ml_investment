@@ -336,7 +336,45 @@ class ReportGapTarget:
         
         
         
+class BaseInfoTarget:
+    '''
+    Calculator of target represented by base company information
+    '''
+    def __init__(self, col: str):
+        '''     
+        Parameters
+        ----------
+        col:
+            column name for target calculation(like sector, industry)
+        '''
+        self.col = col
         
+        
+    def calculate(self, data_loader, info_df: pd.DataFrame) -> pd.DataFrame:
+        '''     
+        Interface to calculate targets for tickers in info_df
+        based on data from data_loader
+        
+        Parameters
+        ----------
+        data_loader:
+            class implements load_base_data() -> 
+                                                 pd.DataFrame interface
+        info_df:
+            pd.DataFrame containing information of tickers
+            to calculate targets for. Should have columns: ["ticker"].               
+
+        Returns
+        -------
+            pd.DataFrame with targets having 'y' column
+        '''        
+        base_df = data_loader.load_base_data()[['ticker', self.col]]
+        result = pd.merge(info_df, base_df, on='ticker', how='left')
+        result = result.rename({self.col: 'y'}, axis=1)
+        result = result[['ticker', 'y']]
+        result = result.set_index(['ticker'])
+
+        return result             
         
         
         

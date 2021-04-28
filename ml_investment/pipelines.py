@@ -105,8 +105,8 @@ class BasePipeline:
             y = target.calculate(data_loader, 
                                  X.index.to_frame(index=False))
             leave_mask = (y['y'].isnull() == False)
-            y_ = y[leave_mask]
-            X_ = X[leave_mask]
+            y_ = y[leave_mask.values]
+            X_ = X[leave_mask.values]
             self.core['model'][k].fit(X_, y_['y'])
             
             pred = self.core['model'][k].predict(X_)

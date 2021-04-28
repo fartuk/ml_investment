@@ -1,14 +1,16 @@
 import pytest
 import pandas as pd
 import numpy as np
-from ml_investment.data import SF1Data, ComboData, QuandlCommoditiesData
-from ml_investment.utils import load_json
+import os
+from ml_investment.data import SF1Data, ComboData, QuandlCommoditiesData,\
+                               YahooData
+from ml_investment.utils import load_json, load_config
 
 
-config = load_json(pytest.config_path)
+config = load_config()
 
 
-@pytest.mark.skipif(config['sf1_data_path'] is None, reason="There are no SF1 dataset")
+@pytest.mark.skipif(not os.path.exists(config['sf1_data_path']), reason="There are no SF1 dataset")
 class TestSF1Data:
     def test_load_base_data(self):
         data_loader = SF1Data(config['sf1_data_path'])
@@ -121,26 +123,63 @@ class TestSF1Data:
             assert diff.max() < 0.1
 
             
-            
-    @pytest.mark.skipif(config['commodities_data_path'] is None, 
-                        reason="There are no commodities dataset")
-    class TestQuandlCommoditiesData:
-        @pytest.mark.parametrize(
-            ["commodities_codes"],
-            [(['LBMA/GOLD', 'CHRIS/CME_CL1'], ),
-             (['LBMA/GOLD'], )]
-        )
-        def test_load_commodities_data(self, commodities_codes):
-            data_loader = QuandlCommoditiesData(config['commodities_data_path'])
-            df = data_loader.load_commodities_data(commodities_codes)
-            assert type(df) == pd.DataFrame
-            assert len(df) > 0
-            assert 'commodity_code' in df.columns
-            assert df['commodity_code'].isnull().max() == False
-            assert len(set(df['commodity_code'].values).difference(set(commodities_codes))) == 0
+        
+@pytest.mark.skipif(not os.path.exists(config['commodities_data_path']), 
+                    reason="There are no commodities dataset")
+class TestQuandlCommoditiesData:
+    @pytest.mark.parametrize(
+        ["commodities_codes"],
+        [(['LBMA/GOLD', 'CHRIS/CME_CL1'], ),
+         (['LBMA/GOLD'], )]
+    )
+    def test_load_commodities_data(self, commodities_codes):
+        data_loader = QuandlCommoditiesData(config['commodities_data_path'])
+        df = data_loader.load_commodities_data(commodities_codes)
+        assert type(df) == pd.DataFrame
+        assert len(df) > 0
+        assert 'commodity_code' in df.columns
+        assert df['commodity_code'].isnull().max() == False
+        assert len(set(df['commodity_code'].values).difference(set(commodities_codes))) == 0
 
         
-        
+@pytest.mark.skipif(not os.path.exists(config['yahoo_data_path']), reason="There are no Yahoo dataset")
+class TestYahooData:
+    def test_load_base_data(self):
+        data_loader = YahooData(config['yahoo_data_path'])
+        df = data_loader.load_base_data()
+        assert type(df) == pd.DataFrame
+        assert len(df) > 0
+        assert 'ticker' in df.columns
+        assert df['ticker'].isnull().max() == False
+
+
+    @pytest.mark.parametrize(
+        ["tickers", "quarter_count"],
+        [(['AAPL', 'MSFT', 'TSLA', 'WORK'], 3),
+         (['INTC', 'MSFT', 'XRDC', 'XOM'], 3),
+         (['INTC', 'ZRAN', 'XRDC', 'XOM'], 2),
+         (['NVDA'], 4)]
+    )
+    def test_load_quarterly_data(self, tickers, quarter_count):
+        data_loader = YahooData(config['yahoo_data_path'])
+        quarterly_df = data_loader.load_quarterly_data(tickers, quarter_count)
+
+        assert type(quarterly_df) == pd.DataFrame
+        assert 'ticker' in quarterly_df.columns
+        assert 'date' in quarterly_df.columns
+
+        # Data should be ordered by date inside ticker
+        quarterly_df['date_'] = quarterly_df['date'].astype(np.datetime64)
+        quarterly_df['def_order'] = range(len(quarterly_df))[::-1]
+        expected_dates_order = quarterly_df.sort_values(['ticker', 'date_'],
+                                            ascending=False)['date'].values
+        real_dates_order = quarterly_df.sort_values(['ticker', 'def_order'], 
+                                            ascending=False)['date'].values          
+        np.testing.assert_array_equal(expected_dates_order, real_dates_order)
+
+        for cnt in quarterly_df.groupby('ticker').size():
+            assert cnt <= quarter_count
+
         
 
 class Cl1:

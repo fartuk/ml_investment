@@ -1,17 +1,18 @@
 import pytest
+import os
 import pandas as pd
 import numpy as np
 from ml_investment.data import SF1Data, QuandlCommoditiesData, ComboData
 from ml_investment.features import calc_series_stats, QuarterlyFeatures, BaseCompanyFeatures,\
                      QuarterlyDiffFeatures, FeatureMerger, \
                      DailyAggQuarterFeatures, CommoditiesAggQuarterFeatures
-from ml_investment.utils import load_json, int_hash_of_str
+from ml_investment.utils import load_config, int_hash_of_str
 from synthetic_data import GeneratedData
 
-config = load_json(pytest.config_path)
+config = load_config()
 
 loaders = [GeneratedData()]
-if config['sf1_data_path'] is not None:
+if os.path.exists(config['sf1_data_path']):
     loaders.append(SF1Data(config['sf1_data_path']))
     
 

@@ -1,14 +1,15 @@
 import pytest
+import os
 import pandas as pd
 import numpy as np
 from ml_investment.data import SF1Data
 from ml_investment.targets import QuarterlyTarget, QuarterlyDiffTarget, \
                     QuarterlyBinDiffTarget, DailyAggTarget, \
-                    ReportGapTarget
-from ml_investment.utils import load_json
+                    ReportGapTarget, BaseInfoTarget
+from ml_investment.utils import load_config
 from synthetic_data import PreDefinedData
 
-config = load_json(pytest.config_path)
+config = load_config()
 
 
 class TestQuarterlyTarget:       
@@ -38,7 +39,7 @@ class TestQuarterlyTarget:
 
 
 
-    @pytest.mark.skipif(config['sf1_data_path'] is None, reason="There are no SF1 dataset")
+    @pytest.mark.skipif(not os.path.exists(config['sf1_data_path']), reason="There are no SF1 dataset")
     @pytest.mark.parametrize(
         "tickers",
         [['AAPL', 'TSLA'], ['NVDA', 'TSLA'], 
@@ -102,7 +103,7 @@ class TestQuarterlyDiffTarget:
         y = target.calculate(data_loader, info_df)
         np.testing.assert_array_equal(y['y'].values, expected)
 
-    @pytest.mark.skipif(config['sf1_data_path'] is None, reason="There are no SF1 dataset")
+    @pytest.mark.skipif(not os.path.exists(config['sf1_data_path']), reason="There are no SF1 dataset")
     @pytest.mark.parametrize(
         "tickers",
         [['AAPL', 'TSLA'], ['NVDA', 'TSLA'], 
@@ -185,36 +186,25 @@ class TestReportGapTarget:
 
 
 
+class TestBaseInfoTarget:       
+    @pytest.mark.skipif(not os.path.exists(config['sf1_data_path']), reason="There are no SF1 dataset")
+    @pytest.mark.parametrize(
+        "tickers",
+        [['AAPL', 'TSLA'], ['NVDA', 'TSLA'], 
+        ['AAPL', 'NVDA', 'TSLA', 'WORK'], ['AAPL', 'ZLG']]
+    )
+    def test_calculate(self, tickers):
+        data_loader = SF1Data(config['sf1_data_path'])
+        quarterly_df = data_loader.load_quarterly_data(tickers,
+                                                       quarter_count=1)
+                                                       
+        target = BaseInfoTarget('sector')
+        info_df = quarterly_df.drop_duplicates('ticker', keep='first') \
+                                        [['ticker', 'date']]
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+        y = target.calculate(data_loader, info_df[['ticker', 'date']])
+        assert type(y) == pd.DataFrame
+        assert 'y' in y.columns
 
 
 

@@ -151,7 +151,9 @@ class QuarterlyFeatures:
         
     def _single_ticker(self, ticker:str) -> List[Dict[str, float]]:
         result = []
-        quarterly_data = self._data_loader.load_quarterly_data([ticker])        
+        quarterly_data = self._data_loader.load_quarterly_data([ticker])
+        if quarterly_data is None:
+            return result
         max_back_quarter = min(self.max_back_quarter, len(quarterly_data) - 1)
         for back_quarter in range(max_back_quarter):
             curr_data = quarterly_data[back_quarter:]
@@ -257,7 +259,9 @@ class QuarterlyDiffFeatures:
         
     def _single_ticker(self, ticker: str) -> List[Dict[str, float]]:
         result = []
-        quarterly_data = self._data_loader.load_quarterly_data([ticker])        
+        quarterly_data = self._data_loader.load_quarterly_data([ticker])
+        if quarterly_data is None:
+            return result
         max_back_quarter = min(self.max_back_quarter, len(quarterly_data) - 1)
         for back_quarter in range(max_back_quarter):
             curr_data = quarterly_data[back_quarter:]
@@ -415,6 +419,8 @@ class DailyAggQuarterFeatures:
     def _single_ticker(self, ticker: str) -> List[Dict[str, float]]:
         result = []
         quarterly_data = self._data_loader.load_quarterly_data([ticker])
+        if quarterly_data is None:
+            return result
         daily_data = self._data_loader.load_daily_data([ticker])     
         daily_dates = daily_data['date'].astype(np.datetime64).values      
         max_back_quarter = min(self.max_back_quarter, len(quarterly_data) - 1)
@@ -524,7 +530,8 @@ class CommoditiesAggQuarterFeatures:
     def _single_ticker(self, ticker: str) -> List[Dict[str, float]]:
         result = []
         quarterly_data = self._data_loader.load_quarterly_data([ticker])
-   
+        if quarterly_data is None:
+            return result   
         max_back_quarter = min(self.max_back_quarter, len(quarterly_data) - 1)
         for back_quarter in range(max_back_quarter):
             curr_data = quarterly_data[back_quarter:]

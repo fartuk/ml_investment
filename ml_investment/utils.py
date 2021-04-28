@@ -5,6 +5,7 @@ import pandas as pd
 import numpy as np
 from copy import deepcopy
 
+
 def check_create_folder(file_path):
     if '/' in file_path:
         folder_path = '/'.join(file_path.split('/')[:-1])
@@ -32,6 +33,33 @@ def copy_repeat(data, cnt: int):
 
 def int_hash_of_str(text:str):
     return int(hashlib.md5(text.encode('utf-8')).hexdigest()[:8], 16)
+
+
+
+def load_config():
+    _base_dir = os.path.expanduser('~')
+    _ml_investments_dir = os.path.join(_base_dir, '.ml_investments')
+    _config_path = os.path.join(_ml_investments_dir, 'config.json')
+    config = load_json(_config_path)
+    return config
+
+
+def load_secrets():
+    _base_dir = os.path.expanduser('~')
+    _ml_investments_dir = os.path.join(_base_dir, '.ml_investments')
+    _secrets_path = os.path.join(_ml_investments_dir, 'secrets.json')
+    secrets = load_json(_secrets_path)
+    return secrets
+
+
+def load_tickers():
+    _base_dir = os.path.expanduser('~')
+    _ml_investments_dir = os.path.join(_base_dir, '.ml_investments')
+    _tickers_path = os.path.join(_ml_investments_dir, 'tickers.json')
+    tickers = load_json(_tickers_path)
+    return tickers
+
+
 
 def make_step_function(df, x_col, y_col):
     '''

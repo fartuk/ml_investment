@@ -16,8 +16,8 @@ class LogExpModel:
         self.base_model = base_model
         
     def fit(self, X, y):
-        assert np.min(y) >= 0
-        mask = y > 0
+#         assert np.min(y) >= 0
+        mask = (y > 0).values
         self.base_model.fit(X[mask], np.log(y[mask]))
    
     def predict(self, X):

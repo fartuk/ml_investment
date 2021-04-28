@@ -256,7 +256,70 @@ class QuandlCommoditiesData:
         
         return result    
     
+
     
+class YahooData:
+    def __init__(self, data_path: str):
+        self.data_path = data_path
+
+    def load_quarterly_data(self, 
+                            tickers: List[str], 
+                            quarter_count: Optional[int]=None) -> pd.DataFrame:
+        '''
+        Load quartely fundamental information about companies(debt, revenue etc)
+        
+        Parameters
+        ----------
+        tickers:
+            tickers of returned companies
+        quarter_count:
+            maximum last quarter to return
+            
+        Returns
+        -------
+            pd.DataFrame with quarterly information
+        '''
+        result = []
+        for ticker in tickers:
+            path = '{}/quarterly/{}.csv'.format(self.data_path, ticker)
+            if not os.path.exists(path):
+                continue
+            df = pd.read_csv(path)
+            df['ticker'] = ticker
+            if quarter_count is not None:
+                df = df[:quarter_count]
+            result.append(df)
+            
+        if len(result) > 0:
+            result = pd.concat(result, axis=0).reset_index(drop=True)
+        else:
+            return None
+        
+        result['date'] = result['date'].astype(np.datetime64)  
+        
+        return result
+
+    
+    def load_base_data(self) -> pd.DataFrame:
+        '''
+        Load base information about company(like sector, industry etc)
+            
+        Returns
+        -------
+            pd.DataFrame with base information
+        '''
+        reuslt = []
+        base_path = '{}/base'.format(self.data_path)
+        for filename in os.listdir(base_path):
+            data = load_json('{}/{}'.format(base_path, filename))
+            data['ticker'] = filename.split('.json')[0]
+            reuslt.append(data)
+        reuslt = pd.DataFrame(reuslt)
+
+        return reuslt              
+
+
+
 class ComboData:
     '''
     Class to combine data loaders in single object with union of all 
