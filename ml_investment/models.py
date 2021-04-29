@@ -13,14 +13,38 @@ class LogExpModel:
     May be usefull for some target distributions.
     '''
     def __init__(self, base_model):
+        '''
+        Parameters:
+            base_model:
+                | class implements ``fit(X, y)``, 
+                | ``predict(X)``/``predict_proba(X)`` intrfaces
+        '''
         self.base_model = base_model
         
-    def fit(self, X, y):
+    def fit(self, X: pd.DataFrame, y):
+        '''
+        Interface for model training
+        
+        Parameters
+        ----------
+        X:
+            ``pd.DataFrame`` containing features
+        y:
+            target data
+        ''' 
 #         assert np.min(y) >= 0
         mask = (y > 0).values
         self.base_model.fit(X[mask], np.log(y[mask]))
    
     def predict(self, X):
+        '''     
+        Interface for prediction
+        
+        Parameters
+        ----------
+        X:
+            ``pd.DataFrame`` containing features
+        ''' 
         return np.exp(self.base_model.predict(X))
 
 
@@ -57,6 +81,14 @@ class EnsembleModel:
                 
     
     def predict(self, X):
+        '''     
+        Interface for prediction
+        
+        Parameters
+        ----------
+        X:
+            pd.DataFrame containing features
+        ''' 
         preds = []
         for k in range(self.model_cnt):
             try:

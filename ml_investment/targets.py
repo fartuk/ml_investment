@@ -22,11 +22,11 @@ class QuarterlyTarget:
             column name for target calculation(like marketcap, revenue)
         quarter_shift:
             number of quarters to shift. 
-            e.g. if quarter_shift = 0 than value for current quarter 
+            e.g. if ``quarter_shift = 0`` than value for current quarter 
             will be returned. 
-            If quarter_shift = 1 than value for next quarter 
+            If ``quarter_shift = 1`` than value for next quarter 
             will be returned.
-            If quarter_shift = -1 than value for previous quarter 
+            If ``quarter_shift = -1`` than value for previous quarter 
             will be returned.
         '''
         self.col = col
@@ -70,17 +70,19 @@ class QuarterlyTarget:
         Parameters
         ----------
         data_loader:
-            class implements load_quarterly_data(tickers: List[str]) -> 
-                                                 pd.DataFrame interface
+            | class implements ``load_quarterly_data(tickers: List[str])`` 
+            | ``-> pd.DataFrame`` interface
         info_df:
-            pd.DataFrame containing information of tickers and dates
-            to calculate targets for. Should have columns: ["ticker", "date"].               
+            | ``pd.DataFrame`` containing information of tickers and dates
+            | to calculate targets for. 
+            | Should have columns: ``["ticker", "date"]``               
         n_jobs:
             number of threads
                       
         Returns
         -------
-            pd.DataFrame with targets having 'y' column
+        pd.DataFrame 
+            targets having 'y' column
         '''
         self._data_loader = data_loader
         grouped = info_df.groupby('ticker')['date'].apply(lambda x:
@@ -130,17 +132,19 @@ class QuarterlyDiffTarget:
         Parameters
         ----------
         data_loader:
-            class implements load_quarterly_data(tickers: List[str]) -> 
-                                                 pd.DataFrame interface
+            | class implements ``load_quarterly_data(tickers: List[str])`` 
+            | ``-> pd.DataFrame`` interface
         info_df:
-            pd.DataFrame containing information of tickers and dates
-            to calculate targets for. Should have columns: ["ticker", "date"].               
+            | ``pd.DataFrame`` containing information of tickers and dates
+            | to calculate targets for. 
+            | Should have columns: ``["ticker", "date"]``               
         n_jobs:
             number of threads
 
         Returns
         -------
-            pd.DataFrame with targets having 'y' column
+        pd.DataFrame
+            targets having 'y' column
         '''
         curr_df = self.curr_target.calculate(data_loader, info_df, n_jobs)
         last_df = self.last_target.calculate(data_loader, info_df, n_jobs)
@@ -174,17 +178,19 @@ class QuarterlyBinDiffTarget:
         Parameters
         ----------
         data_loader:
-            class implements load_quarterly_data(tickers: List[str]) -> 
-                                                 pd.DataFrame interface
+            | class implements ``load_quarterly_data(tickers: List[str])`` 
+            | ``-> pd.DataFrame`` interface
         info_df:
-            pd.DataFrame containing information of tickers and dates
-            to calculate targets for. Should have columns: ["ticker", "date"].               
+            | ``pd.DataFrame`` containing information of tickers and dates
+            | to calculate targets for.
+            | Should have columns: ``["ticker", "date"]``               
         n_jobs:
             number of threads
 
         Returns
         -------
-            pd.DataFrame with targets having 'y' column
+        ``pd.DataFrame``
+            targets having 'y' column
         '''
         target_df = self.target.calculate(data_loader, info_df, n_jobs)
         target_df.loc[target_df['y'].isnull() == False, 'y'] = \
@@ -209,9 +215,9 @@ class DailyAggTarget:
             column name for target calculation(like marketcap, pe)
         horizon:
             number of days for target calculation.
-            If horizon > 0 than values will be get 
-            from the feuture of current date
-            If horizon < 0 than values will be get 
+            If ``horizon > 0`` than values will be get 
+            from the future of current date
+            If ``horizon < 0`` than values will be get 
             from the past of current date
         foo:
             function processing target aggregation
@@ -261,17 +267,19 @@ class DailyAggTarget:
         Parameters
         ----------
         data_loader:
-            class implements load_daily_data(tickers: List[str]) -> 
-                                                 pd.DataFrame interface
+            | class implements ``load_daily_data(tickers: List[str])`` 
+            | ``-> pd.DataFrame`` interface
         info_df:
-            pd.DataFrame containing information of tickers and dates
-            to calculate targets for. Should have columns: ["ticker", "date"].               
+            | ``pd.DataFrame`` containing information of tickers and dates
+            | to calculate targets for.
+            | Should have columns: ``["ticker", "date"]``               
         n_jobs:
             number of threads
 
         Returns
         -------
-            pd.DataFrame with targets having 'y' column
+        ``pd.DataFrame``
+            targets having 'y' column
         '''
         self._data_loader = data_loader
         grouped = info_df.groupby('ticker')['date'].apply(lambda x:
@@ -292,7 +300,26 @@ class DailyAggTarget:
 
 
 class DailySmoothedQuarterlyDiffTarget:
+    '''
+    Feature calculator getting difference between current and last quarter
+    smoothed daily column values. Work with company quarter slices.
+    '''
     def __init__(self, col: str, smooth_horizon: int=30, norm: bool=True):
+        '''     
+        Parameters
+        ----------
+        col:
+            column name for target calculation(like marketcap, pe)
+        smooth_horizon:
+            number of days for target calculation.
+            If ``smooth_horizon > 0`` than values for smoothing wiil be get 
+            from future of quarter date
+            If ``smooth_horizon < 0`` than values for smoothing will be get 
+            from the past of quarter date
+        norm:
+            normalize result or not
+        '''
+
         self.norm = norm
         self.daily_target = DailyAggTarget(col=col, horizon=smooth_horizon,
                                            foo=np.mean)
@@ -307,17 +334,19 @@ class DailySmoothedQuarterlyDiffTarget:
         Parameters
         ----------
         data_loader:
-            class implements load_daily_data(tickers: List[str]) -> 
-                                                 pd.DataFrame interface
+            | class implements ``load_daily_data(tickers: List[str])`` 
+            | ``-> pd.DataFrame`` interface
         info_df:
-            pd.DataFrame containing information of tickers and dates
-            to calculate targets for. Should have columns: ["ticker", "date"].               
+            | ``pd.DataFrame`` containing information of tickers and dates
+            | to calculate targets for. 
+            | Should have columns: ``["ticker", "date"]``               
         n_jobs:
             number of threads
 
         Returns
         -------
-            pd.DataFrame with targets having 'y' column
+        ``pd.DataFrame``
+            targets having 'y' column
         '''
         last_date_df = self.last_date_target.calculate(data_loader, info_df)
         last_date_df = last_date_df.reset_index()
@@ -342,15 +371,24 @@ class ReportGapTarget:
     Calculator of target represented as gap at the quarter report date.
     Work with quarterly slices of company.
     '''
-    def __init__(self, col: str, norm: bool=True):
+    def __init__(self, col: str, smooth_horizon: int=1, norm: bool=True):
         '''     
         Parameters
         ----------
         col:
             column name for target calculation(like marketcap, pe)
+        smooth_horizon:
+            number of days for column smoothing
+        norm:
+            normalize gap value or not
         '''
-        self.curr_target = DailyAggTarget(col=col, horizon=1, foo = np.mean)
-        self.last_target = DailyAggTarget(col=col, horizon=-1, foo = np.mean)
+        self.curr_target = DailyAggTarget(col=col, 
+                                          horizon=smooth_horizon,
+                                          foo = np.mean)
+
+        self.last_target = DailyAggTarget(col=col, 
+                                          horizon=-smooth_horizon,
+                                          foo = np.mean)
         self.norm = norm
         
         
@@ -363,17 +401,19 @@ class ReportGapTarget:
         Parameters
         ----------
         data_loader:
-            class implements load_daily_data(tickers: List[str]) -> 
-                                                 pd.DataFrame interface
+            | class implements ``load_daily_data(tickers: List[str])`` 
+            | ``-> pd.DataFrame`` interface
         info_df:
-            pd.DataFrame containing information of tickers and dates
-            to calculate targets for. Should have columns: ["ticker", "date"].               
+            | ``pd.DataFrame`` containing information of tickers and dates
+            | to calculate targets for. 
+            | Should have columns: ``["ticker", "date"]``             
         n_jobs:
             number of threads
 
         Returns
         -------
-            pd.DataFrame with targets having 'y' column
+        ``pd.DataFrame``
+            targets having 'y' column
         '''        
         
         curr_df = self.curr_target.calculate(data_loader, info_df, n_jobs)
@@ -408,15 +448,17 @@ class BaseInfoTarget:
         Parameters
         ----------
         data_loader:
-            class implements load_base_data() -> 
-                                                 pd.DataFrame interface
+            | class ``implements load_base_data()`` 
+            | ``-> pd.DataFrame`` interface
         info_df:
-            pd.DataFrame containing information of tickers
-            to calculate targets for. Should have columns: ["ticker"].               
+            | ``pd.DataFrame`` containing information of tickers
+            | to calculate targets for.
+            | Should have columns: ``["ticker"]``               
 
         Returns
         -------
-            pd.DataFrame with targets having 'y' column
+        ``pd.DataFrame``
+            targets having 'y' column
         '''        
         base_df = data_loader.load_base_data()[['ticker', self.col]]
         result = pd.merge(info_df, base_df, on='ticker', how='left')

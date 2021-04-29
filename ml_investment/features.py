@@ -132,7 +132,7 @@ class QuarterlyFeatures:
         Parameters
         ----------
         data_loader:
-            | instance implements ``load_quarterly_data(tickers: List[str])`` 
+            | class implements ``load_quarterly_data(tickers: List[str])`` 
             | ``-> pd.DataFrame interface``
         tickers:
             tickers of companies to calculate features for 
@@ -288,15 +288,15 @@ class BaseCompanyFeatures:
         Parameters
         ----------
         data_loader:
-            class implements load_base_data(tickers: List[str]) -> 
-                                            pd.DataFrame interface
+            | class implements ``load_base_data(tickers: List[str]) ->`` 
+            | ``pd.DataFrame interface``
         tickers:
             tickers of companies to calculate features for             
                       
         Returns
         -------
-            pd.DataFrame with result features and
-            having index ['ticker']
+        ``pd.DataFrame``
+            resulted features having index ``['ticker']``
         '''        
         base_df = data_loader.load_base_data()
         is_fitted = True if len(self.col_to_encoder) > 0 else False
@@ -338,11 +338,11 @@ class DailyAggQuarterFeatures:
             column names for feature calculation(like marketcap, pe)
         agg_day_counts:
             list of days counts to calculate statistics on. 
-            e.g. if agg_day_counts = [100, 200] statistics will be 
+            e.g. if ``agg_day_counts = [100, 200]`` statistics will be 
             calculated based on last 100 and 200 days(separetly). 
         max_back_quarter:
             max number of company slices in time. 
-            If max_back_quarter = 1 than features will be calculated
+            If ``max_back_quarter = 1`` than features will be calculated
             for only current company quarter. 
             If max_back_quarter is larger than total number of
             quarters for company than features will be calculated 
@@ -403,10 +403,10 @@ class DailyAggQuarterFeatures:
         Parameters
         ----------
         data_loader:
-            class implements 
-            load_quarterly_data(tickers: List[str]) -> pd.DataFrame 
-            load_daily_data(tickers: List[str]) -> pd.DataFrame             
-            interfaces
+            | class implements 
+            | ``load_quarterly_data(tickers: List[str]) -> pd.DataFrame`` 
+            | ``load_daily_data(tickers: List[str]) -> pd.DataFrame``             
+            | interfaces
         tickers:
             tickers of companies to calculate features for 
         n_jobs:
@@ -414,8 +414,8 @@ class DailyAggQuarterFeatures:
                       
         Returns
         -------
-            pd.DataFrame with result features and
-            having index ['ticker', 'date']
+        pd.DataFrame 
+            resulted features having index ``['ticker', 'date']``
         '''
         self._data_loader = data_loader
         p = Pool(n_jobs)
@@ -446,11 +446,11 @@ class CommoditiesAggQuarterFeatures:
             list of commodities codes to calculate features for
         agg_day_limits:
             list of days limits to calculate statistics on. 
-            e.g. if agg_day_counts = [100, 200] statistics will be 
+            e.g. if ``agg_day_counts = [100, 200]`` statistics will be 
             calculated based on last 100 and 200 days(separetly). 
         max_back_quarter:
             max number of company slices in time. 
-            If max_back_quarter = 1 than features will be calculated
+            If ``max_back_quarter = 1`` than features will be calculated
             for only current company quarter. 
             If max_back_quarter is larger than total number of
             quarters for company than features will be calculated 
@@ -511,10 +511,11 @@ class CommoditiesAggQuarterFeatures:
         Parameters
         ----------
         data_loader:
-            class implements 
-            load_quarterly_data(tickers: List[str]) -> pd.DataFrame 
-            load_commodities_data(commodities_codes: List[str]) -> pd.DataFrame             
-            interfaces
+            | class implements 
+            | ``load_quarterly_data(tickers: List[str]) -> pd.DataFrame`` 
+            | ``load_commodities_data(commodities_codes: List[str])`` 
+            | ``-> pd.DataFrame``             
+            | interfaces
         tickers:
             tickers of companies to calculate features for 
         n_jobs:
@@ -522,8 +523,8 @@ class CommoditiesAggQuarterFeatures:
                       
         Returns
         -------
-            pd.DataFrame with result features and
-            having index ['ticker', 'date']
+        pd.DataFrame 
+            resulted features having index ``['ticker', 'date']``
         '''
         self._data_loader = data_loader
         self._commodities_dict = {}

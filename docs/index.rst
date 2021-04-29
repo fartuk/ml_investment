@@ -12,6 +12,8 @@ Welcome to ml_investment's documentation!
 
    install
    features
+   targets
+   models
 
 Indices and tables
 ==================
