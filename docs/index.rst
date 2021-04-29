@@ -5,15 +5,13 @@
 
 Welcome to ml_investment's documentation!
 =========================================
-Unet
-~~~~
 
 .. toctree::
    :maxdepth: 2
    :caption: Contents:
-   tmp
 
-   .. autoclass:: ml_investment.features.QuarterlyFeatures
+   install
+   features
 
 Indices and tables
 ==================

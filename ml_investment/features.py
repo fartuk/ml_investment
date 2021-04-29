@@ -47,55 +47,7 @@ def calc_series_stats(series: Union[List[float], np.array],
     
               
                 
-class FeatureMerger:
-    '''
-    Feature calculator that combined two other feature calculators.
-    Both should implements calculate(data_loader, tickers) interface
-    Merge is executed by left. 
-    '''
-    def __init__(self, fc1, fc2, on=Union[str, List[str]]):
-        '''     
-        Parameters
-        ----------
-        fc1:
-            first feature calculator 
-            implements calculate(data_loader, tickers: List[str]) ->
-                                 pd.DataFrame interface
-        fc2:
-            second feature calculator 
-            implements calculate(data_loader, tickers: List[str]) ->
-                                 pd.DataFrame interface
-        on:
-            columns on which merge the results of executed calculate methods
-        '''
-        self.fc1 = fc1
-        self.fc2 = fc2
-        self.on = on
-        
-        
-    def calculate(self, data_loader, tickers: List[str]) -> pd.DataFrame:
-        '''     
-        Interface to calculate features for tickers 
-        based on data from data_loader
-        
-        Parameters
-        ----------
-        data_loader:
-            class implements necessary for feature calculators
-            interfaces of data loading
-        tickers:
-            tickers of companies to calculate features for 
-                        
-        Returns
-        -------
-            pd.DataFrame with resulted combined features
-        '''
-        X1 = self.fc1.calculate(data_loader, tickers)
-        X2 = self.fc2.calculate(data_loader, tickers)
-        X = pd.merge(X1, X2, on=self.on, how='left')        
-        X.index = X1.index
-        return X
-        
+       
 
 
 class QuarterlyFeatures:
@@ -114,11 +66,11 @@ class QuarterlyFeatures:
             column names for feature calculation(like revenue, debt etc)
         quarter_counts:
             list of number of quarters for statistics calculation. 
-            e.g. if quarter_counts = [2] than statistics will be calculated
+            e.g. if ``quarter_counts = [2]`` than statistics will be calculated
             on current and previous quarter
         max_back_quarter:
             max number of company slices in time. 
-            If max_back_quarter = 1 than features will be calculated
+            If ``max_back_quarter = 1`` than features will be calculated
             for only current company quarter. 
             If max_back_quarter is larger than total number of
             quarters for company than features will be calculated 
@@ -180,8 +132,8 @@ class QuarterlyFeatures:
         Parameters
         ----------
         data_loader:
-            class implements load_quarterly_data(tickers: List[str]) -> 
-                                                 pd.DataFrame interface
+            | instance implements ``load_quarterly_data(tickers: List[str])`` 
+            | ``-> pd.DataFrame interface``
         tickers:
             tickers of companies to calculate features for 
         n_jobs:
@@ -189,8 +141,8 @@ class QuarterlyFeatures:
                       
         Returns
         -------
-            pd.DataFrame with result features and
-            having index ['ticker', 'date']
+        ``pd.DataFrame``
+            resulted features with index ``['ticker', 'date']``
         '''
         self._data_loader = data_loader
         p = Pool(n_jobs)
@@ -220,13 +172,13 @@ class QuarterlyDiffFeatures:
             column names for feature calculation(like revenue, debt etc)
         compare_quarter_idxs:
             list of back quarter idxs for progress calculation. 
-            e.g. if compare_quarter_idxs = [1] than current quarter 
+            e.g. if ``compare_quarter_idxs = [1]`` than current quarter 
             will be compared with previous quarter. 
-            If compare_quarter_idxs = [4] than current quarter 
+            If ``compare_quarter_idxs = [4]`` than current quarter 
             will be compared with previous year quarter.
         max_back_quarter:
             max number of company slices in time. 
-            If max_back_quarter = 1 than features will be calculated
+            If ``max_back_quarter = 1`` than features will be calculated
             for only current company quarter. 
             If max_back_quarter is larger than total number of
             quarters for company than features will be calculated 
@@ -287,8 +239,8 @@ class QuarterlyDiffFeatures:
         Parameters
         ----------
         data_loader:
-            class implements load_quarterly_data(tickers: List[str]) -> 
-                                                 pd.DataFrame interface
+            | class implements ``load_quarterly_data(tickers: List[str]) ->`` 
+            | ``pd.DataFrame`` interface
         tickers:
             tickers of companies to calculate features for 
         n_jobs:
@@ -296,8 +248,8 @@ class QuarterlyDiffFeatures:
                       
         Returns
         -------
-            pd.DataFrame with result features and
-            having index ['ticker', 'date']
+        ``pd.DataFrame``
+            resulted features with index ``['ticker', 'date']``
         '''
         self._data_loader = data_loader
         p = Pool(n_jobs)
@@ -588,7 +540,55 @@ class CommoditiesAggQuarterFeatures:
         return X
 
 
-
+class FeatureMerger:
+    '''
+    Feature calculator that combined two other feature calculators.
+    Both should implements calculate(data_loader, tickers) interface
+    Merge is executed by left. 
+    '''
+    def __init__(self, fc1, fc2, on=Union[str, List[str]]):
+        '''     
+        Parameters
+        ----------
+        fc1:
+            first feature calculator 
+            implements calculate(data_loader, tickers: List[str]) ->
+                                 pd.DataFrame interface
+        fc2:
+            second feature calculator 
+            implements calculate(data_loader, tickers: List[str]) ->
+                                 pd.DataFrame interface
+        on:
+            columns on which merge the results of executed calculate methods
+        '''
+        self.fc1 = fc1
+        self.fc2 = fc2
+        self.on = on
+        
+        
+    def calculate(self, data_loader, tickers: List[str]) -> pd.DataFrame:
+        '''     
+        Interface to calculate features for tickers 
+        based on data from data_loader
+        
+        Parameters
+        ----------
+        data_loader:
+            class implements necessary for feature calculators
+            interfaces of data loading
+        tickers:
+            tickers of companies to calculate features for 
+                        
+        Returns
+        -------
+            pd.DataFrame with resulted combined features
+        '''
+        X1 = self.fc1.calculate(data_loader, tickers)
+        X2 = self.fc2.calculate(data_loader, tickers)
+        X = pd.merge(X1, X2, on=self.on, how='left')        
+        X.index = X1.index
+        return X
+ 
 
 
 
