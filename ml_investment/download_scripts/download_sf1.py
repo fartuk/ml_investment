@@ -5,6 +5,15 @@ from ml_investment.utils import load_config, save_json
 
 
 def main():
+    '''
+    Download quarterly fundamental data from
+    https://www.quandl.com/databases/SF1/data
+    Downloading path ``sf1_data_path`` may be configured at `~/.ml_investment/config.json`
+    
+    Note:
+        This dataset is paid, so you need to subscribe 
+        and paste quandl token to `~/.ml_investment/secrets.json`
+    '''
     config = load_config()
     downloader = QuandlDownloader(sleep_time=0.8)
     downloader.zip_download('datatables/SHARADAR/TICKERS?qopts.export=true',

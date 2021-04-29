@@ -16,8 +16,8 @@ class LogExpModel:
         '''
         Parameters:
             base_model:
-                | class implements ``fit(X, y)``, 
-                | ``predict(X)``/``predict_proba(X)`` intrfaces
+                class implements ``fit(X, y)``, 
+                ``predict(X)``/``predict_proba(X)`` interfaces
         '''
         self.base_model = base_model
         
@@ -58,10 +58,10 @@ class EnsembleModel:
         Parameters
         ----------
         base_models:
-            list of classes implements fit(X, y),
-            predict(X)/predict_proba(X) intrfaces 
+            list of classes implements ``fit(X, y)``,
+            ``predict(X)``/``predict_proba(X)`` interfaces 
         bagging_fraction:
-            size of random part of data for training models
+            part of random data subsample for training models
         model_cnt:
             total number of models in resulted ansamble
         '''
@@ -72,6 +72,16 @@ class EnsembleModel:
         
      
     def fit(self, X: pd.DataFrame, y: pd.Series):
+        '''
+        Interface for model training
+        
+        Parameters
+        ----------
+        X:
+            ``pd.DataFrame`` containing features
+        y:
+            target data
+        ''' 
         for _ in tqdm(range(self.model_cnt)):
             idxs = np.random.randint(0, len(X), 
                                      int(len(X) * self.bagging_fraction))
@@ -105,18 +115,22 @@ class EnsembleModel:
 class GroupedOOFModel:
     '''
     Model wrapper incapsulate out of fold separation within data groups. 
+    Each sample in group can not be in training and validation fold 
+    at the same time.
     '''
     def __init__(self, base_model, group_column: str, fold_cnt: int=5):
         '''     
         Parameters
         ----------
         base_model:
-            model implements fit(X, y),
-            predict(X)/predict_proba(X) intrfaces 
+            model implements ``fit(X, y)``,
+            ``predict(X)``/``predict_proba(X)`` interfaces 
         group_column:
             name of column for grouping training data. 
-            X in fit() and predict() should contain this column. 
-            Samples with one group will be placed only in one training fold.
+            ``X`` in ``fit(X, y)`` and ``predict(X)`` 
+            should contain this column. 
+            Samples with one group value 
+            will be placed only in one training fold.
         fold_cnt:
             number of folds for training
         '''
@@ -136,7 +150,7 @@ class GroupedOOFModel:
         Parameters
         ----------
         X:
-            pd.DataFrame containing features and  self.group_column
+            ``pd.DataFrame`` containing features and  ``self.group_column``
         y:
             target data
         ''' 
@@ -162,7 +176,7 @@ class GroupedOOFModel:
         Parameters
         ----------
         X:
-            pd.DataFrame containing features and  self.group_column
+            ``pd.DataFrame`` containing features and  ``self.group_column``
         ''' 
         groups = X.reset_index()[self.group_column]
         predict_groups = pd.DataFrame()
@@ -202,11 +216,12 @@ class TimeSeriesOOFModel:
         Parameters
         ----------
         base_model:
-            model implements fit(X, y),
-            predict(X)/predict_proba(X) intrfaces 
+            model implements ``fit(X, y)``,
+            ``predict(X)``/``predict_proba(X)`` interfaces 
         time_column:
             name of column for separating training data. 
-            X in fit() and predict() should contain this column. 
+            ``X`` in ``fit(X, y)`` and ``predict(X)``
+            should contain this column. 
             Samples from feature would not be used 
             for training and prediction past.
         fold_cnt:
@@ -240,7 +255,7 @@ class TimeSeriesOOFModel:
         Parameters
         ----------
         X:
-            pd.DataFrame containing features and  self.time_column
+            ``pd.DataFrame`` containing features and ``self.time_column``
         y:
             target data
         ''' 
@@ -258,7 +273,7 @@ class TimeSeriesOOFModel:
         Parameters
         ----------
         X:
-            pd.DataFrame containing features and self.time_column
+            ``pd.DataFrame`` containing features and ``self.time_column``
         ''' 
         times = X.reset_index()[self.time_column].astype(np.datetime64).values
         pred_df = []
@@ -289,31 +304,6 @@ class TimeSeriesOOFModel:
                       
         return pred_df['pred'].values
         
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 

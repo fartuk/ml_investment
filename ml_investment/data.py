@@ -10,25 +10,25 @@ from .utils import load_json
 
 class SF1Data: 
     '''
-    Loading data provided by https://www.quandl.com/databases/SF1
-    Script for downloading: /download_scripts/download_sf1.py
+    Loader for dataset provided by quandl. Data may be downloaded by script 
+    :func:`~ml_investment.download_scripts.download_sf1.main`
     '''
     def __init__(self, data_path: str):
         '''
         Parameters
         ----------
         data_path:
-            path to SF1 data folder with structure
-            SF1
-            ├── core_fundamental
-            │   ├── AAPL.json
-            │   ├── FB.json
-            │   └── ...
-            ├── daily
-            │   ├── AAPL.json
-            │   ├── FB.json
-            │   └── ...
-            └── tickers.zip       
+            | path to SF1 data folder with structure
+            | SF1
+            | ├── core_fundamental
+            | │   ├── AAPL.json
+            | │   ├── FB.json
+            | │   └── ...
+            | ├── daily
+            | │   ├── AAPL.json
+            | │   ├── FB.json
+            | │   └── ...
+            | └── tickers.zip       
         '''
         self.data_path = data_path
 
@@ -70,15 +70,17 @@ class SF1Data:
         Parameters
         ----------
         currency:
-            currency of returned companies(like USD, EUR etc)
-            only companies with this currency will be returned
-        scalemarketcap: possible values ['1 - Nano', '2 - Micro', '3 - Small',
-                                         '4 - Mid', '5 - Large', '6 - Mega']
-            scalemarketcap of returned companies
+            currency of returned companies(like USD, EUR etc).
+            Only companies with this currency will be returned
+        scalemarketcap: 
+            possible values ``['1 - Nano', '2 - Micro', '3 - Small',``
+            ``'4 - Mid', '5 - Large', '6 - Mega']``.
+            Scaled marketcap of returned companies
             
         Returns
         -------
-            pd.DataFrame with base information
+        ``pd.DataFrame`` 
+            base companies information
         '''
         path = '{}/tickers.zip'.format(self.data_path)
         tickers_df = pd.read_csv(path)
@@ -108,12 +110,14 @@ class SF1Data:
             tickers of returned companies
         quarter_count:
             maximum last quarter to return  
-        dimension: one of ['MRY', 'MRT', 'MRQ', 'ARY', 'ART', 'ARQ']
+        dimension: 
+            one of ``['MRY', 'MRT', 'MRQ', 'ARY', 'ART', 'ARQ']``.
             SF1 dataset-based parameter
             
         Returns
         -------
-            pd.DataFrame with quarterly information
+        ``pd.DataFrame``
+            quarterly information about companies
         '''
         result = []
         for ticker in tickers:
@@ -151,7 +155,8 @@ class SF1Data:
             
         Returns
         -------
-            pd.DataFrame with daily information
+        ``pd.DataFrame``
+            daily information about companies
         '''                        
         if back_days is None:
             back_days = int(1e5)    
@@ -186,8 +191,9 @@ class SF1Data:
             
         Returns
         -------
-            pd.DataFrame with the same columns and shapes but with converted 
-            currency in columns
+        ``pd.DataFrame`` 
+            result with the same columns and shapes but with 
+            converted currency in columns
         '''  
         df = df.infer_objects()
         usd_cols = ['equityusd','epsusd','revenueusd','netinccmnusd',
@@ -208,24 +214,25 @@ class SF1Data:
 
 class QuandlCommoditiesData:
     '''
-    Loading data provided by https://blog.quandl.com/api-for-commodity-data
-    Script for downloading: /scripts/download_commodities.py
+    Loader for commodities price information. Data may be downloaded by script
+    :func:`~ml_investment.download_scripts.download_commodities.main`
     '''
     def __init__(self, data_path: str):
         '''
         Parameters
         ----------
         data_path:
-            path to commodities data folder with structure
-            commodities
-            ├── LBMA_GOLD.json
-            ├── CHRIS_CME_CL1.json
-            └── ...       
+            | path to commodities data folder with structure
+            | commodities
+            | ├── LBMA_GOLD.json
+            | ├── CHRIS_CME_CL1.json
+            | └── ...       
         '''
         self.data_path = data_path
 
         
-    def load_commodities_data(self, commodities_codes: List[str]) -> pd.DataFrame:
+    def load_commodities_data(self, 
+                              commodities_codes: List[str]) -> pd.DataFrame:
         '''
         Load time-series information about commodity price
         
@@ -236,7 +243,7 @@ class QuandlCommoditiesData:
             
         Returns
         -------
-            pd.DataFrame with time series price information
+            ``pd.DataFrame`` with time series price information
         '''  
         result = []
         for code in commodities_codes:
@@ -260,24 +267,25 @@ class QuandlCommoditiesData:
     
 class YahooData:
     '''
-    Loading data provided by Yahoo
-    Script for downloading: /download_scripts/download_yahoo.py
+    Loader for yahoo quarterly and base information.
+    Data may be downloaded by script
+    :func:`~ml_investment.download_scripts.download_yahoo.main`
     '''
     def __init__(self, data_path: str):
         '''
         Parameters
         ----------
         data_path:
-            path to Yahoo data folder with structure
-            Yahoo
-            ├── quarterly
-            │   ├── AAPL.csv
-            │   ├── FB.csv
-            │   └── ...
-            ├── base
-                ├── AAPL.json
-                ├── FB.json
-                └── ...
+            | path to Yahoo data folder with structure
+            | Yahoo
+            | ├── quarterly
+            | │   ├── AAPL.csv
+            | │   ├── FB.csv
+            | │   └── ...
+            | ├── base
+            |     ├── AAPL.json
+            |     ├── FB.json
+            |     └── ...
                    
         '''
 
@@ -298,7 +306,7 @@ class YahooData:
             
         Returns
         -------
-            pd.DataFrame with quarterly information
+            ``pd.DataFrame`` with quarterly information
         '''
         result = []
         for ticker in tickers:
@@ -327,7 +335,7 @@ class YahooData:
             
         Returns
         -------
-            pd.DataFrame with base information
+            ``pd.DataFrame`` with base information
         '''
         reuslt = []
         base_path = '{}/base'.format(self.data_path)
@@ -342,8 +350,8 @@ class YahooData:
 
 class DailyBarsData:
     '''
-    Loading dayly price bars
-    Script for downloading: /download_scripts/download_daily_bars.py
+    Loader for daywise price bars. Data may be downloaded by script
+    :func:`~ml_investment.download_scripts.download_daily_bars.main`
     '''
     def __init__(self, data_path: str):
         self.data_path = data_path
@@ -362,7 +370,7 @@ class DailyBarsData:
             
         Returns
         -------
-            pd.DataFrame with daily bars
+            ``pd.DataFrame`` with daily bars
         '''                        
         if back_days is None:
             back_days = int(1e5)

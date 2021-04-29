@@ -265,7 +265,7 @@ class QuarterlyDiffFeatures:
 
 class BaseCompanyFeatures:
     '''
-    Feature calculator for base calculating/processing base
+    Feature calculator for getting base
     company information(sector, industry etc). 
     Encode categorical columns via label encoding. 
     Return features for current company state.

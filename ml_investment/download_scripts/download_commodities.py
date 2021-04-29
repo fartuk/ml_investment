@@ -36,6 +36,15 @@ quandl_commodities_codes = ['LBMA/GOLD',
                            ]
 
 def main():
+    '''
+    Download commodities price history from 
+    https://blog.quandl.com/api-for-commodity-data
+    Downloading path ``commodities_data_path`` may be configured at `~/.ml_investment/config.json`
+
+    Note:
+        To download this dataset you need to register at quandl 
+        and paste token to `~/.ml_investment/secrets.json`
+    '''
     config = load_config()
     downloader = QuandlDownloader(sleep_time=0.8)
     for code in tqdm(quandl_commodities_codes):

@@ -70,12 +70,12 @@ class QuarterlyTarget:
         Parameters
         ----------
         data_loader:
-            | class implements ``load_quarterly_data(tickers: List[str])`` 
-            | ``-> pd.DataFrame`` interface
+            class implements ``load_quarterly_data(tickers: List[str])`` 
+            ``-> pd.DataFrame`` interface
         info_df:
-            | ``pd.DataFrame`` containing information of tickers and dates
-            | to calculate targets for. 
-            | Should have columns: ``["ticker", "date"]``               
+            ``pd.DataFrame`` containing information of tickers and dates
+            to calculate targets for. 
+            Should have columns: ``["ticker", "date"]``               
         n_jobs:
             number of threads
                       
@@ -132,12 +132,12 @@ class QuarterlyDiffTarget:
         Parameters
         ----------
         data_loader:
-            | class implements ``load_quarterly_data(tickers: List[str])`` 
-            | ``-> pd.DataFrame`` interface
+            class implements ``load_quarterly_data(tickers: List[str])`` 
+            ``-> pd.DataFrame`` interface
         info_df:
-            | ``pd.DataFrame`` containing information of tickers and dates
-            | to calculate targets for. 
-            | Should have columns: ``["ticker", "date"]``               
+            ``pd.DataFrame`` containing information of tickers and dates
+            to calculate targets for. 
+            Should have columns: ``["ticker", "date"]``               
         n_jobs:
             number of threads
 
@@ -178,12 +178,12 @@ class QuarterlyBinDiffTarget:
         Parameters
         ----------
         data_loader:
-            | class implements ``load_quarterly_data(tickers: List[str])`` 
-            | ``-> pd.DataFrame`` interface
+            class implements ``load_quarterly_data(tickers: List[str])`` 
+            ``-> pd.DataFrame`` interface
         info_df:
-            | ``pd.DataFrame`` containing information of tickers and dates
-            | to calculate targets for.
-            | Should have columns: ``["ticker", "date"]``               
+            ``pd.DataFrame`` containing information of tickers and dates
+            to calculate targets for.
+            Should have columns: ``["ticker", "date"]``               
         n_jobs:
             number of threads
 
@@ -216,7 +216,7 @@ class DailyAggTarget:
         horizon:
             number of days for target calculation.
             If ``horizon > 0`` than values will be get 
-            from the future of current date
+            from the future of current date.
             If ``horizon < 0`` than values will be get 
             from the past of current date
         foo:
@@ -267,12 +267,12 @@ class DailyAggTarget:
         Parameters
         ----------
         data_loader:
-            | class implements ``load_daily_data(tickers: List[str])`` 
-            | ``-> pd.DataFrame`` interface
+            class implements ``load_daily_data(tickers: List[str])`` 
+            ``-> pd.DataFrame`` interface
         info_df:
-            | ``pd.DataFrame`` containing information of tickers and dates
-            | to calculate targets for.
-            | Should have columns: ``["ticker", "date"]``               
+            ``pd.DataFrame`` containing information of tickers and dates
+            to calculate targets for.
+            Should have columns: ``["ticker", "date"]``               
         n_jobs:
             number of threads
 
@@ -313,7 +313,7 @@ class DailySmoothedQuarterlyDiffTarget:
         smooth_horizon:
             number of days for target calculation.
             If ``smooth_horizon > 0`` than values for smoothing wiil be get 
-            from future of quarter date
+            from future of quarter date.
             If ``smooth_horizon < 0`` than values for smoothing will be get 
             from the past of quarter date
         norm:
@@ -334,12 +334,12 @@ class DailySmoothedQuarterlyDiffTarget:
         Parameters
         ----------
         data_loader:
-            | class implements ``load_daily_data(tickers: List[str])`` 
-            | ``-> pd.DataFrame`` interface
+            class implements ``load_daily_data(tickers: List[str])`` 
+            ``-> pd.DataFrame`` interface
         info_df:
-            | ``pd.DataFrame`` containing information of tickers and dates
-            | to calculate targets for. 
-            | Should have columns: ``["ticker", "date"]``               
+            ``pd.DataFrame`` containing information of tickers and dates
+            to calculate targets for. 
+            Should have columns: ``["ticker", "date"]``               
         n_jobs:
             number of threads
 
@@ -401,12 +401,12 @@ class ReportGapTarget:
         Parameters
         ----------
         data_loader:
-            | class implements ``load_daily_data(tickers: List[str])`` 
-            | ``-> pd.DataFrame`` interface
+            class implements ``load_daily_data(tickers: List[str])`` 
+            ``-> pd.DataFrame`` interface
         info_df:
-            | ``pd.DataFrame`` containing information of tickers and dates
-            | to calculate targets for. 
-            | Should have columns: ``["ticker", "date"]``             
+            ``pd.DataFrame`` containing information of tickers and dates
+            to calculate targets for. 
+            Should have columns: ``["ticker", "date"]``             
         n_jobs:
             number of threads
 
@@ -448,12 +448,12 @@ class BaseInfoTarget:
         Parameters
         ----------
         data_loader:
-            | class ``implements load_base_data()`` 
-            | ``-> pd.DataFrame`` interface
+            class ``implements load_base_data()`` 
+            ``-> pd.DataFrame`` interface
         info_df:
-            | ``pd.DataFrame`` containing information of tickers
-            | to calculate targets for.
-            | Should have columns: ``["ticker"]``               
+            ``pd.DataFrame`` containing information of tickers
+            to calculate targets for.
+            Should have columns: ``["ticker"]``               
 
         Returns
         -------
