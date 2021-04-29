@@ -226,7 +226,15 @@ class DailyAggTarget:
                               ticker_and_dates: Tuple[str,
                                                       List]) -> pd.DataFrame:
         ticker, dates = ticker_and_dates
-        daily_data = self._data_loader.load_daily_data([ticker])[::-1]
+        result = pd.DataFrame()
+        result['date'] = dates
+        result['ticker'] = ticker
+        result['y'] = None
+
+        daily_data = self._data_loader.load_daily_data([ticker])
+        if daily_data is None:
+            return result
+        daily_data = daily_data[::-1]
         daily_dates = daily_data['date'].astype(np.datetime64).values
         vals = []
         for date in dates:
@@ -239,10 +247,7 @@ class DailyAggTarget:
                                
             vals.append(self.foo(series.astype(float)))
 
-        result = pd.DataFrame()
         result['y'] = vals
-        result['date'] = dates
-        result['ticker'] = ticker
 
         return result        
         
@@ -284,6 +289,51 @@ class DailyAggTarget:
         result = result.set_index(['ticker', 'date'])
         
         return result
+
+
+class DailySmoothedQuarterlyDiffTarget:
+    def __init__(self, col: str, smooth_horizon: int=30, norm: bool=True):
+        self.norm = norm
+        self.daily_target = DailyAggTarget(col=col, horizon=smooth_horizon,
+                                           foo=np.mean)
+        self.last_date_target = QuarterlyTarget(col='date', quarter_shift=-1)
+
+    def calculate(self, data_loader, info_df: pd.DataFrame, 
+                  n_jobs: int = cpu_count()) -> pd.DataFrame:
+        '''
+        Interface to calculate targets for dates and tickers in info_df
+        based on data from data_loader
+        
+        Parameters
+        ----------
+        data_loader:
+            class implements load_daily_data(tickers: List[str]) -> 
+                                                 pd.DataFrame interface
+        info_df:
+            pd.DataFrame containing information of tickers and dates
+            to calculate targets for. Should have columns: ["ticker", "date"].               
+        n_jobs:
+            number of threads
+
+        Returns
+        -------
+            pd.DataFrame with targets having 'y' column
+        '''
+        last_date_df = self.last_date_target.calculate(data_loader, info_df)
+        last_date_df = last_date_df.reset_index()
+        last_date_df['date'] = last_date_df['y']
+        del last_date_df['y']
+
+        curr_df = self.daily_target.calculate(data_loader, info_df)
+        last_df = self.daily_target.calculate(data_loader, last_date_df)
+
+        result = curr_df.copy()
+        result['y'] = (curr_df['y'].values - last_df['y'].values)
+        if self.norm:
+            result['y'] = result['y'].values / last_df['y'].values
+
+        return result
+
 
 
 

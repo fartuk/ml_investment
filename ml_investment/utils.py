@@ -38,7 +38,7 @@ def int_hash_of_str(text:str):
 
 def load_config():
     _base_dir = os.path.expanduser('~')
-    _ml_investments_dir = os.path.join(_base_dir, '.ml_investments')
+    _ml_investments_dir = os.path.join(_base_dir, '.ml_investment')
     _config_path = os.path.join(_ml_investments_dir, 'config.json')
     config = load_json(_config_path)
     return config
@@ -46,7 +46,7 @@ def load_config():
 
 def load_secrets():
     _base_dir = os.path.expanduser('~')
-    _ml_investments_dir = os.path.join(_base_dir, '.ml_investments')
+    _ml_investments_dir = os.path.join(_base_dir, '.ml_investment')
     _secrets_path = os.path.join(_ml_investments_dir, 'secrets.json')
     secrets = load_json(_secrets_path)
     return secrets
@@ -54,7 +54,7 @@ def load_secrets():
 
 def load_tickers():
     _base_dir = os.path.expanduser('~')
-    _ml_investments_dir = os.path.join(_base_dir, '.ml_investments')
+    _ml_investments_dir = os.path.join(_base_dir, '.ml_investment')
     _tickers_path = os.path.join(_ml_investments_dir, 'tickers.json')
     tickers = load_json(_tickers_path)
     return tickers

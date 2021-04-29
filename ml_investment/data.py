@@ -11,7 +11,7 @@ from .utils import load_json
 class SF1Data: 
     '''
     Loading data provided by https://www.quandl.com/databases/SF1
-    Script for downloading: /scripts/download_sf1.py
+    Script for downloading: /download_scripts/download_sf1.py
     '''
     def __init__(self, data_path: str):
         '''
@@ -147,7 +147,7 @@ class SF1Data:
         tickers:
             tickers of returned companies 
         back_days:
-            SF1 dataset-based parameter
+            max number of days to return
             
         Returns
         -------
@@ -259,7 +259,28 @@ class QuandlCommoditiesData:
 
     
 class YahooData:
+    '''
+    Loading data provided by Yahoo
+    Script for downloading: /download_scripts/download_yahoo.py
+    '''
     def __init__(self, data_path: str):
+        '''
+        Parameters
+        ----------
+        data_path:
+            path to Yahoo data folder with structure
+            Yahoo
+            ├── quarterly
+            │   ├── AAPL.csv
+            │   ├── FB.csv
+            │   └── ...
+            ├── base
+                ├── AAPL.json
+                ├── FB.json
+                └── ...
+                   
+        '''
+
         self.data_path = data_path
 
     def load_quarterly_data(self, 
@@ -317,6 +338,50 @@ class YahooData:
         reuslt = pd.DataFrame(reuslt)
 
         return reuslt              
+
+
+class DailyBarsData:
+    '''
+    Loading dayly price bars
+    Script for downloading: /download_scripts/download_daily_bars.py
+    '''
+    def __init__(self, data_path: str):
+        self.data_path = data_path
+
+    def load_daily_data(self, tickers: List[str], 
+                        back_days:Optional[int]=None) -> pd.DataFrame:
+        '''
+        Load daily price bars
+        
+        Parameters
+        ----------
+        tickers:
+            tickers of returned companies 
+        back_days:
+            max number of days
+            
+        Returns
+        -------
+            pd.DataFrame with daily bars
+        '''                        
+        if back_days is None:
+            back_days = int(1e5)
+        result = []
+        for ticker in tickers:
+            path = '{}/{}.csv'.format(self.data_path, ticker)
+            if not os.path.exists(path):
+                continue
+            daily_df = pd.read_csv(path)[::-1][:back_days]
+            daily_df['ticker'] = ticker
+            result.append(daily_df)
+        if len(result) > 0:    
+            result = pd.concat(result, axis=0).reset_index(drop=True)
+            result = result.infer_objects()
+            result['date'] = result['Date'].astype(np.datetime64) 
+        else:
+            return None
+
+        return result
 
 
 

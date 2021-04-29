@@ -3,7 +3,7 @@ import json
 from urllib.request import urlretrieve
 
 _base_dir = os.path.expanduser('~')
-_ml_investments_dir = os.path.join(_base_dir, '.ml_investments')
+_ml_investments_dir = os.path.join(_base_dir, '.ml_investment')
 _config_path = os.path.join(_ml_investments_dir, 'config.json')
 _secrets_path = os.path.join(_ml_investments_dir, 'secrets.json')
 _tickers_path = os.path.join(_ml_investments_dir, 'tickers.json')
