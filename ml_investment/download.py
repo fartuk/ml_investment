@@ -166,47 +166,55 @@ class YahooDownloader:
 
 
     def _download_quarterly_data_single(self, ticker):
-        base_url = 'https://query1.finance.yahoo.com/ws/fundamentals-timeseries/v1/finance/timeseries'
-        base_url += '/{ticker}?lang=en-US&region=US&symbol=AAPL&padTimeSeries=false&type={type_str}'
-        base_url += '&merge=false&period1=493590046&period2=1619519293&corsDomain=finance.yahoo.com'
-        url = base_url.format(ticker=ticker, type_str=','.join(self.type_list))
-        
-        r = requests.get(url)
-        if r.status_code != 200:
-            return
-        json_data = r.json()
-        
-        quarterly_df = self._parse_quarterly_json(json_data)
-        if quarterly_df is None:
-            return
-        quarterly_df['date'] = quarterly_df['date'].astype(np.datetime64)
-        quarterly_df = quarterly_df.sort_values('date', ascending=False)
-        
-        filepath = '{}/quarterly/{}.csv'.format(self.config['yahoo_data_path'], ticker)
-        quarterly_df.to_csv(filepath, index=False)
+        for _ in range(10):
+            try:
+                base_url = 'https://query1.finance.yahoo.com/ws/fundamentals-timeseries/v1/finance/timeseries'
+                base_url += '/{ticker}?lang=en-US&region=US&symbol=AAPL&padTimeSeries=false&type={type_str}'
+                base_url += '&merge=false&period1=493590046&period2=1619519293&corsDomain=finance.yahoo.com'
+                url = base_url.format(ticker=ticker, type_str=','.join(self.type_list))
+                
+                r = requests.get(url)
+                if r.status_code != 200:
+                    return
+                json_data = r.json()
+                
+                quarterly_df = self._parse_quarterly_json(json_data)
+                if quarterly_df is None:
+                    return
+                quarterly_df['date'] = quarterly_df['date'].astype(np.datetime64)
+                quarterly_df = quarterly_df.sort_values('date', ascending=False)
+                
+                filepath = '{}/quarterly/{}.csv'.format(self.config['yahoo_data_path'], ticker)
+                quarterly_df.to_csv(filepath, index=False)
 
-        time.sleep(np.random.uniform(0, 1))
+                time.sleep(np.random.uniform(0, 1))
+            except:
+                time.sleep(0.5)
+
 
     
     def _download_base_data_single(self, ticker):
-        url = 'https://query2.finance.yahoo.com/v10/finance/quoteSummary/{ticker}'
-        url += '?modules=summaryProfile,defaultKeyStatistics'
+        for _ in range(10):
+            try:
+                url = 'https://query2.finance.yahoo.com/v10/finance/quoteSummary/{ticker}'
+                url += '?modules=summaryProfile,defaultKeyStatistics'
 
-        r = requests.get(url.format(ticker=ticker))
-        if r.status_code != 200:
-            return
-        json_data = r.json()['quoteSummary']['result'][0]
+                r = requests.get(url.format(ticker=ticker))
+                if r.status_code != 200:
+                    return
+                json_data = r.json()['quoteSummary']['result'][0]
 
-        base_data = {}
-        b1 = self._parse_base_json(json_data['summaryProfile'])
-        b2 = self._parse_base_json(json_data['defaultKeyStatistics'])
-        base_data.update(b1)
-        base_data.update(b2)   
-        filepath = '{}/base/{}.json'.format(self.config['yahoo_data_path'], ticker)
-        save_json(filepath, base_data)            
-        
-        time.sleep(np.random.uniform(0, 1))
-        
+                base_data = {}
+                b1 = self._parse_base_json(json_data['summaryProfile'])
+                b2 = self._parse_base_json(json_data['defaultKeyStatistics'])
+                base_data.update(b1)
+                base_data.update(b2)   
+                filepath = '{}/base/{}.json'.format(self.config['yahoo_data_path'], ticker)
+                save_json(filepath, base_data)            
+                
+                time.sleep(np.random.uniform(0, 1))
+            except:
+                time.sleep(0.5)
 
     def download_quarterly_data(self, tickers, type_list=DEFAULT_TYPE_LIST, n_jobs=4):
         self.type_list = type_list

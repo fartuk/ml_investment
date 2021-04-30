@@ -8,11 +8,13 @@ def main():
     '''
     Download quarterly fundamental data from
     https://www.quandl.com/databases/SF1/data
-    Downloading path ``sf1_data_path`` may be configured at `~/.ml_investment/config.json`
+    Downloading path ``sf1_data_path`` may be 
+    configured at `~/.ml_investment/config.json`
     
     Note:
-        This dataset is paid, so you need to subscribe 
+        SF1 is paid, so you need to subscribe 
         and paste quandl token to `~/.ml_investment/secrets.json`
+        ``quandl_api_key``
     '''
     config = load_config()
     downloader = QuandlDownloader(sleep_time=0.8)

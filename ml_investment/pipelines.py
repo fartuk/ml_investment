@@ -25,32 +25,31 @@ class BasePipeline:
         ----------
         feature:
             feature calculator implements 
-                calculate(data_loader, tickers: List[str]) -> 
-                                                pd.DataFrame interface
+            ``calculate(data_loader, tickers: List[str])`` 
+            ``-> pd.DataFrame`` interface
         target:
             target calculator implements 
-                calculate(data_loader, info_df: pd.DataFrame) ->
-                                                pd.DataFrame interface      
+            ``calculate(data_loader, info_df: pd.DataFrame)`` 
+            ``-> pd.DataFrame`` interface      
             OR List of such target calculators
         model:
-            class implements 
-                fit(X, y)
-                predict(X) interfaces
-            Сopy of the model will be used for every single target if 
-            type of target is List.           
-            OR List of such classes(len of this list should be equal to 
-            len of target)
+            class implements ``fit(X, y)`` and ``predict(X)`` interfaces.
+            Сopy of the model will be used for every single
+            target if type of target is List.           
+            OR ``List`` of such classes(len of this list should
+            be equal to len of target)
         metric:
-            function implements (gt, y) -> float interface
-            The same metric will be used for every single target if 
-            type of target is List.
-            OR List of such functions(len of this list should be equal to 
+            function implements ``foo(gt, y) -> float`` interface.
+            The same metric will be used for every single target 
+            if type of target is ``List``.
+            OR ``List`` of such functions(len of this list should be equal to 
             len of target)
         out_name:
-            str column name of result in pd.DataFrame after self.execute(...)
-            OR List[str](len of this list should be equal to 
+            str column name of result in ``pd.DataFrame`` after 
+            :func:`~ml_investment.pipelines.BasePipeline.execute`
+            OR ``List[str]`` (len of this list should be equal to 
             len of target)
-            OR None(List['y_0', 'y_1'...] will be used in this case)
+            OR ``None`` ( ``List['y_0', 'y_1'...]`` will be used in this case)
         '''
         self.core = {}
         self.core['feature'] = feature    
@@ -94,7 +93,7 @@ class BasePipeline:
         Parameters
         ----------
         data_loader:
-            class implements needed for feature.calculate()
+            class implements needed for ``feature.calculate()``
             interfaces
         tickers:
             tickers of companies to fit model for
@@ -124,15 +123,15 @@ class BasePipeline:
         Parameters
         ----------
         data_loader:
-            class implements needed for feature.calculate()
+            class implements needed for ``feature.calculate()``
             interfaces
         tickers:
             tickers of companies to fit model for       
                       
         Returns
         -------
-            pd.DataFrame with result values in columns 
-            named as self.core['out_name']
+        ``pd.DataFrame``
+            result values in columns named as ``self.core['out_name']``
         '''   
         result = pd.DataFrame()
         X = self.core['feature'].calculate(data_loader, tickers)
@@ -146,13 +145,13 @@ class BasePipeline:
 
     def export_core(self, path=None):
         '''     
-        Interface for saving pipeline core
+        Interface for saving pipelines core
         
         Parameters
         ----------
         path:
             str with path to store pipeline core
-            OR None(path will be generated automatically)
+            OR ``None`` (path will be generated automatically)
         '''   
         if path is None:
             now = time.strftime("%d.%m.%y_%H:%M", time.localtime(time.time()))
@@ -178,29 +177,47 @@ class BasePipeline:
 
 
 
-class ExecuteMergePipeline:
+class MergePipeline:
     '''
-    Class combining list of executive pipelines to 
-    single pipilene.
+    Class combining list of pipelines to single pipilene.
     '''
-    def __init__(self, pipeline_list:List, on):
+    def __init__(self, pipeline_list:List, execute_merge_on):
         '''     
         Parameters
         ----------
         pipeline_list:
             list of classes implementing 
-                execute(data_loader, tickers) -> 
-                            pd.DataFrame interfaces
-            Order is important: merging results during execute()
+            ``execute(data_loader, tickers)`` 
+            ``-> pd.DataFrame`` interfaces.
+            Order is important: merging results during
+            :func:`~ml_investment.pipelines.MergePipeline.execute`
             will be done from left to right.
         on:
             column names for merging pipelines results on.
 
         '''
         self.pipeline_list = pipeline_list
-        self.on = on
-        
-    def execute(self, data_loader, tickers:List[str]):
+        self.execute_merge_on = execute_merge_on
+
+
+    def fit(self, data_loader, tickers:List[str]):
+        '''
+        Interface for training all pipelines
+
+        Parameters
+        ----------
+        data_loader:
+            class implements all interfaces needed for all 
+            pipelines feature calculators
+            
+        tickers:
+            tickers of companies to execute pipeline for 
+        '''
+        for pipeline in self.pipeline_list:
+            pipeline.fit(data_loader, tickers)
+
+
+    def execute(self, data_loader, tickers:List[str]) -> pd.DataFrame:
         '''     
         Interface for executing pipeline for tickers.
         Features will be based on data from data_loader
@@ -216,14 +233,16 @@ class ExecuteMergePipeline:
                       
         Returns
         -------
-            pd.DataFrame with resulted pipelines values
+        ``pd.DataFrame``
+            combined pipelines execute result
         '''   
         dfs = []
         for pipeline in self.pipeline_list:
             curr_df = pipeline.execute(data_loader, tickers)
             dfs.append(curr_df)
             
-        result_df = reduce(lambda l, r: pd.merge(l, r, on=self.on, how='left'), dfs)
+        result_df = reduce(lambda l, r: pd.merge(
+            l, r, on=self.execute_merge_on, how='left'), dfs)
 
         return result_df
             
@@ -231,7 +250,7 @@ class ExecuteMergePipeline:
 class QuarterlyLoadPipeline:
     '''
     Wrapper for data_loader for loading quarterly data
-    in execute(data_loader, tickers:List[str]) -> pd.DataFrame
+    in ``execute(data_loader, tickers:List[str]) -> pd.DataFrame``
     interface
     '''
     def __init__(self, columns:List[str]):
@@ -242,7 +261,10 @@ class QuarterlyLoadPipeline:
             column names for loading
         '''
         self.columns = columns
-        
+       
+    def fit(self, data_loader, tickers:List[str]):
+        None
+
     def execute(self, data_loader, tickers:List[str]):
         '''     
         Interface for executing pipeline(lading data) for
@@ -251,15 +273,16 @@ class QuarterlyLoadPipeline:
         Parameters
         ----------
         data_loader:
-            class implements load_quarterly_data(tickers: List[str]) -> 
-                                                 pd.DataFrame interface
+            class implements ``load_quarterly_data(tickers: List[str])``
+            -> pd.DataFrame`` interface
             
         tickers:
             tickers of companies to load data for      
                       
         Returns
         -------
-            pd.DataFrame with quarterly data
+        ``pd.DataFrame``
+            quarterly data
         '''  
         quarterly_data = data_loader.load_quarterly_data(tickers)
         quarterly_df = quarterly_data[self.columns]

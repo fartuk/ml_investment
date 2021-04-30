@@ -8,16 +8,16 @@ from ml_investment.data import SF1Data
 from ml_investment.features import QuarterlyFeatures
 from ml_investment.targets import QuarterlyTarget
 from ml_investment.models import GroupedOOFModel
-from ml_investment.pipelines import BasePipeline, ExecuteMergePipeline, QuarterlyLoadPipeline
+from ml_investment.pipelines import BasePipeline, MergePipeline, QuarterlyLoadPipeline
 from ml_investment.metrics import median_absolute_relative_error, mean_absolute_relative_error
-from ml_investment.utils import load_json
+from ml_investment.utils import load_config
 from synthetic_data import GeneratedData
 
-config = load_json(pytest.config_path)
+config = load_config()
 
 
 loaders = [GeneratedData()]
-if config['sf1_data_path'] is not None:
+if os.path.exists(config['sf1_data_path']):
     loaders.append(SF1Data(config['sf1_data_path']))
 
 tickers = ['AAPL', 'TSLA', 'K', 'MAC', 'NVDA']
@@ -170,9 +170,9 @@ class TestBasePipeline:
 
 
 
-class TestExecuteMergePipeline:       
+class TestMergePipeline:       
     @pytest.mark.parametrize('data_loader', loaders)
-    def test_execute_simple(self, data_loader):
+    def test_fit_execute_simple(self, data_loader):
         columns = ['revenue', 'netinc', 'ncf', 'ebitda', 'debt', 'fcf']
         f1 = QuarterlyFeatures(columns=columns,
                                quarter_counts=[2, 10],
@@ -197,28 +197,43 @@ class TestExecuteMergePipeline:
 
         pipeline3 = QuarterlyLoadPipeline(['ticker', 'date', 'marketcap'])
 
+        merge1 = MergePipeline(
+            pipeline_list=[pipeline1, pipeline2, pipeline3],
+            execute_merge_on=['ticker', 'date'])
+
+        merge1.fit(data_loader, tickers)
+        df_m1 = merge1.execute(data_loader, tickers)
+
+
         pipeline1.fit(data_loader, tickers)
         pipeline2.fit(data_loader, tickers)
         
-        merge1 = ExecuteMergePipeline(
+        merge2 = MergePipeline(
             pipeline_list=[pipeline1, pipeline2, pipeline3],
-            on=['ticker', 'date'])
+            execute_merge_on=['ticker', 'date'])
         
         df1 = pipeline1.execute(data_loader, tickers)
         df2 = pipeline2.execute(data_loader, tickers)
         df3 = pipeline3.execute(data_loader, tickers)
                
-        df = merge1.execute(data_loader, tickers)
-        assert type(df) == pd.DataFrame
-        assert len(df) == len(df1)
-        np.testing.assert_array_equal(df.columns, 
+
+        df_m2 = merge1.execute(data_loader, tickers)
+
+        assert type(df_m1) == pd.DataFrame
+        assert type(df_m2) == pd.DataFrame
+        assert len(df_m1) == len(df1)
+        assert len(df_m2) == len(df1)
+        np.testing.assert_array_equal(df_m1.columns, 
                                       ['ticker', 'date', 'p1', 'p2', 'marketcap'])
 
-        np.testing.assert_array_equal(df1['p1'], df['p1'])        
-        np.testing.assert_array_equal(df2['p2'], df['p2'])        
+        np.testing.assert_array_equal(df_m2.columns, 
+                                      ['ticker', 'date', 'p1', 'p2', 'marketcap'])
 
+        np.testing.assert_array_equal(df1['p1'], df_m1['p1'])        
+        np.testing.assert_array_equal(df2['p2'], df_m1['p2'])        
         
-        
+        np.testing.assert_array_equal(df_m1['p1'], df_m2['p1'])        
+        np.testing.assert_array_equal(df_m1['p2'], df_m2['p2'])        
         
         
         

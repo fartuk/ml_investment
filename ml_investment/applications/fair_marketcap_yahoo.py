@@ -39,7 +39,27 @@ QUARTER_COLUMNS = [
 
 
 class FairMarketcapYahoo:
+    '''
+    Model is used to estimate fair company marketcap for `last` quarter. 
+    Pipeline uses features from 
+    :class:`~ml_investment.features.BaseCompanyFeatures`,
+    :class:`~ml_investment.features.QuarterlyFeatures`
+    and trained to predict real market capitalizations
+    ( using :class:`~ml_investment.targets.QuarterlyTarget` ). 
+    Since some companies are overvalued and some are undervalued, 
+    the model makes an average "fair" prediction.
+    :class:`~ml_investment.data.YahooData`
+    is used for loading data.
+    '''
     def __init__(self, pretrained=True):
+        '''
+        Parameters
+        ----------
+        pretrained:
+            use pretreined weights or not. If so, `fair_marketcap_yahoo.pickle`
+            will be downloaded. Downloading directory path can be changed in
+            `~/.ml_investment/config.json` ``models_path``
+        '''
         self.config = load_config()
 
         self._check_download_data()
@@ -98,12 +118,24 @@ class FairMarketcapYahoo:
 
 
     def fit(self):
+        '''     
+        Interface to fit pipeline model. Pre-downloaded appropriate
+        data will be used.
+        ''' 
         ticker_list = load_tickers()['base_us_stocks']
         result = self.pipeline.fit(self.data_loader, ticker_list)
         print(result)
 
 
     def predict(self, tickers):
+        '''     
+        Interface for model inference.
+        
+        Parameters
+        ----------
+        tickers:
+            tickers of companies to make inference for
+        ''' 
         return self.pipeline.execute(self.data_loader, tickers)
 
 
@@ -111,6 +143,10 @@ class FairMarketcapYahoo:
 
 
 def main():
+    '''
+    Default model training. Resulted model weights directory path 
+    can be changed in `~/.ml_investment/config.json` ``models_path``
+    '''
     model = FairMarketcapYahoo(pretrained=False)
     model.fit()
     path = '{}/{}'.format(model.config['models_path'], OUT_NAME)

@@ -14,10 +14,11 @@ class LogExpModel:
     '''
     def __init__(self, base_model):
         '''
-        Parameters:
-            base_model:
-                class implements ``fit(X, y)``, 
-                ``predict(X)``/``predict_proba(X)`` interfaces
+        Parameters
+        ----------
+        base_model:
+            class implements ``fit(X, y)``, 
+            ``predict(X)``/``predict_proba(X)`` interfaces
         '''
         self.base_model = base_model
         

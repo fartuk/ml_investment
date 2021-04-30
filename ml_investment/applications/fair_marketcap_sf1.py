@@ -56,7 +56,35 @@ COMMODITIES_CODES = [
 
 
 class FairMarketcapSF1:
+    '''
+    Model is used to estimate fair company marketcap for several last quarters. 
+    Pipeline uses features from 
+    :class:`~ml_investment.features.BaseCompanyFeatures`,
+    :class:`~ml_investment.features.QuarterlyFeatures`,
+    :class:`~ml_investment.features.DailyAggQuarterFeatures`,
+    :class:`~ml_investment.features.CommoditiesAggQuarterFeatures`
+    and trained to predict real market capitalizations
+    ( using :class:`~ml_investment.targets.QuarterlyTarget` ). 
+    Since some companies are overvalued and some are undervalued, 
+    the model makes an average "fair" prediction.
+    :class:`~ml_investment.data.SF1Data` and 
+    :class:`~ml_investment.data.QuandlCommoditiesData`
+    is used for loading data.
+    '''
     def __init__(self, pretrained=True):
+        '''
+        Parameters
+        ----------
+        pretrained:
+            use pretreined weights or not. If so, `fair_marketcap_sf1.pickle`
+            will be downloaded. Downloading directory path can be changed in
+            `~/.ml_investment/config.json` ``models_path``
+
+        Note:
+            SF1 dataset is paid, so for using this model you need to subscribe 
+            and paste quandl token to `~/.ml_investment/secrets.json`
+            ``quandl_api_key``
+        '''
         self.config = load_config()
 
         self._check_download_data()
@@ -135,6 +163,10 @@ class FairMarketcapSF1:
 
 
     def fit(self):
+        '''     
+        Interface to fit pipeline model. Pre-downloaded appropriate
+        data will be used.
+        ''' 
         tickers_df = self.data_loader.load_base_data(
             currency=CURRENCY,
             scalemarketcap=SCALE_MARKETCAP)
@@ -144,6 +176,14 @@ class FairMarketcapSF1:
 
 
     def predict(self, tickers):
+        '''     
+        Interface for model inference.
+        
+        Parameters
+        ----------
+        tickers:
+            tickers of companies to make inference for
+        ''' 
         return self.pipeline.execute(self.data_loader, tickers)
 
 
@@ -151,6 +191,10 @@ class FairMarketcapSF1:
 
 
 def main():
+    '''
+    Default model training. Resulted model weights directory path 
+    can be changed in `~/.ml_investment/config.json` ``models_path``
+    '''
     model = FairMarketcapSF1(pretrained=False)
     model.fit()
     path = '{}/{}'.format(model.config['models_path'], OUT_NAME)
