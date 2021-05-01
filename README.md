@@ -1,131 +1,76 @@
----
-generator: 'Docutils 0.16: http://docutils.sourceforge.net/'
-title: 'Ml\_investment'
----
-
-<div id="ml-investment" class="document">
+Ml\_investment
+==============
 
 Machine learning tools for investment tasks. The purpose of these tools
 is to obtain deeper analytics about companies traded on the stock
 exchange.
 
-<div id="table-of-content" class="contents topic">
-
-Table of content
-
--   [📔 Documentation](#documentation){#id1 .reference .internal}
--   [🛠 Installation](#installation){#id2 .reference .internal}
--   [⏳ Quick Start](#quick-start){#id3 .reference .internal}
-    -   [Use application model](#use-application-model){#id4 .reference
-        .internal}
-    -   [Create your own pipeline](#create-your-own-pipeline){#id5
-        .reference .internal}
--   [📦 Applications](#applications){#id6 .reference .internal}
--   [⭐ Contributing](#contributing){#id7 .reference .internal}
-    -   [Run tests](#run-tests){#id8 .reference .internal}
-    -   [Run tests in Docker](#run-tests-in-docker){#id9 .reference
-        .internal}
-
-</div>
-
-<div id="documentation" class="section">
-
 📔 Documentation
-===============
+---------------
 
 Visit [Read the
-Docs](https://ml-investment.readthedocs.io/en/latest/index.html){.reference
-.external} to know more about Ml\_investmrnt library.
-
-</div>
-
-<div id="installation" class="section">
+Docs](https://ml-investment.readthedocs.io/en/latest/index.html) to know
+more about Ml\_investmrnt library.
 
 🛠 Installation
-==============
+--------------
 
 **PyPI version**
 
-``` {.code .bash .literal-block}
+``` {.sourceCode .bash}
 $ pip install ml-investment
 ```
 
 **Latest version from source**
 
-``` {.code .bash .literal-block}
+``` {.sourceCode .bash}
 $ pip install git+https://github.com/fartuk/ml_investment
 ```
 
 or
 
-``` {.code .bash .literal-block}
+``` {.sourceCode .bash}
 $ git clone https://github.com/fartuk/ml_investment
 $ cd ml_investment
 $ pip install .
 ```
 
-</div>
-
-<div id="quick-start" class="section">
-
 ⏳ Quick Start
-=============
+-------------
 
-<div id="use-application-model" class="section">
-
-Use application model
----------------------
+### Use application model
 
 There are several pre-defined fitted models at
-`ml_investment.applications`{.docutils .literal}. It incapsulating data
-and weights downloading, pipeline creation and model fitting. So you can
-just use it without knowing internal structure.
+`ml_investment.applications`. It incapsulating data and weights
+downloading, pipeline creation and model fitting. So you can just use it
+without knowing internal structure.
 
-``` {.code .python .literal-block}
+``` {.sourceCode .python}
 from ml_investment.applications.fair_marketcap_yahoo import FairMarketcapYahoo
 
 fair_marketcap_yahoo = FairMarketcapYahoo()
 fair_marketcap_yahoo.predict(['AAPL', 'FB', 'MSFT'])
 ```
 
-  ticker                   date                                          fair\_marketcap\_yahoo
-  ------------------------ --------------------------------------------- --------------------------------------------
-  AAPL                     2020-12-31                                    5.173328e+11
-  FB                       2020-12-31                                    8.442045e+11
-  MSFT                     2020-12-31                                    4.501329e+11
+  ticker                   date                                         fair\_marketcap\_yahoo
+  ------------------------ -------------------------------------------- --------------------------------------------
+  AAPL                     2020-12-31                                   5.173328e+11
+  FB                       2020-12-31                                   8.442045e+11
+  MSFT                     2020-12-31                                   4.501329e+11
 
-</div>
-
-<div id="create-your-own-pipeline" class="section">
-
-Create your own pipeline
-------------------------
+### Create your own pipeline
 
 **1. Download data**
 
-You may download default datasets by
-`ml_investment.download_scripts`{.docutils .literal}
+You may download default datasets by `ml_investment.download_scripts`
 
-``` {.code .python .literal-block}
+``` {.sourceCode .python}
 from ml_investment.download_scripts import download_yahoo
 download_yahoo.main()
 ```
 
-<div class="line-block">
-
-<div class="line">
-
-&gt;&gt; 1365it \[03:32, 6.42it/s\]
-
-</div>
-
-<div class="line">
-
-&gt;&gt; 1365it \[01:49, 12.51it/s\]
-
-</div>
-
-</div>
+| &gt;&gt; 1365it \[03:32, 6.42it/s\]
+| &gt;&gt; 1365it \[01:49, 12.51it/s\]
 
 **2. Define and fit pipeline**
 
@@ -134,19 +79,18 @@ the folowing steps:
 
 -   Define features. Features is a number of values and characteristics
     that will be calculated for model trainig. Default feature
-    calculators are located at `ml_investment.features`{.docutils
-    .literal}
+    calculators are located at `ml_investment.features`
 -   Define targets. Target is a final goal of the pipeline, it should
     represent some desired useful property. Default target calculators
-    are located at `ml_investment.targets`{.docutils .literal}
+    are located at `ml_investment.targets`
 -   Choose model. Model is machine learning algorithm, core of the
     pipeline. It also may incapsulate validateion and other stuff. You
-    may use wrappers from `ml_investment.models`{.docutils .literal}
+    may use wrappers from `ml_investment.models`
 -   Choose dataset. It should have all needed for features and targets
     data loading methods. There some pre-defined datasets at
-    `ml_investment.data`{.docutils .literal}
+    `ml_investment.data`
 
-``` {.code .python .literal-block}
+``` {.sourceCode .python}
 from ml_investment.utils import load_config, load_tickers
 from ml_investment.data import YahooData
 from ml_investment.features import QuarterlyFeatures, BaseCompanyFeatures,\
@@ -189,70 +133,44 @@ pipeline.fit(data_loader, tickers)
 
 **3. Inference your pipeline**
 
-Since `ml_investment.models.GroupedOOFModel`{.docutils .literal} was
-used, there are no data leakage and you may use pipeline on the same
-company tickers.
+Since `ml_investment.models.GroupedOOFModel` was used, there are no data
+leakage and you may use pipeline on the same company tickers.
 
-``` {.code .python .literal-block}
+``` {.sourceCode .python}
 pipeline.execute(data_loader, ['AAPL', 'FB', 'MSFT'])
 ```
 
-  ticker             date                                my\_super\_model
-  ------------------ ----------------------------------- -------------------------
-  AAPL               2020-12-31                          8.170051e+11
-  FB                 2020-12-31                          3.898840e+11
-  MSFT               2020-12-31                          3.540126e+11
-
-</div>
-
-</div>
-
-<div id="applications" class="section">
+  ticker             date                              my\_super\_model
+  ------------------ --------------------------------- ------------------------
+  AAPL               2020-12-31                        8.170051e+11
+  FB                 2020-12-31                        3.898840e+11
+  MSFT               2020-12-31                        3.540126e+11
 
 📦 Applications
-==============
+--------------
 
 Collection of pre-trained models
 
 -   FairMarketcapYahoo
-    [docs](https://ml-investment.readthedocs.io/en/latest/applications.html#module-ml_investment.applications.fair_marketcap_yahoo){.reference
-    .external}
+    [docs](https://ml-investment.readthedocs.io/en/latest/applications.html#module-ml_investment.applications.fair_marketcap_yahoo)
 -   FairMarketcapSF1
 -   FairMarketcapDiffYahoo
 -   FairMarketcapDiffSF1
 -   MarketcapDownStdYahoo
 -   MarketcapDownStdSF1
 
-</div>
-
-<div id="contributing" class="section">
-
 ⭐ Contributing
-==============
+--------------
 
-<div id="run-tests" class="section">
+### Run tests
 
-Run tests
----------
-
-``` {.code .bash .literal-block}
+``` {.sourceCode .bash}
 $ cd /path/to/ml_investmant && pytest
 ```
 
-</div>
+### Run tests in Docker
 
-<div id="run-tests-in-docker" class="section">
-
-Run tests in Docker
--------------------
-
-``` {.code .bash .literal-block}
+``` {.sourceCode .bash}
 $ docker build . -t tests
 $ docker run tests
 ```
-
-</div>
-
-</div>
-
-</div>
