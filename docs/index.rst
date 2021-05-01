@@ -13,12 +13,12 @@ Welcome to ml_investment's documentation!
    install
    quickstart
    applications
-   download_scripts
    features
    targets
    models
    pipelines
    data
+   download_scripts
 
 Indices and tables
 ==================

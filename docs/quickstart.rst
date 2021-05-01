@@ -8,7 +8,7 @@ Use application model
 
 
 There are several pre-defined fitted models at 
-:mod:`~ml_investment.applications`. 
+``ml_investment.applications``.
 It incapsulating data and weights downloading, pipeline creation 
 and model fitting. So you can just use it without knowing internal structure.
 
@@ -37,10 +37,9 @@ Create your own pipeline
 
 
 **1. Download data**
-######################
 
 You may download default datasets by 
-:mod:`~ml_investment.download_scripts`
+``ml_investment.download_scripts``
 
 .. code-block:: python
 
@@ -51,8 +50,7 @@ You may download default datasets by
 | >> 1365it [01:49,  12.51it/s]
 
 
-2. Define and fit pipeline 
-###############################
+**2. Define and fit pipeline**
 
 You may specify all steps of pipeline creation. 
 Base pipeline consist of the folowing steps:
@@ -60,19 +58,19 @@ Base pipeline consist of the folowing steps:
 - Define features. Features is a number of values 
   and characteristics that will be calculated for model trainig.  
   Default feature calculators are located at 
-  :mod:`~ml_investment.features`
+  ``ml_investment.features``
 - Define targets. Target is a final goal of the pipeline, it should 
   represent some desired useful property.
   Default target calculators are located at
-  :mod:`~ml_investment.targets`
+  ``ml_investment.targets``
 - Choose model. Model is machine learning algorithm, core of the pipeline. 
   It also may incapsulate validateion and other stuff.
   You may use wrappers from 
-  :mod:`~ml_investment.models`
+  ``ml_investment.models``
 - Choose dataset. It should have all needed for features and targets 
   data loading methods.
   There some pre-defined datasets at 
-  :mod:`~ml_investment.data`
+  ``ml_investment.data``
 
 
 .. code-block:: python
@@ -118,7 +116,7 @@ Base pipeline consist of the folowing steps:
 
 **3. Inference your pipeline**
 
-Since :class:`~ml_investment.models.GroupedOOFModel` was used, 
+Since ``ml_investment.models.GroupedOOFModel`` was used, 
 there are no data leakage and you may use pipeline on the same company tickers.
 
 .. code-block:: python
