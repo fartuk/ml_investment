@@ -15,7 +15,7 @@ VERSION = "0.0.4"
 with open(os.path.join(here, 'requirements.txt'), encoding='utf-8') as f:
     REQUIRED = f.read().split('\n')
     
-with open("README.md", "r", encoding="utf-8") as f:
+with open("README.rst", "r", encoding="utf-8") as f:
     LONG_DESCRIPTION = f.read()
     
 setuptools.setup(
@@ -25,7 +25,7 @@ setuptools.setup(
     author_email=EMAIL,
     description=DESCRIPTION,
     long_description=LONG_DESCRIPTION,
-    long_description_content_type="text/markdown",
+    long_description_content_type="text/x-rst",
     url=URL,
     project_urls={
         "Bug Tracker": "{}/issues".format(URL),

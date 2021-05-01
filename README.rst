@@ -1,7 +1,7 @@
 Ml_investment
 ########################
 
-Machine learning tools for investment tasks. 
+Machine learning tools for investment tasks.
 The purpose of these tools is to obtain deeper analytics
 about companies traded on the stock exchange.
 
@@ -14,10 +14,9 @@ about companies traded on the stock exchange.
 
 📔 Documentation
 =================
-Visit  
+Visit
 `Read the Docs <https://ml-investment.readthedocs.io/en/latest/index.html>`__
 to know more about Ml_investmrnt library.
-
 
 🛠 Installation
 ===============
@@ -36,7 +35,7 @@ to know more about Ml_investmrnt library.
 
     $ pip install git+https://github.com/fartuk/ml_investment
 
-or 
+or
 
 .. code-block:: bash
 
@@ -45,6 +44,13 @@ or
     $ pip install .
 
 
+**Configuration**
+
+You may use config file `~/.ml_investment/config.json`
+to change repo parameters i.e. downloading datasets pathes, models pathes etc.
+
+Private information (i.e. api tokens for private datasets downloading)
+should be located at `~/.ml_investment/secrets.json`
 
 ⏳ Quick Start
 ==============
@@ -53,13 +59,15 @@ or
 Use application model
 ---------------------
 
-There are several pre-defined fitted models at 
+
+
+There are several pre-defined fitted models at
 ``ml_investment.applications``.
-It incapsulating data and weights downloading, pipeline creation 
+It incapsulating data and weights downloading, pipeline creation
 and model fitting. So you can just use it without knowing internal structure.
 
 .. code-block:: python
-    
+
     from ml_investment.applications.fair_marketcap_yahoo import FairMarketcapYahoo
 
     fair_marketcap_yahoo = FairMarketcapYahoo()
@@ -84,7 +92,7 @@ Create your own pipeline
 
 **1. Download data**
 
-You may download default datasets by 
+You may download default datasets by
 ``ml_investment.download_scripts``
 
 .. code-block:: python
@@ -92,42 +100,42 @@ You may download default datasets by
     from ml_investment.download_scripts import download_yahoo
     download_yahoo.main()
 
-| >> 1365it [03:32,  6.42it/s]
-| >> 1365it [01:49,  12.51it/s]
+>>> 1365it [03:32,  6.42it/s]
+>>> 1365it [01:49,  12.51it/s]
 
 
 **2. Define and fit pipeline**
 
-You may specify all steps of pipeline creation. 
+You may specify all steps of pipeline creation.
 Base pipeline consist of the folowing steps:
 
-- Define features. Features is a number of values 
-  and characteristics that will be calculated for model trainig.  
-  Default feature calculators are located at 
+- Define features. Features is a number of values
+  and characteristics that will be calculated for model trainig.
+  Default feature calculators are located at
   ``ml_investment.features``
-- Define targets. Target is a final goal of the pipeline, it should 
+- Define targets. Target is a final goal of the pipeline, it should
   represent some desired useful property.
   Default target calculators are located at
   ``ml_investment.targets``
-- Choose model. Model is machine learning algorithm, core of the pipeline. 
+- Choose model. Model is machine learning algorithm, core of the pipeline.
   It also may incapsulate validateion and other stuff.
-  You may use wrappers from 
+  You may use wrappers from
   ``ml_investment.models``
-- Choose dataset. It should have all needed for features and targets 
+- Choose dataset. It should have all needed for features and targets
   data loading methods.
-  There some pre-defined datasets at 
+  There some pre-defined datasets at
   ``ml_investment.data``
 
 
 .. code-block:: python
 
-    from ml_investment.utils import load_config, load_tickers 
+    from ml_investment.utils import load_config, load_tickers
     from ml_investment.data import YahooData
     from ml_investment.features import QuarterlyFeatures, BaseCompanyFeatures,\
                                        FeatureMerger
     from ml_investment.target import BaseInfoTarget
     from ml_investment.pipeline import BasePipeline
-    
+
     config = load_config()
     data_loader = YahooData(config['yahoo_data_path'])
 
@@ -141,7 +149,7 @@ Base pipeline consist of the folowing steps:
     fc2 = BaseCompanyFeatures(cat_columns=['sector'])
 
     feature = FeatureMerger(fc1, fc2, on='ticker')
-    
+
     target = BaseInfoTarget(col='enterpriseValue')
 
     base_model = LogExpModel(lgbm.sklearn.LGBMRegressor())
@@ -149,21 +157,20 @@ Base pipeline consist of the folowing steps:
                             group_column='ticker',
                             fold_cnt=4)
 
-    pipeline = BasePipeline(feature=feature, 
-                            target=target, 
-                            model=model, 
+    pipeline = BasePipeline(feature=feature,
+                            target=target,
+                            model=model,
                             metric=median_absolute_relative_error,
                             out_name='my_super_model')
 
     tickers = load_tickers()['base_us_stocks']
     pipeline.fit(data_loader, tickers)
 
->> {'metric_my_super_model': 0.40599471294301914}
-
+>>> {'metric_my_super_model': 0.40599471294301914}
 
 **3. Inference your pipeline**
 
-Since ``ml_investment.models.GroupedOOFModel`` was used, 
+Since ``ml_investment.models.GroupedOOFModel`` was used,
 there are no data leakage and you may use pipeline on the same company tickers.
 
 .. code-block:: python
@@ -181,26 +188,24 @@ there are no data leakage and you may use pipeline on the same company tickers.
 | MSFT        | 2020-12-31              | 3.540126e+11     |
 +-------------+-------------------------+------------------+
 
-
-
 📦 Applications
 ================
 
 Collection of pre-trained models
 
 - FairMarketcapYahoo
-  `docs <https://ml-investment.readthedocs.io/en/latest/applications.html#module-ml_investment.applications.fair_marketcap_yahoo>`__
+  [`docs <https://ml-investment.readthedocs.io/en/latest/applications.html#module-ml_investment.applications.fair_marketcap_yahoo>`__]
 
 - FairMarketcapSF1
-
+  [`docs <https://ml-investment.readthedocs.io/en/latest/applications.html#module-ml_investment.applications.fair_marketcap_sf1>`__]
 - FairMarketcapDiffYahoo
-
+  [`docs <https://ml-investment.readthedocs.io/en/latest/applications.html#module-ml_investment.applications.fair_marketcap_diff_yahoo>`__]
 - FairMarketcapDiffSF1
-
+  [`docs <https://ml-investment.readthedocs.io/en/latest/applications.html#module-ml_investment.applications.fair_marketcap_diff_sf1>`__]
 - MarketcapDownStdYahoo
-
+  [`docs <https://ml-investment.readthedocs.io/en/latest/applications.html#module-ml_investment.applications.marketcap_down_std_yahoo>`__]
 - MarketcapDownStdSF1
-
+  [`docs <https://ml-investment.readthedocs.io/en/latest/applications.html#module-ml_investment.applications.marketcap_down_std_sf1>`__]
 
 
 ⭐ Contributing

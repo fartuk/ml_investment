@@ -46,8 +46,8 @@ You may download default datasets by
     from ml_investment.download_scripts import download_yahoo
     download_yahoo.main()
 
-| >> 1365it [03:32,  6.42it/s]
-| >> 1365it [01:49,  12.51it/s]
+>>> 1365it [03:32,  6.42it/s]
+>>> 1365it [01:49,  12.51it/s]
 
 
 **2. Define and fit pipeline**
@@ -112,7 +112,7 @@ Base pipeline consist of the folowing steps:
     tickers = load_tickers()['base_us_stocks']
     pipeline.fit(data_loader, tickers)
 
->> {'metric_my_super_model': 0.40599471294301914}
+>>> {'metric_my_super_model': 0.40599471294301914}
 
 **3. Inference your pipeline**
 
