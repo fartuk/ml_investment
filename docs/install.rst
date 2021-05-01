@@ -1,15 +1,26 @@
 🛠 Installation
 ===============
 
-PyPI version:
+
+**PyPI version**
 
 .. code-block:: bash
 
-    $ pip install -U segmentation-models-pytorch
+    $ pip install ml-investment
 
 
-Latest version from source:
+**Latest version from source**
 
 .. code-block:: bash
 
-    $ pip install -U git+https://github.com/qubvel/segmentation_models.pytorch
+    $ pip install git+https://github.com/fartuk/ml_investment
+
+or 
+
+.. code-block:: bash
+
+    $ git clone https://github.com/fartuk/ml_investment
+    $ cd ml_investment
+    $ pip install .
+
+

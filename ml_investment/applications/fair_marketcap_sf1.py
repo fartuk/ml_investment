@@ -70,6 +70,11 @@ class FairMarketcapSF1:
     :class:`~ml_investment.data.SF1Data` and 
     :class:`~ml_investment.data.QuandlCommoditiesData`
     is used for loading data.
+
+    Note:
+        SF1 dataset is paid, so for using this model you need to subscribe 
+        and paste quandl token to `~/.ml_investment/secrets.json`
+        ``quandl_api_key``
     '''
     def __init__(self, pretrained=True):
         '''
@@ -79,11 +84,6 @@ class FairMarketcapSF1:
             use pretreined weights or not. If so, `fair_marketcap_sf1.pickle`
             will be downloaded. Downloading directory path can be changed in
             `~/.ml_investment/config.json` ``models_path``
-
-        Note:
-            SF1 dataset is paid, so for using this model you need to subscribe 
-            and paste quandl token to `~/.ml_investment/secrets.json`
-            ``quandl_api_key``
         '''
         self.config = load_config()
 

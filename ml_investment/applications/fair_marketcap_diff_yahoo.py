@@ -38,7 +38,31 @@ QUARTER_COLUMNS = [
 
 
 class FairMarketcapDiffYahoo:
+    '''
+    Model is used to evaluate quarter-to-quarter(q2q) company
+    fundamental progress. Model uses
+    :class:`~ml_investment.features.QuarterlyDiffFeatures`
+    (q2q results progress, e.g. 30% revenue increase,
+    decrease in debt by 15% etc), 
+    :class:`~ml_investment.features.BaseCompanyFeatures`,
+    :class:`~ml_investment.features.QuarterlyFeatures`
+    and trying to predict smoothed real q2q marketcap difference( 
+    :class:`~ml_investment.targets.DailySmoothedQuarterlyDiffTarget` ).
+    So model prediction may be interpreted as "fair" marketcap
+    change according this q2q fundamental change.
+    :class:`~ml_investment.data.YahooData`
+    is used for loading data.
+    '''
     def __init__(self, pretrained=True):
+        '''
+        Parameters
+        ----------
+        pretrained:
+            use pretreined weights or not. If so,
+            `fair_marketcap_diff_yahoo.pickle` will be downloaded. 
+            Downloading directory path can be changed in
+            `~/.ml_investment/config.json` ``models_path``
+        '''
         self.config = load_config()
 
         self._check_download_data()
@@ -110,12 +134,24 @@ class FairMarketcapDiffYahoo:
 
 
     def fit(self):
+        '''     
+        Interface to fit pipeline model. Pre-downloaded appropriate
+        data will be used.
+        ''' 
         ticker_list = load_tickers()['base_us_stocks']
         result = self.pipeline.fit(self.data_loader, ticker_list)
         print(result)
 
 
     def predict(self, tickers):
+        '''     
+        Interface for model inference.
+        
+        Parameters
+        ----------
+        tickers:
+            tickers of companies to make inference for
+        ''' 
         return self.pipeline.execute(self.data_loader, tickers)
 
 
@@ -123,6 +159,10 @@ class FairMarketcapDiffYahoo:
 
 
 def main():
+    '''
+    Default model training. Resulted model weights directory path 
+    can be changed in `~/.ml_investment/config.json` ``models_path``
+    '''
     model = FairMarketcapDiffYahoo(pretrained=False)
     model.fit()
     path = '{}/{}'.format(model.config['models_path'], OUT_NAME)

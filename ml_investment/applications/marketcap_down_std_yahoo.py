@@ -41,7 +41,26 @@ QUARTER_COLUMNS = [
 
 
 class MarketcapDownStdYahoo:
-    def __init__(self, pretrained=True):
+    '''
+    Model is used to predict future down-std value.
+    Pipeline consist of time-series model training( 
+    :class:`~ml_investment.models.TimeSeriesOOFModel` )
+    and validation on real marketcap down-std values(
+    :class:`~ml_investment.targets.DailyAggTarget` ).
+    Model prediction may be interpreted as "risk" for the next quarter.
+    :class:`~ml_investment.data.YahooData`
+    is used for loading data.
+    '''
+    def __init__(self, pretrained:bool=True):
+        '''
+        Parameters
+        ----------
+        pretrained:
+            use pretreined weights or not. If so,
+            `marketcap_down_std_yahoo.pickle` will be downloaded. 
+            Downloading directory path can be changed in
+            `~/.ml_investment/config.json` ``models_path``
+        '''
         self.config = load_config()
 
         self._check_download_data()
@@ -113,12 +132,24 @@ class MarketcapDownStdYahoo:
 
 
     def fit(self):
+        '''     
+        Interface to fit pipeline model. Pre-downloaded appropriate
+        data will be used.
+        ''' 
         ticker_list = load_tickers()['base_us_stocks']
         result = self.pipeline.fit(self.data_loader, ticker_list)
         print(result)
 
 
     def predict(self, tickers):
+        '''     
+        Interface for model inference.
+        
+        Parameters
+        ----------
+        tickers:
+            tickers of companies to make inference for
+        ''' 
         return self.pipeline.execute(self.data_loader, tickers)
 
 
@@ -126,6 +157,10 @@ class MarketcapDownStdYahoo:
 
 
 def main():
+    '''
+    Default model training. Resulted model weights directory path 
+    can be changed in `~/.ml_investment/config.json` ``models_path``
+    '''
     model = MarketcapDownStdYahoo(pretrained=False)
     model.fit()
     path = '{}/{}'.format(model.config['models_path'], OUT_NAME)

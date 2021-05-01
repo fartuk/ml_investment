@@ -56,7 +56,37 @@ COMMODITIES_CODES = [
 
 
 class FairMarketcapDiffSF1:
+    '''
+    Model is used to evaluate quarter-to-quarter(q2q) company
+    fundamental progress. Model uses
+    :class:`~ml_investment.features.QuarterlyDiffFeatures`
+    (q2q results progress, e.g. 30% revenue increase,
+    decrease in debt by 15% etc), 
+    :class:`~ml_investment.features.BaseCompanyFeatures`,
+    :class:`~ml_investment.features.QuarterlyFeatures`
+    :class:`~ml_investment.features.CommoditiesAggQuarterFeatures`
+    and trying to predict real q2q marketcap difference( 
+    :class:`~ml_investment.targets.QuarterlyDiffTarget` ).
+    So model prediction may be interpreted as "fair" marketcap
+    change according this q2q fundamental change.
+    :class:`~ml_investment.data.SF1Data`
+    is used for loading data.
+
+    Note:
+        SF1 dataset is paid, so for using this model you need to subscribe 
+        and paste quandl token to `~/.ml_investment/secrets.json`
+        ``quandl_api_key``
+    '''
     def __init__(self, pretrained=True):
+        '''
+        Parameters
+        ----------
+        pretrained:
+            use pretreined weights or not. If so,
+            `fair_marketcap_diff_sf1.pickle` will be downloaded. 
+            Downloading directory path can be changed in
+            `~/.ml_investment/config.json` ``models_path``
+        '''
         self.config = load_config()
 
         self._check_download_data()
@@ -132,8 +162,12 @@ class FairMarketcapDiffSF1:
             
         return pipeline
 
-
+ 
     def fit(self):
+        '''     
+        Interface to fit pipeline model. Pre-downloaded appropriate
+        data will be used.
+        ''' 
         tickers_df = self.data_loader.load_base_data(
             currency=CURRENCY,
             scalemarketcap=SCALE_MARKETCAP)
@@ -143,12 +177,24 @@ class FairMarketcapDiffSF1:
 
 
     def predict(self, tickers):
+        '''     
+        Interface for model inference.
+        
+        Parameters
+        ----------
+        tickers:
+            tickers of companies to make inference for
+        ''' 
         return self.pipeline.execute(self.data_loader, tickers)
 
 
 
 
 def main():
+    '''
+    Default model training. Resulted model weights directory path 
+    can be changed in `~/.ml_investment/config.json` ``models_path``
+    '''
     model = FairMarketcapDiffSF1(pretrained=False)
     model.fit()
     path = '{}/{}'.format(model.config['models_path'], OUT_NAME)

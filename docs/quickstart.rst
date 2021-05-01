@@ -54,21 +54,30 @@ You may download default datasets by
 2. Define and fit pipeline 
 ###############################
 
-You may specify all steps of pipeline creation.
-There are several default data loaders in 
-:mod:`~ml_investment.data`.
-Features are in 
-:mod:`~ml_investment.features`
-Targets are in 
-:mod:`~ml_investment.targets`
-There are some model wrappers in 
-:mod:`~ml_investment.targets`
+You may specify all steps of pipeline creation. 
+Base pipeline consist of the folowing steps:
 
+- Define features. Features is a number of values 
+  and characteristics that will be calculated for model trainig.  
+  Default feature calculators are located at 
+  :mod:`~ml_investment.features`
+- Define targets. Target is a final goal of the pipeline, it should 
+  represent some desired useful property.
+  Default target calculators are located at
+  :mod:`~ml_investment.targets`
+- Choose model. Model is machine learning algorithm, core of the pipeline. 
+  It also may incapsulate validateion and other stuff.
+  You may use wrappers from 
+  :mod:`~ml_investment.models`
+- Choose dataset. It should have all needed for features and targets 
+  data loading methods.
+  There some pre-defined datasets at 
+  :mod:`~ml_investment.data`
 
 
 .. code-block:: python
 
-    from ml_investment.utils import load_config    
+    from ml_investment.utils import load_config, load_tickers 
     from ml_investment.data import YahooData
     from ml_investment.features import QuarterlyFeatures, BaseCompanyFeatures,\
                                        FeatureMerger
@@ -102,11 +111,15 @@ There are some model wrappers in
                             metric=median_absolute_relative_error,
                             out_name='my_super_model')
 
-    pipeline.fit(data_loader, ['AAPL', 'TSLA', 'NVDA', 'K'])
+    tickers = load_tickers()['base_us_stocks']
+    pipeline.fit(data_loader, tickers)
 
 >> {'metric_my_super_model': 0.40599471294301914}
 
 **3. Inference your pipeline**
+
+Since :class:`~ml_investment.models.GroupedOOFModel` was used, 
+there are no data leakage and you may use pipeline on the same company tickers.
 
 .. code-block:: python
 
