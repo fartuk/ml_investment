@@ -8,6 +8,7 @@ about companies traded on the stock exchange.
 
 .. contents:: Table of content
    :depth: 2
+   :backlinks: none
 
 
 
