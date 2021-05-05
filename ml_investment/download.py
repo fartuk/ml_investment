@@ -169,16 +169,20 @@ class YahooDownloader:
             try:
                 base_url = 'https://query1.finance.yahoo.com/ws/fundamentals-timeseries/v1/finance/timeseries'
                 base_url += '/{ticker}?lang=en-US&region=US&symbol=AAPL&padTimeSeries=false&type={type_str}'
-                base_url += '&merge=false&period1=493590046&period2=1619519293&corsDomain=finance.yahoo.com'
-                url = base_url.format(ticker=ticker, type_str=','.join(self.type_list))
+                base_url += '&merge=false&period1=493590046&period2={period2}&corsDomain=finance.yahoo.com'
+                url = base_url.format(ticker=ticker, 
+                                      type_str=','.join(self.type_list),
+                                      period2=int(time.time()))
                 
                 r = requests.get(url)
                 if r.status_code != 200:
+                    print(r.status_code, ticker)
                     return
                 json_data = r.json()
                 
                 quarterly_df = self._parse_quarterly_json(json_data)
                 if quarterly_df is None:
+                    print('Empty', ticker)
                     return
                 quarterly_df['date'] = quarterly_df['date'].astype(np.datetime64)
                 quarterly_df = quarterly_df.sort_values('date', ascending=False)
@@ -187,9 +191,9 @@ class YahooDownloader:
                 quarterly_df.to_csv(filepath, index=False)
 
                 time.sleep(np.random.uniform(0, 1))
+
             except:
                 time.sleep(0.5)
-
 
     
     def _download_base_data_single(self, ticker):
