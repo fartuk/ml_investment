@@ -69,6 +69,7 @@ or wrote your own. Each dataloader should have ``load(index)`` interface.
 You may specify all steps of pipeline creation. 
 Base pipeline consist of the folowing steps:
 
+- Create data dict(it was done in previous step)
 - Define features. Features is a number of values 
   and characteristics that will be calculated for model trainig.  
   Default feature calculators are located at 
@@ -78,7 +79,7 @@ Base pipeline consist of the folowing steps:
   Default target calculators are located at
   ``ml_investment.targets``
 - Choose model. Model is machine learning algorithm, core of the pipeline. 
-  It also may incapsulate validateion and other stuff.
+  It also may incapsulate validation and other stuff.
   You may use wrappers from 
   ``ml_investment.models``
 
@@ -91,7 +92,6 @@ Base pipeline consist of the folowing steps:
     from ml_investment.pipeline import Pipeline
     
     config = load_config()
-    data_loader = YahooData(config['yahoo_data_path'])
 
     fc1 = QuarterlyFeatures(data_key='quarterly',
                             columns=['quarterlyNetIncome',

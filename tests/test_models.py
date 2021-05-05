@@ -6,9 +6,9 @@ from sklearn.linear_model import LinearRegression
 from sklearn.metrics import mean_squared_error
 from ml_investment.models import LogExpModel, EnsembleModel, GroupedOOFModel, \
                    TimeSeriesOOFModel
-from ml_investment.utils import load_json
+from ml_investment.utils import load_config
 
-config = load_json(pytest.config_path)
+config = load_config()
 
 
 def gen_data(cnt):
