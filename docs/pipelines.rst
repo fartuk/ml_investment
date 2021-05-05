@@ -5,9 +5,9 @@ Collection of pipelines
 
 
 
-BasePipeline
+Pipeline
 ~~~~~~~~~~~~~~~
-.. autoclass:: ml_investment.pipelines.BasePipeline
+.. autoclass:: ml_investment.pipelines.Pipeline
     :members:
     :undoc-members:
     :show-inheritance:

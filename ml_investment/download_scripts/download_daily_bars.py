@@ -22,7 +22,8 @@ def _single_ticker_download(ticker):
 def main():
     '''
     Download daily price bars for base US stocks and indexes. 
-    Downloading path ``daily_bars_data_path`` may be configured at `~/.ml_investment/config.json`
+    Downloading path ``daily_bars_data_path`` may be 
+    configured at `~/.ml_investment/config.json`
     '''
     config = load_config()
     tickers = load_tickers()['base_us_stocks']

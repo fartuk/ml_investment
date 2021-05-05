@@ -33,10 +33,11 @@ DailyAggQuarterFeatures
     :undoc-members:
     :show-inheritance:
 
-CommoditiesAggQuarterFeatures
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-.. autoclass:: ml_investment.features.CommoditiesAggQuarterFeatures
+FeatureMerger
+~~~~~~~~~~~~~~~~~~~~~~~
+.. autoclass:: ml_investment.features.FeatureMerger
     :members:
     :undoc-members:
     :show-inheritance:
+
 

@@ -2,18 +2,31 @@ import pytest
 import os
 import pandas as pd
 import numpy as np
-from ml_investment.data import SF1Data, QuandlCommoditiesData, ComboData
+from ml_investment.data_loaders.sf1 import SF1QuarterlyData, SF1BaseData,\
+                                           SF1DailyData
 from ml_investment.features import calc_series_stats, QuarterlyFeatures, BaseCompanyFeatures,\
                      QuarterlyDiffFeatures, FeatureMerger, \
-                     DailyAggQuarterFeatures, CommoditiesAggQuarterFeatures
+                     DailyAggQuarterFeatures
 from ml_investment.utils import load_config, int_hash_of_str
-from synthetic_data import GeneratedData
+from synthetic_data import GenQuarterlyData, GenBaseData, GenDailyData
 
 config = load_config()
 
-loaders = [GeneratedData()]
+
+gen_data = {
+    'quarterly': GenQuarterlyData(),  
+    'base': GenBaseData(),        
+    'daily': GenDailyData(),       
+}
+
+datas = [gen_data]
 if os.path.exists(config['sf1_data_path']):
-    loaders.append(SF1Data(config['sf1_data_path']))
+    sf1_data = {
+        'quarterly': SF1QuarterlyData(config['sf1_data_path']),
+        'base': SF1BaseData(config['sf1_data_path']),
+        'daily': SF1DailyData(config['sf1_data_path']),
+    }
+    datas.append(sf1_data)
     
 
 @pytest.mark.parametrize(
@@ -77,7 +90,7 @@ def test_calc_series_stats_nans():
         
 
 class TestQuarterlyFeatures:
-    @pytest.mark.parametrize('data_loader', loaders)    
+    @pytest.mark.parametrize('data', datas)    
     @pytest.mark.parametrize(
         ["tickers", "columns", "quarter_counts", "max_back_quarter"],
         [(['AAPL', 'TSLA'], ['ebit'], [2], 10), 
@@ -85,19 +98,20 @@ class TestQuarterlyFeatures:
          (['AAPL', 'NVDA', 'TSLA', 'WORK'], ['ebit', 'debt'], [2, 4, 10], 10), 
          (['AAPL', 'ZLG'], ['ebit', 'debt'], [2, 4, 10], 5)]
     )
-    def test_calculate(self, data_loader, tickers, columns, 
-                                 quarter_counts, max_back_quarter):
-        fc = QuarterlyFeatures(columns=columns,
+    def test_calculate(self, data, tickers, columns, 
+                       quarter_counts, max_back_quarter):
+        fc = QuarterlyFeatures(data_key='quarterly',
+                               columns=columns,
                                quarter_counts=quarter_counts,
                                max_back_quarter=max_back_quarter)
                             
-        X = fc.calculate(data_loader, tickers)
+        X = fc.calculate(data, tickers)
 
         assert type(X) == pd.DataFrame
         assert 'ticker' in X.index.names
         assert 'date' in X.index.names
 
-        if type(data_loader) == GeneratedData:
+        if type(data['quarterly']) == GenQuarterlyData:
             assert X.shape[0] == max_back_quarter * len(tickers)
         else:
             assert X.shape[0] <= max_back_quarter * len(tickers)
@@ -146,7 +160,7 @@ class TestQuarterlyFeatures:
 
 
 class TestQuarterlyDiffFeatures:
-    @pytest.mark.parametrize('data_loader', loaders) 
+    @pytest.mark.parametrize('data', datas) 
     @pytest.mark.parametrize(
         ["tickers", "columns", "compare_quarter_idxs", "max_back_quarter"],
         [(['AAPL', 'TSLA'], ['ebit'], [1], 10), 
@@ -154,19 +168,20 @@ class TestQuarterlyDiffFeatures:
          (['AAPL', 'NVDA', 'TSLA', 'WORK'], ['ebit', 'debt'], [1, 4, 10], 10), 
          (['AAPL', 'ZLG'], ['ebit', 'debt'], [1, 4, 10], 5)]
     )
-    def test_calculate(self, data_loader, tickers, columns, 
-                                 compare_quarter_idxs, max_back_quarter):
-        fc = QuarterlyDiffFeatures(columns=columns,
+    def test_calculate(self, data, tickers, columns, 
+                       compare_quarter_idxs, max_back_quarter):
+        fc = QuarterlyDiffFeatures(data_key='quarterly',
+                                   columns=columns,
                                    compare_quarter_idxs=compare_quarter_idxs,
                                    max_back_quarter=max_back_quarter)
-                            
-        X = fc.calculate(data_loader, tickers)
+
+        X = fc.calculate(data, tickers)
 
         assert type(X) == pd.DataFrame
         assert 'ticker' in X.index.names
         assert 'date' in X.index.names
 
-        if type(data_loader) == GeneratedData:
+        if type(data['quarterly']) == GenQuarterlyData:
             assert X.shape[0] == max_back_quarter * len(tickers)
         else:
             assert X.shape[0] <= max_back_quarter * len(tickers)
@@ -174,20 +189,9 @@ class TestQuarterlyDiffFeatures:
         assert X.shape[1] == len(compare_quarter_idxs) * len(columns)
 
 
-class WrapData:
-    def __init__(self, data_loader, tickers):
-        self.data_loader = data_loader
-        self.tickers = tickers
-        
-    def load_base_data(self):
-        df = pd.DataFrame()
-        df['ticker'] = self.tickers
-        df = pd.merge(df, self.data_loader.load_base_data(), how='left') 
-        return df
-    
 
 class TestBaseCompanyFeatures:
-    @pytest.mark.parametrize('data_loader', loaders) 
+    @pytest.mark.parametrize('data', datas) 
     @pytest.mark.parametrize(
         ["tickers", "cat_columns"],
         [(['AAPL', 'TSLA'], ['sector']), 
@@ -195,13 +199,13 @@ class TestBaseCompanyFeatures:
          (['AAPL', 'NVDA', 'TSLA', 'WORK'], ['sector', 'sicindustry']), 
          (['AAPL', 'ZLG'], ['sector', 'sicindustry'])]
     )
-    def test_calculate(self, data_loader, tickers, cat_columns):                             
-        fc = BaseCompanyFeatures(cat_columns=cat_columns)
-        X = fc.calculate(data_loader, tickers)
+    def test_calculate(self, data, tickers, cat_columns):                             
+        fc = BaseCompanyFeatures(data_key='base', cat_columns=cat_columns)
+        X = fc.calculate(data, tickers)
 
         assert type(X) == pd.DataFrame
         assert 'ticker' in X.index.names
-        base_data = data_loader.load_base_data()
+        base_data = data['base'].load(tickers)
         for col in cat_columns:
             assert len(base_data[col].unique()) ==\
                    len(fc.col_to_encoder[col].classes_)
@@ -209,45 +213,132 @@ class TestBaseCompanyFeatures:
         # Reuse fitted after first calculate fc
         for col in cat_columns:
             assert col in fc.col_to_encoder
-        new_X = fc.calculate(data_loader, tickers)
+        new_X = fc.calculate(data, tickers)
         for col in cat_columns:
             assert (new_X[col] == X[col]).min()
 
-        wd = WrapData(data_loader, tickers)
-        new_X = fc.calculate(wd, tickers)
-        for col in cat_columns:
-            assert (new_X[col] == X[col]).min()
+
+
+
+
+
+class TestDailyAggQuarterFeatures:
+    @pytest.mark.parametrize('data', datas) 
+    @pytest.mark.parametrize(
+        ["tickers", "columns", "agg_day_counts", "max_back_quarter"],
+        [(['AAPL', 'TSLA'], ['marketcap'], [100], 10), 
+         (['NVDA', 'TSLA'], ['marketcap'], [100, 200], 5), 
+         (['AAPL', 'NVDA', 'TSLA', 'WORK'], ['marketcap', 'pe'], [50, 200], 10), 
+         (['AAPL', 'ZLG'], ['marketcap', 'pe'], [50, 200], 5)]
+    )
+    def test_calculate(self, data, tickers, columns, 
+                       agg_day_counts, max_back_quarter):
+        fc = DailyAggQuarterFeatures(daily_data_key='daily',
+                                     quarterly_data_key='quarterly',
+                                     columns=columns,
+                                     agg_day_counts=agg_day_counts,
+                                     max_back_quarter=max_back_quarter)
+
+        X = fc.calculate(data, tickers)
+
+        assert type(X) == pd.DataFrame
+        assert 'ticker' in X.index.names
+        assert 'date' in X.index.names
+
+        assert X.shape[0] <= max_back_quarter * len(tickers)     
+        assert X.shape[1] == len(calc_series_stats([])) * \
+                             len(columns) * len(agg_day_counts)
+
+
+        for col in columns:
+            for count in agg_day_counts:
+                min_col = '_days{}_{}_min'.format(count, col)
+                max_col = '_days{}_{}_max'.format(count, col)
+                mean_col = '_days{}_{}_mean'.format(count, col)
+                median_col = '_days{}_{}_median'.format(count, col)
+                assert (X[max_col] >= X[min_col]).min()                
+                assert (X[max_col] >= X[mean_col]).min()                
+                assert (X[max_col] >= X[median_col]).min()                
+                assert (X[mean_col] >= X[min_col]).min()                
+                assert (X[median_col] >= X[min_col]).min()  
+
+
+    @pytest.mark.parametrize('data', datas) 
+    @pytest.mark.parametrize(
+        ["tickers", "columns", "agg_day_counts", "max_back_quarter"],
+        [(['AAPL', 'TSLA'], ['marketcap'], [100], 10), 
+         (['NVDA', 'TSLA'], ['marketcap'], [100, 200], 5), 
+         (['AAPL', 'NVDA', 'TSLA', 'WORK'], ['marketcap', 'pe'], [50, 200], 10), 
+         (['AAPL', 'ZLG'], ['marketcap', 'pe'], [50, 200], 5)]
+    )
+    def test_calculate_dayly_index(self, data, tickers, columns, 
+                       agg_day_counts, max_back_quarter):
+        # Instead of real commodities to avoid extra dataloaders
+        commodities_codes = ['AAPL', 'MSFT']
+        fc = DailyAggQuarterFeatures(daily_data_key='daily',
+                                     quarterly_data_key='quarterly',
+                                     columns=columns,
+                                     agg_day_counts=agg_day_counts,
+                                     max_back_quarter=max_back_quarter,
+                                     daily_index=commodities_codes)
+
+        X = fc.calculate(data, tickers)
+
+        assert type(X) == pd.DataFrame
+        assert 'ticker' in X.index.names
+        assert 'date' in X.index.names
+
+        assert X.shape[0] <= max_back_quarter * len(tickers)     
+        assert X.shape[1] == len(calc_series_stats([])) * \
+                             len(columns) * len(agg_day_counts) *\
+                             len(commodities_codes)
+
+        for code in commodities_codes:
+            for col in columns:
+                for count in agg_day_counts:
+                    min_col = '{}_days{}_{}_min'.format(code, count, col)
+                    max_col = '{}_days{}_{}_max'.format(code, count, col)
+                    mean_col = '{}_days{}_{}_mean'.format(code, count, col)
+                    median_col = '{}_days{}_{}_median'.format(code, count, col)
+                    assert (X[max_col] >= X[min_col]).min()                
+                    assert (X[max_col] >= X[mean_col]).min()                
+                    assert (X[max_col] >= X[median_col]).min()                
+                    assert (X[mean_col] >= X[min_col]).min()                
+                    assert (X[median_col] >= X[min_col]).min()  
 
 
 
 
 class TestFeatureMerger:
-    @pytest.mark.parametrize('data_loader', loaders) 
+    @pytest.mark.parametrize('data', datas) 
     @pytest.mark.parametrize(
         "tickers",
         [['AAPL', 'TSLA'], ['NVDA', 'TSLA'], 
         ['AAPL', 'NVDA', 'TSLA', 'WORK'], ['AAPL', 'ZLG']]
     )    
-    def test_calculate(self, data_loader, tickers):                            
-        fc1 = QuarterlyFeatures(columns=['ebit'],
+    def test_calculate(self, data, tickers):                            
+        fc1 = QuarterlyFeatures(data_key='quarterly',
+                                columns=['ebit'],
                                 quarter_counts=[2],
                                 max_back_quarter=10)
 
-        fc2 = QuarterlyDiffFeatures(columns=['ebit', 'debt'], 
+        fc2 = QuarterlyDiffFeatures(data_key='quarterly',
+                                    columns=['ebit', 'debt'], 
                                     compare_quarter_idxs=[1, 4],
                                     max_back_quarter=10)
 
-        fc3 = BaseCompanyFeatures(cat_columns=['sector', 'sicindustry'])
+        fc3 = BaseCompanyFeatures(data_key='base',
+                                  cat_columns=['sector', 'sicindustry'])
 
-        X1 = fc1.calculate(data_loader, tickers)
-        X2 = fc2.calculate(data_loader, tickers)
-        X3 = fc3.calculate(data_loader, tickers)
-        
+        X1 = fc1.calculate(data, tickers)
+        X2 = fc2.calculate(data, tickers)
+        X3 = fc3.calculate(data, tickers)
+
         fm1 = FeatureMerger(fc1, fc2, on=['ticker', 'date'])
-        Xm1 = fm1.calculate(data_loader, tickers)
+        Xm1 = fm1.calculate(data, tickers)
 
         fm2 = FeatureMerger(fc1, fc3, on='ticker')
-        Xm2 = fm2.calculate(data_loader, tickers)
+        Xm2 = fm2.calculate(data, tickers)
 
         assert Xm1.shape[0] == X1.shape[0]
         assert Xm2.shape[0] == X1.shape[0]
@@ -255,7 +346,7 @@ class TestFeatureMerger:
         assert Xm2.shape[1] == X1.shape[1] + X3.shape[1]
         assert (Xm1.index == X1.index).min()
         assert (Xm2.index == X1.index).min()
-        
+
         new_cols = Xm1.columns[:X1.shape[1]]
         old_cols = X1.columns
         for nc, oc in zip(new_cols, old_cols):
@@ -265,116 +356,6 @@ class TestFeatureMerger:
         old_cols = X1.columns
         for nc, oc in zip(new_cols, old_cols):
             assert (Xm2[nc] == X1[oc]).min()
-
-
-
-
-class TestDailyAggQuarterFeatures:
-    @pytest.mark.parametrize('data_loader', loaders) 
-    @pytest.mark.parametrize(
-        ["tickers", "columns", "agg_day_counts", "max_back_quarter"],
-        [(['AAPL', 'TSLA'], ['marketcap'], [100], 10), 
-         (['NVDA', 'TSLA'], ['marketcap'], [100, 200], 5), 
-         (['AAPL', 'NVDA', 'TSLA', 'WORK'], ['marketcap', 'pe'], [50, 200], 10), 
-         (['AAPL', 'ZLG'], ['marketcap', 'pe'], [50, 200], 5)]
-    )
-    def test_calculate(self, data_loader, tickers, columns, 
-                       agg_day_counts, max_back_quarter):
-        fc = DailyAggQuarterFeatures(columns=columns,
-                                     agg_day_counts=agg_day_counts,
-                                     max_back_quarter=max_back_quarter)
-                            
-        X = fc.calculate(data_loader, tickers)
-                
-        assert type(X) == pd.DataFrame
-        assert 'ticker' in X.index.names
-        assert 'date' in X.index.names
-       
-        assert X.shape[0] <= max_back_quarter * len(tickers)     
-        assert X.shape[1] == len(calc_series_stats([])) * \
-                             len(columns) * len(agg_day_counts)
-                                    
-
-        for col in columns:
-            for count in agg_day_counts:
-                min_col = 'days{}_{}_min'.format(count, col)
-                max_col = 'days{}_{}_max'.format(count, col)
-                mean_col = 'days{}_{}_mean'.format(count, col)
-                median_col = 'days{}_{}_median'.format(count, col)
-                assert (X[max_col] >= X[min_col]).min()                
-                assert (X[max_col] >= X[mean_col]).min()                
-                assert (X[max_col] >= X[median_col]).min()                
-                assert (X[mean_col] >= X[min_col]).min()                
-                assert (X[median_col] >= X[min_col]).min()  
-
-
-loaders = [GeneratedData()]
-if config['sf1_data_path'] is not None and \
-   config['commodities_data_path'] is not None:
-    dl1 = SF1Data(config['sf1_data_path'])
-    dl2 = QuandlCommoditiesData(config['commodities_data_path'])
-    data_loader = ComboData([dl1, dl2])
-    loaders.append(data_loader)
-    
-class TestCommoditiesAggQuarterFeatures:
-    @pytest.mark.parametrize('data_loader', loaders) 
-    @pytest.mark.parametrize(
-        ["tickers", "commodities", "agg_day_limits", "max_back_quarter"],
-        [(['AAPL', 'TSLA'], ['LBMA/GOLD'], [100], 10), 
-         (['NVDA', 'TSLA'], ['LBMA/GOLD'], [100, 200], 5), 
-         (['AAPL', 'NVDA', 'TSLA', 'WORK'], ['LBMA/GOLD', 'LBMA/SILVER'], [50, 200], 10), 
-         (['AAPL', 'ZLG'], ['LBMA/GOLD', 'LBMA/SILVER'], [50, 200], 5)]
-    )
-    def test_calculate(self, data_loader, tickers, commodities, 
-                       agg_day_limits, max_back_quarter):
-        fc = CommoditiesAggQuarterFeatures(commodities=commodities,
-                                     agg_day_limits=agg_day_limits,
-                                     max_back_quarter=max_back_quarter)
-                            
-        X = fc.calculate(data_loader, tickers)
-                
-        assert type(X) == pd.DataFrame
-        assert 'ticker' in X.index.names
-        assert 'date' in X.index.names
-       
-        assert X.shape[0] <= max_back_quarter * len(tickers)     
-        assert X.shape[1] == len(calc_series_stats([])) * \
-                             len(commodities) * len(agg_day_limits)
-                                    
-
-        for code in commodities:
-            for count in agg_day_limits:
-                min_col = 'day_limit{}_{}_min'.format(count, code)
-                max_col = 'day_limit{}_{}_max'.format(count, code)
-                mean_col = 'day_limit{}_{}_mean'.format(count, code)
-                median_col = 'day_limit{}_{}_median'.format(count, code)
-                assert (X[max_col] >= X[min_col]).min()                
-                assert (X[max_col] >= X[mean_col]).min()                
-                assert (X[max_col] >= X[median_col]).min()                
-                assert (X[mean_col] >= X[min_col]).min()                
-                assert (X[median_col] >= X[min_col]).min()  
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 

@@ -1,6 +1,5 @@
 import argparse
 from tqdm import tqdm
-from ml_investment.data import SF1Data
 from ml_investment.download import QuandlDownloader
 from ml_investment.utils import load_config, save_json
 

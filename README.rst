@@ -71,7 +71,7 @@ and model fitting. So you can just use it without knowing internal structure.
     from ml_investment.applications.fair_marketcap_yahoo import FairMarketcapYahoo
 
     fair_marketcap_yahoo = FairMarketcapYahoo()
-    fair_marketcap_yahoo.predict(['AAPL', 'FB', 'MSFT'])
+    fair_marketcap_yahoo.execute(['AAPL', 'FB', 'MSFT'])
 
 
 +-------------+-------------------------+------------------------+
@@ -103,8 +103,22 @@ You may download default datasets by
 >>> 1365it [03:32,  6.42it/s]
 >>> 1365it [01:49,  12.51it/s]
 
+**2. Create dict with dataloaders**
 
-**2. Define and fit pipeline**
+You may choose from default
+``ml_investment.data_loaders``
+or wrote your own. Each dataloader should have ``load(index)`` interface.
+
+.. code-block:: python
+
+    from ml_investment.data_loaders.yahoo import YahooQuarterlyData, YahooBaseData
+
+    data = {}
+    data['quarterly'] = YahooQuarterlyData(config['yahoo_data_path'])
+    data['base'] = YahooBaseData(config['yahoo_data_path'])
+
+
+**3. Define and fit pipeline**
 
 You may specify all steps of pipeline creation.
 Base pipeline consist of the folowing steps:
@@ -121,61 +135,56 @@ Base pipeline consist of the folowing steps:
   It also may incapsulate validateion and other stuff.
   You may use wrappers from
   ``ml_investment.models``
-- Choose dataset. It should have all needed for features and targets
-  data loading methods.
-  There some pre-defined datasets at
-  ``ml_investment.data``
-
 
 .. code-block:: python
 
     from ml_investment.utils import load_config, load_tickers
-    from ml_investment.data import YahooData
     from ml_investment.features import QuarterlyFeatures, BaseCompanyFeatures,\
                                        FeatureMerger
     from ml_investment.target import BaseInfoTarget
-    from ml_investment.pipeline import BasePipeline
+    from ml_investment.pipeline import Pipeline
 
     config = load_config()
     data_loader = YahooData(config['yahoo_data_path'])
 
-    fc1 = QuarterlyFeatures(columns=['quarterlyNetIncome',
+    fc1 = QuarterlyFeatures(data_key='quarterly',
+                            columns=['quarterlyNetIncome',
                                      'quarterlyFreeCashFlow',
                                      'quarterlyTotalAssets',
                                      'quarterlyNetDebt'],
                             quarter_counts=[2, 4, 10],
                             max_back_quarter=1)
 
-    fc2 = BaseCompanyFeatures(cat_columns=['sector'])
+    fc2 = BaseCompanyFeatures(data_key='base', cat_columns=['sector'])
 
     feature = FeatureMerger(fc1, fc2, on='ticker')
 
-    target = BaseInfoTarget(col='enterpriseValue')
+    target = BaseInfoTarget(data_key='base', col='enterpriseValue')
 
     base_model = LogExpModel(lgbm.sklearn.LGBMRegressor())
     model = GroupedOOFModel(base_model=base_model,
                             group_column='ticker',
                             fold_cnt=4)
 
-    pipeline = BasePipeline(feature=feature,
-                            target=target,
-                            model=model,
-                            metric=median_absolute_relative_error,
-                            out_name='my_super_model')
+    pipeline = Pipeline(data=data,
+                        feature=feature,
+                        target=target,
+                        model=model,
+                        out_name='my_super_model')
 
     tickers = load_tickers()['base_us_stocks']
-    pipeline.fit(data_loader, tickers)
+    pipeline.fit(tickers, metric=median_absolute_relative_error)
 
 >>> {'metric_my_super_model': 0.40599471294301914}
 
-**3. Inference your pipeline**
+**4. Inference your pipeline**
 
 Since ``ml_investment.models.GroupedOOFModel`` was used,
 there are no data leakage and you may use pipeline on the same company tickers.
 
 .. code-block:: python
 
-    pipeline.execute(data_loader, ['AAPL', 'FB', 'MSFT'])
+    pipeline.execute(['AAPL', 'FB', 'MSFT'])
 
 
 +-------------+-------------------------+------------------+

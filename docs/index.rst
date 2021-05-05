@@ -17,7 +17,7 @@ Welcome to ml_investment's documentation!
    targets
    models
    pipelines
-   data
+   data_loaders
    download_scripts
 
 Indices and tables
