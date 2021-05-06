@@ -77,7 +77,7 @@ class Pipeline:
     #     return pipeline
     #
 
-    def fit(self, index: List[str], metric):
+    def fit(self, index: List[str], metric=None):
         '''     
         Interface to fit pipeline model for tickers.
         Features and target will be based on data from data_loader
@@ -109,9 +109,10 @@ class Pipeline:
             X_ = X[leave_mask.values]
             self.core['model'][k].fit(X_, y_['y'])
             
-            pred = self.core['model'][k].predict(X_)
-            metric_name = 'metric_{}'.format(self.out_name[k])
-            metrics_result[metric_name] = metric[k](y_['y'].values, pred)
+            if metric[0] is not None:
+                pred = self.core['model'][k].predict(X_)
+                metric_name = 'metric_{}'.format(self.out_name[k])
+                metrics_result[metric_name] = metric[k](y_['y'].values, pred)
             
         return metrics_result
 
@@ -238,44 +239,43 @@ class MergePipeline:
         return result_df
             
             
-class QuarterlyLoadPipeline:
+class LoadingPipeline:
     '''
-    Wrapper for data_loader for loading quarterly data
-    in ``execute(data_loader, tickers:List[str]) -> pd.DataFrame``
+    Wrapper for data loaders for loading data
+    in ``execute(index) -> pd.DataFrame``
     interface
     '''
-    def __init__(self, columns:List[str]):
+    def __init__(self, data_loader, columns:List[str]):
         '''     
-        Parameters
-        ----------
-        columns:
-            column names for loading
-        '''
-        self.columns = columns
-       
-    def fit(self, data_loader, tickers:List[str]):
-        None
-
-    def execute(self, data_loader, tickers:List[str]):
-        '''     
-        Interface for executing pipeline(lading data) for
-        tickers using data_loader.
-        
         Parameters
         ----------
         data_loader:
-            class implements ``load_quarterly_data(tickers: List[str])``
-            -> pd.DataFrame`` interface
-            
-        tickers:
-            tickers of companies to load data for      
+            class implements ``load(index) -> pd.DataFrame`` interface
+        columns:
+            column names for loading
+        '''
+        self.data_loader = data_loader
+        self.columns = columns
+       
+    def fit(self, index):
+        None
+
+    def execute(self, index):
+        '''     
+        Interface for executing pipeline(lading data) for
+        tickers.
+        
+        Parameters
+        ----------
+        index:
+            inentification for loading data, i.e. list of tickers
                       
         Returns
         -------
         ``pd.DataFrame``
-            quarterly data
+            resulted data
         '''  
-        quarterly_data = data_loader.load_quarterly_data(tickers)
+        quarterly_data = self.data_loader.load(index)
         quarterly_df = quarterly_data[self.columns]
         return quarterly_df            
             

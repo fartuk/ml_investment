@@ -16,7 +16,7 @@ about companies traded on the stock exchange.
 =================
 Visit  
 `Read the Docs <https://ml-investment.readthedocs.io/en/latest/index.html>`__
-to know more about Ml_investmrnt library.
+to know more about Ml_investment library.
 
 
 .. include:: install.rst

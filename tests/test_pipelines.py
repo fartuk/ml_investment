@@ -7,7 +7,7 @@ import catboost as ctb
 from ml_investment.features import QuarterlyFeatures
 from ml_investment.targets import QuarterlyTarget
 from ml_investment.models import GroupedOOFModel
-from ml_investment.pipelines import Pipeline, MergePipeline
+from ml_investment.pipelines import Pipeline, MergePipeline, LoadingPipeline
 from ml_investment.metrics import mean_absolute_relative_error, median_absolute_relative_error
 from ml_investment.utils import load_config
 from ml_investment.data_loaders.sf1 import SF1QuarterlyData, SF1BaseData,\
@@ -190,74 +190,80 @@ class TestBasePipeline:
         
         np.testing.assert_array_equal(df['y_0'].values, df1['y_0'].values)
 
-#
-#
-#
-# class TestMergePipeline:       
-#     @pytest.mark.parametrize('data_loader', loaders)
-#     def test_fit_execute_simple(self, data_loader):
-#         columns = ['revenue', 'netinc', 'ncf', 'ebitda', 'debt', 'fcf']
-#         f1 = QuarterlyFeatures(columns=columns,
-#                                quarter_counts=[2, 10],
-#                                max_back_quarter=1)
-#
-#         target1 = QuarterlyTarget(col='marketcap', quarter_shift=0)
-#         target2 = QuarterlyTarget(col='marketcap', quarter_shift=-1)
-#
-#         model = lgbm.sklearn.LGBMRegressor()
-#     
-#         pipeline1 = BasePipeline(feature=f1, 
-#                                 target=target1,
-#                                 model=model, 
-#                                 metric=median_absolute_relative_error,
-#                                 out_name='p1')
-#
-#         pipeline2 = BasePipeline(feature=f1, 
-#                                 target=target2,
-#                                 model=model, 
-#                                 metric=median_absolute_relative_error,
-#                                 out_name='p2')        
-#
-#         pipeline3 = QuarterlyLoadPipeline(['ticker', 'date', 'marketcap'])
-#
-#         merge1 = MergePipeline(
-#             pipeline_list=[pipeline1, pipeline2, pipeline3],
-#             execute_merge_on=['ticker', 'date'])
-#
-#         merge1.fit(data_loader, tickers)
-#         df_m1 = merge1.execute(data_loader, tickers)
-#
-#
-#         pipeline1.fit(data_loader, tickers)
-#         pipeline2.fit(data_loader, tickers)
-#         
-#         merge2 = MergePipeline(
-#             pipeline_list=[pipeline1, pipeline2, pipeline3],
-#             execute_merge_on=['ticker', 'date'])
-#         
-#         df1 = pipeline1.execute(data_loader, tickers)
-#         df2 = pipeline2.execute(data_loader, tickers)
-#         df3 = pipeline3.execute(data_loader, tickers)
-#                
-#
-#         df_m2 = merge1.execute(data_loader, tickers)
-#
-#         assert type(df_m1) == pd.DataFrame
-#         assert type(df_m2) == pd.DataFrame
-#         assert len(df_m1) == len(df1)
-#         assert len(df_m2) == len(df1)
-#         np.testing.assert_array_equal(df_m1.columns, 
-#                                       ['ticker', 'date', 'p1', 'p2', 'marketcap'])
-#
-#         np.testing.assert_array_equal(df_m2.columns, 
-#                                       ['ticker', 'date', 'p1', 'p2', 'marketcap'])
-#
-#         np.testing.assert_array_equal(df1['p1'], df_m1['p1'])        
-#         np.testing.assert_array_equal(df2['p2'], df_m1['p2'])        
-#         
-#         np.testing.assert_array_equal(df_m1['p1'], df_m2['p1'])        
-#         np.testing.assert_array_equal(df_m1['p2'], df_m2['p2'])        
-#         
+
+
+
+class TestMergePipeline:       
+    @pytest.mark.parametrize('data', datas)
+    def test_fit_execute_simple(self, data):
+        columns = ['revenue', 'netinc', 'ncf', 'ebitda', 'debt', 'fcf']
+        f1 = QuarterlyFeatures(data_key='quarterly',
+                               columns=columns,
+                               quarter_counts=[2, 10],
+                               max_back_quarter=1)
+
+        target1 = QuarterlyTarget(data_key='quarterly',
+                                  col='marketcap',
+                                  quarter_shift=0)
+
+        target2 = QuarterlyTarget(data_key='quarterly',
+                                  col='marketcap',
+                                  quarter_shift=-1)
+
+        model = lgbm.sklearn.LGBMRegressor()
+
+        pipeline1 = Pipeline(data=data,
+                             feature=f1, 
+                             target=target1,
+                             model=model, 
+                             out_name='p1')
+
+        pipeline2 = Pipeline(data=data,
+                             feature=f1, 
+                             target=target2,
+                             model=model, 
+                             out_name='p2')        
+
+        pipeline3 = LoadingPipeline(data['quarterly'], ['ticker', 'date', 'marketcap'])
+
+        merge1 = MergePipeline(
+            pipeline_list=[pipeline1, pipeline2, pipeline3],
+            execute_merge_on=['ticker', 'date'])
+
+        merge1.fit(tickers)
+        df_m1 = merge1.execute(tickers)
+
+
+        pipeline1.fit(tickers)
+        pipeline2.fit(tickers)
+
+        merge2 = MergePipeline(
+            pipeline_list=[pipeline1, pipeline2, pipeline3],
+            execute_merge_on=['ticker', 'date'])
+
+        df1 = pipeline1.execute(tickers)
+        df2 = pipeline2.execute(tickers)
+        df3 = pipeline3.execute(tickers)
+
+
+        df_m2 = merge1.execute(tickers)
+
+        assert type(df_m1) == pd.DataFrame
+        assert type(df_m2) == pd.DataFrame
+        assert len(df_m1) == len(df1)
+        assert len(df_m2) == len(df1)
+        np.testing.assert_array_equal(df_m1.columns, 
+                                      ['ticker', 'date', 'p1', 'p2', 'marketcap'])
+
+        np.testing.assert_array_equal(df_m2.columns, 
+                                      ['ticker', 'date', 'p1', 'p2', 'marketcap'])
+
+        np.testing.assert_array_equal(df1['p1'], df_m1['p1'])        
+        np.testing.assert_array_equal(df2['p2'], df_m1['p2'])        
+
+        np.testing.assert_array_equal(df_m1['p1'], df_m2['p1'])        
+        np.testing.assert_array_equal(df_m1['p2'], df_m2['p2'])        
+
         
         
         
