@@ -98,7 +98,12 @@ You may download default datasets by
 .. code-block:: python
 
     from ml_investment.download_scripts import download_yahoo
-    download_yahoo.main()
+    from ml_investment.utils import load_config
+
+    # Config located at ~/.ml_investment/config.json
+    config = load_config()
+
+    download_yahoo.main(config['yahoo_data_path'])
 
 >>> 1365it [03:32,  6.42it/s]
 >>> 1365it [01:49,  12.51it/s]
@@ -112,8 +117,6 @@ or wrote your own. Each dataloader should have ``load(index)`` interface.
 .. code-block:: python
 
     from ml_investment.data_loaders.yahoo import YahooQuarterlyData, YahooBaseData
-    # Config located at ~/.ml_investment/config.json
-    config = load_config()
 
     data = {}
     data['quarterly'] = YahooQuarterlyData(config['yahoo_data_path'])
