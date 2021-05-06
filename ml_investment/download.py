@@ -15,10 +15,7 @@ from .utils import load_config, load_secrets, load_json, save_json
 
 class QuandlDownloader:
     def __init__(self, retry_cnt=10, sleep_time=1.4):
-        self.config = load_config()
         self.secrets = load_secrets()
-        if self.secrets['quandl_api_key'] is None:
-            raise Exception('Paste quandl_api_key at ~/.ml_investment/secrets.json')
         self.retry_cnt = retry_cnt
         self.sleep_time = sleep_time
         self._save_dirpath = None
@@ -26,9 +23,9 @@ class QuandlDownloader:
                 
 
     def _form_quandl_url(self, route):
-        url = "{}/{}&api_key={}".format(
-                self.config['quandl_api_url'],
-                route, self.secrets['quandl_api_key'])
+        url = "https://www.quandl.com/api/v3/{}&api_key={}".format(
+                route, 
+                self.secrets['quandl_api_key'])
                 
         return url 
 
@@ -129,7 +126,6 @@ class YahooDownloader:
         'quarterlyCashDividendsPaid',
     ]   
     def __init__(self):
-        self.config = load_config()
         self.secrets = load_secrets()
         
     def _parse_quarterly_json(self, json_data):
@@ -187,7 +183,7 @@ class YahooDownloader:
                 quarterly_df['date'] = quarterly_df['date'].astype(np.datetime64)
                 quarterly_df = quarterly_df.sort_values('date', ascending=False)
                 
-                filepath = '{}/quarterly/{}.csv'.format(self.config['yahoo_data_path'], ticker)
+                filepath = '{}/quarterly/{}.csv'.format(self._data_path, ticker)
                 quarterly_df.to_csv(filepath, index=False)
 
                 time.sleep(np.random.uniform(0, 1))
@@ -212,22 +208,24 @@ class YahooDownloader:
                 b2 = self._parse_base_json(json_data['defaultKeyStatistics'])
                 base_data.update(b1)
                 base_data.update(b2)   
-                filepath = '{}/base/{}.json'.format(self.config['yahoo_data_path'], ticker)
+                filepath = '{}/base/{}.json'.format(self._data_path, ticker)
                 save_json(filepath, base_data)            
                 
                 time.sleep(np.random.uniform(0, 1))
             except:
                 time.sleep(0.5)
 
-    def download_quarterly_data(self, tickers, type_list=DEFAULT_TYPE_LIST, n_jobs=4):
+    def download_quarterly_data(self, data_path, tickers, type_list=DEFAULT_TYPE_LIST, n_jobs=4):
+        self._data_path = data_path
         self.type_list = type_list
-        os.makedirs('{}/quarterly'.format(self.config['yahoo_data_path']), exist_ok=True)
+        os.makedirs('{}/quarterly'.format(data_path), exist_ok=True)
         p = Pool(n_jobs)
         for _ in tqdm(p.imap(self._download_quarterly_data_single, tickers)):
             None        
         
-    def download_base_data(self, tickers, n_jobs=4):
-        os.makedirs('{}/base'.format(self.config['yahoo_data_path']), exist_ok=True)
+    def download_base_data(self, data_path, tickers, n_jobs=4):
+        self._data_path = data_path
+        os.makedirs('{}/base'.format(data_path), exist_ok=True)
         p = Pool(n_jobs)
         for _ in tqdm(p.imap(self._download_base_data_single, tickers)):
             None        

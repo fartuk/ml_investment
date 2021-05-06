@@ -8,27 +8,39 @@ from ml_investment.download import TinkoffDownloader
 from ml_investment.utils import load_config, load_tickers
 
 
-
+# Due to tqdm not work with multiple marameters in Pool
+global _data_path
+_data_path = None
 
 def _single_ticker_download(ticker):
-    config = load_config()
+    global _data_path
     try:
         df = web.DataReader(ticker, "yahoo", np.datetime64('2017-01-01'), np.datetime64('now'))
-        df.to_csv('{}/{}.csv'.format(config['daily_bars_data_path'], ticker))          
+        df.to_csv('{}/{}.csv'.format(_data_path, ticker))          
     except:
         print(ticker)
 
 
-def main():
+def main(data_path: str=None):
     '''
     Download daily price bars for base US stocks and indexes. 
-    Downloading path ``daily_bars_data_path`` may be 
-    configured at `~/.ml_investment/config.json`
+
+    Parameters
+    ----------
+    data_path:
+        path to folder in which downloaded data will be stored.
+        OR ``None`` (downloading path will be as ``daily_bars_data_path`` from 
+        `~/.ml_investment/config.json`
     '''
-    config = load_config()
+    if data_path is None:
+        config = load_config()
+        data_path = config['daily_bars_data_path']
+
+    global _data_path
+    _data_path = data_path
     tickers = load_tickers()['base_us_stocks']
     index_tickers = ['SPY', 'TLT', 'QQQ']
-    os.makedirs(config['daily_bars_data_path'], exist_ok=True)
+    os.makedirs(data_path, exist_ok=True)
     
     p = Pool(6)
     for _ in tqdm(p.imap(_single_ticker_download,
@@ -39,6 +51,10 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    parser = argparse.ArgumentParser()
+    arg = parser.add_argument
+    arg('--data_path', type=str)
+    args = parser.parse_args()
+    main(args.data_path)
 
 

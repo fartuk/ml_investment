@@ -22,7 +22,6 @@ if not os.path.exists(_config_path):
         "daily_bars_data_path":os.path.join(_ml_investments_dir, 'data', 'daily_bars'),
         "models_path":os.path.join(_ml_investments_dir, 'models'),
         "out_path":os.path.join(_ml_investments_dir, 'data', 'out'),
-        "quandl_api_url":"https://www.quandl.com/api/v3"
     }
 
     try:

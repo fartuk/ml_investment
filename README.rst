@@ -112,6 +112,8 @@ or wrote your own. Each dataloader should have ``load(index)`` interface.
 .. code-block:: python
 
     from ml_investment.data_loaders.yahoo import YahooQuarterlyData, YahooBaseData
+    # Config located at ~/.ml_investment/config.json
+    config = load_config()
 
     data = {}
     data['quarterly'] = YahooQuarterlyData(config['yahoo_data_path'])
@@ -144,8 +146,6 @@ Base pipeline consist of the folowing steps:
                                        FeatureMerger
     from ml_investment.target import BaseInfoTarget
     from ml_investment.pipeline import Pipeline
-
-    config = load_config()
 
     fc1 = QuarterlyFeatures(data_key='quarterly',
                             columns=['quarterlyNetIncome',

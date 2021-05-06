@@ -34,24 +34,37 @@ quandl_commodities_codes = ['LBMA/GOLD',
                             'ODA/PCOTTIND_USD'
                            ]
 
-def main():
+def main(data_path: str=None):
     '''
     Download commodities price history from 
     https://blog.quandl.com/api-for-commodity-data
-    Downloading path ``commodities_data_path`` may be configured at `~/.ml_investment/config.json`
 
     Note:
         To download this dataset you need to register at quandl 
         and paste token to `~/.ml_investment/secrets.json`
+
+    Parameters
+    ----------
+    data_path:
+        path to folder in which downloaded data will be stored.
+        OR ``None`` (downloading path will be as ``commodities_data_path`` from 
+        `~/.ml_investment/config.json`
     '''
-    config = load_config()
+    if data_path is None:
+        config = load_config()
+        data_path = config['commodities_data_path']
+
     downloader = QuandlDownloader(sleep_time=0.8)
     for code in tqdm(quandl_commodities_codes):
         downloader.single_download('datasets/{}'.format(code),
-                                   '{}/{}.json'.format(config['commodities_data_path'],
+                                   '{}/{}.json'.format(data_path,
                                                   code.replace('/', '_')))
  
 
 if __name__ == '__main__':
-    main()
+    parser = argparse.ArgumentParser()
+    arg = parser.add_argument
+    arg('--data_path', type=str)
+    args = parser.parse_args()
+    main(args.data_path)
    
