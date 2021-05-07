@@ -3,10 +3,9 @@ import numpy as np
 import pandas as pd
 
 from multiprocessing import Pool, cpu_count
-from sklearn.preprocessing import LabelEncoder
 from tqdm import tqdm
 from typing import Union, List, Dict
-
+from .utils import int_hash_of_str
 
 def calc_series_stats(series: Union[List[float], np.array],
                       name_prefix: str='',
@@ -284,11 +283,17 @@ class QuarterlyDiffFeatures:
 
 
 
+class HashingEncoder:
+    def transform(self, vals):
+        result = [int_hash_of_str(str(x)) for x in vals]
+        return result
+        
+
 class BaseCompanyFeatures:
     '''
     Feature calculator for getting base
     company information(sector, industry etc). 
-    Encode categorical columns via label encoding. 
+    Encode categorical columns via hashing label encoding. 
     Return features for current company state.
     '''
     def __init__(self, data_key:str, cat_columns:List[str]):
@@ -303,7 +308,7 @@ class BaseCompanyFeatures:
         '''
         self.data_key = data_key
         self.cat_columns = cat_columns
-        self.col_to_encoder = {}
+        self.he = HashingEncoder()
 
     def calculate(self, data: Dict, index: List[str]) -> pd.DataFrame:
         '''     
@@ -327,15 +332,9 @@ class BaseCompanyFeatures:
             Each row contains features for ``ticker`` company
         '''
         base_df = data[self.data_key].load(index)
-        is_fitted = True if len(self.col_to_encoder) > 0 else False
         for col in self.cat_columns:
             base_df[col] = base_df[col].fillna('None')
-            if is_fitted:
-                base_df[col] = self.col_to_encoder[col].transform(base_df[col])                    
-            else:      
-                le = LabelEncoder()      
-                base_df[col] = le.fit_transform(base_df[col])        
-                self.col_to_encoder[col] = le
+            base_df[col] = self.he.transform(base_df[col])        
           
            
         result = pd.DataFrame()

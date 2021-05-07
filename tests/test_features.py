@@ -206,13 +206,12 @@ class TestBaseCompanyFeatures:
         assert type(X) == pd.DataFrame
         assert 'ticker' in X.index.names
         base_data = data['base'].load(tickers)
+        base_data = base_data[base_data['ticker'].apply(lambda x: x in tickers)]
         for col in cat_columns:
             assert len(base_data[col].unique()) ==\
-                   len(fc.col_to_encoder[col].classes_)
+                   len(X[col].unique())
 
         # Reuse fitted after first calculate fc
-        for col in cat_columns:
-            assert col in fc.col_to_encoder
         new_X = fc.calculate(data, tickers)
         for col in cat_columns:
             assert (new_X[col] == X[col]).min()
