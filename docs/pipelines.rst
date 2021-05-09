@@ -19,9 +19,9 @@ MergePipeline
     :undoc-members:
     :show-inheritance:
 
-QuarterlyLoadPipeline
+LoadingPipeline
 ~~~~~~~~~~~~~~~~~~~~~
-.. autoclass:: ml_investment.pipelines.QuarterlyLoadPipeline
+.. autoclass:: ml_investment.pipelines.LoadingPipeline
     :members:
     :undoc-members:
     :show-inheritance:

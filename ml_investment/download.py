@@ -161,74 +161,77 @@ class YahooDownloader:
 
 
     def _download_quarterly_data_single(self, ticker):
-        for _ in range(10):
-            try:
-                base_url = 'https://query1.finance.yahoo.com/ws/fundamentals-timeseries/v1/finance/timeseries'
-                base_url += '/{ticker}?lang=en-US&region=US&symbol=AAPL&padTimeSeries=false&type={type_str}'
-                base_url += '&merge=false&period1=493590046&period2={period2}&corsDomain=finance.yahoo.com'
-                url = base_url.format(ticker=ticker, 
-                                      type_str=','.join(self.type_list),
-                                      period2=int(time.time()))
-                
-                r = requests.get(url)
-                if r.status_code != 200:
-                    print(r.status_code, ticker)
-                    return
-                json_data = r.json()
-                
-                quarterly_df = self._parse_quarterly_json(json_data)
-                if quarterly_df is None:
-                    print('Empty', ticker)
-                    return
-                quarterly_df['date'] = quarterly_df['date'].astype(np.datetime64)
-                quarterly_df = quarterly_df.sort_values('date', ascending=False)
-                
-                filepath = '{}/quarterly/{}.csv'.format(self._data_path, ticker)
-                quarterly_df.to_csv(filepath, index=False)
+        try:
+            base_url = 'https://query{query_id}.finance.yahoo.com/ws/fundamentals-timeseries/v1/finance/timeseries'
+            base_url += '/{ticker}?lang=en-US&region=US&padTimeSeries=false&type={type_str}'
+            base_url += '&merge=false&period1=493590046&period2={period2}&corsDomain=finance.yahoo.com'
+            url = base_url.format(query_id=2,
+                                  ticker=ticker, 
+                                  type_str=','.join(self.type_list),
+                                  period2=int(time.time()))
+            
+            r = requests.get(url)
+            if r.status_code != 200:
+                print(r.status_code, ticker)
+                return
+            json_data = r.json()
+            
+            quarterly_df = self._parse_quarterly_json(json_data)
+            if quarterly_df is None:
+                print('Empty', ticker)
+                return
+            quarterly_df['date'] = quarterly_df['date'].astype(np.datetime64)
+            quarterly_df = quarterly_df.sort_values('date', ascending=False)
+            
+            filepath = '{}/quarterly/{}.csv'.format(self._data_path, ticker)
+            quarterly_df.to_csv(filepath, index=False)
 
-                time.sleep(np.random.uniform(0, 1))
+            time.sleep(np.random.uniform(0.3, 2))
 
-            except:
-                time.sleep(0.5)
+        except:
+            print('AAAA')
+            time.sleep(np.random.uniform(0.1, 1))
 
     
     def _download_base_data_single(self, ticker):
-        for _ in range(10):
-            try:
-                url = 'https://query2.finance.yahoo.com/v10/finance/quoteSummary/{ticker}'
-                url += '?modules=summaryProfile,defaultKeyStatistics'
+        try:
+            url = 'https://query{query_id}.finance.yahoo.com/v10/finance/quoteSummary/{ticker}'
+            url += '?modules=summaryProfile,defaultKeyStatistics&corsDomain=finance.yahoo.com'
 
-                r = requests.get(url.format(ticker=ticker))
-                if r.status_code != 200:
-                    return
-                json_data = r.json()['quoteSummary']['result'][0]
+            r = requests.get(url.format(query_id=2,
+                                        ticker=ticker))
+            if r.status_code != 200:
+                print(r.status_code, ticker)
+                return
+            json_data = r.json()['quoteSummary']['result'][0]
 
-                base_data = {}
-                b1 = self._parse_base_json(json_data['summaryProfile'])
-                b2 = self._parse_base_json(json_data['defaultKeyStatistics'])
-                base_data.update(b1)
-                base_data.update(b2)   
-                filepath = '{}/base/{}.json'.format(self._data_path, ticker)
-                save_json(filepath, base_data)            
-                
-                time.sleep(np.random.uniform(0, 1))
-            except:
-                time.sleep(0.5)
+            base_data = {}
+            b1 = self._parse_base_json(json_data['summaryProfile'])
+            b2 = self._parse_base_json(json_data['defaultKeyStatistics'])
+            base_data.update(b1)
+            base_data.update(b2)   
+            filepath = '{}/base/{}.json'.format(self._data_path, ticker)
+            save_json(filepath, base_data)            
+            
+            time.sleep(np.random.uniform(0.3, 2))
+        except:
+            time.sleep(np.random.uniform(0.1, 1))
 
-    def download_quarterly_data(self, data_path, tickers, type_list=DEFAULT_TYPE_LIST, n_jobs=4):
+
+    def download_quarterly_data(self, data_path, tickers, type_list=DEFAULT_TYPE_LIST, n_jobs=2):
         self._data_path = data_path
         self.type_list = type_list
         os.makedirs('{}/quarterly'.format(data_path), exist_ok=True)
-        p = Pool(n_jobs)
-        for _ in tqdm(p.imap(self._download_quarterly_data_single, tickers)):
-            None        
+        with Pool(n_jobs) as p:
+            for _ in tqdm(p.imap(self._download_quarterly_data_single, tickers)):
+                None        
         
-    def download_base_data(self, data_path, tickers, n_jobs=4):
+    def download_base_data(self, data_path, tickers, n_jobs=2):
         self._data_path = data_path
         os.makedirs('{}/base'.format(data_path), exist_ok=True)
-        p = Pool(n_jobs)
-        for _ in tqdm(p.imap(self._download_base_data_single, tickers)):
-            None        
+        with Pool(n_jobs) as p:
+            for _ in tqdm(p.imap(self._download_base_data_single, tickers)):
+                None        
         
 
             

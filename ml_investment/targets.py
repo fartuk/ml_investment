@@ -97,10 +97,10 @@ class QuarterlyTarget:
                   x.tolist()).reset_index()
         params = [(ticker, dates) for ticker, dates in grouped.values]
 
-        p = Pool(self.n_jobs)
-        result = []
-        for ticker_result in tqdm(p.imap(self._single_ticker_target, params)):
-            result.append(ticker_result)
+        with Pool(self.n_jobs) as p:
+            result = []
+            for ticker_result in tqdm(p.imap(self._single_ticker_target, params)):
+                result.append(ticker_result)
 
         result = pd.concat(result, axis=0)
         result = result.drop_duplicates(['ticker', 'date'])
@@ -337,10 +337,10 @@ class DailyAggTarget:
                   x.tolist()).reset_index()
         params = [(ticker, dates) for ticker, dates in grouped.values]
 
-        p = Pool(self.n_jobs)
-        result = []
-        for ticker_result in tqdm(p.imap(self._single_ticker_target, params)):
-            result.append(ticker_result)
+        with Pool(self.n_jobs) as p:
+            result = []
+            for ticker_result in tqdm(p.imap(self._single_ticker_target, params)):
+                result.append(ticker_result)
 
         result = pd.concat(result, axis=0)
         result = result.drop_duplicates(['ticker', 'date'])

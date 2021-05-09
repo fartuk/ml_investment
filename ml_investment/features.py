@@ -155,10 +155,10 @@ class QuarterlyFeatures:
             at ``date`` quarter
         '''
         self._data_loader = data[self.data_key]
-        p = Pool(self.n_jobs)
-        X = []
-        for ticker_feats_arr in tqdm(p.imap(self._single_ticker, index)):
-            X.extend(ticker_feats_arr)
+        with Pool(self.n_jobs) as p:
+            X = []
+            for ticker_feats_arr in tqdm(p.imap(self._single_ticker, index)):
+                X.extend(ticker_feats_arr)
 
         X = pd.DataFrame(X).set_index(['ticker', 'date'])
         
@@ -272,10 +272,10 @@ class QuarterlyDiffFeatures:
             at ``date`` quarter
         '''
         self._data_loader = data[self.data_key]
-        p = Pool(self.n_jobs)
-        X = []
-        for ticker_feats_arr in tqdm(p.imap(self._single_ticker, index)):
-            X.extend(ticker_feats_arr)
+        with Pool(self.n_jobs) as p:
+            X = []
+            for ticker_feats_arr in tqdm(p.imap(self._single_ticker, index)):
+                X.extend(ticker_feats_arr)
 
         X = pd.DataFrame(X).set_index(['ticker', 'date'])
         
@@ -484,10 +484,10 @@ class DailyAggQuarterFeatures:
             for idx in self.daily_index:    
                 self.daily_data[idx] = self._daily_data_loader.load([idx])     
 
-        p = Pool(self.n_jobs)
-        X = []
-        for ticker_feats_arr in tqdm(p.imap(self._single_ticker, index)):
-            X.extend(ticker_feats_arr)
+        with Pool(self.n_jobs) as p:
+            X = []
+            for ticker_feats_arr in tqdm(p.imap(self._single_ticker, index)):
+                X.extend(ticker_feats_arr)
 
         X = pd.DataFrame(X).set_index(['ticker', 'date'])
 

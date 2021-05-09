@@ -8,7 +8,7 @@ from ml_investment.download import TinkoffDownloader
 from ml_investment.utils import load_config, load_tickers
 
 
-# Due to tqdm not work with multiple marameters in Pool
+# Due to tqdm not work with multiple parameters in Pool
 global _data_path
 _data_path = None
 

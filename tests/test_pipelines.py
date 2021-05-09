@@ -247,6 +247,7 @@ class TestMergePipeline:
 
 
         df_m2 = merge1.execute(tickers)
+        df_m3 = merge1.execute(tickers, 2)
 
         assert type(df_m1) == pd.DataFrame
         assert type(df_m2) == pd.DataFrame
@@ -258,12 +259,17 @@ class TestMergePipeline:
         np.testing.assert_array_equal(df_m2.columns, 
                                       ['ticker', 'date', 'p1', 'p2', 'marketcap'])
 
+        np.testing.assert_array_equal(df_m3.columns, 
+                                      ['ticker', 'date', 'p1', 'p2', 'marketcap'])
+
         np.testing.assert_array_equal(df1['p1'], df_m1['p1'])        
         np.testing.assert_array_equal(df2['p2'], df_m1['p2'])        
 
         np.testing.assert_array_equal(df_m1['p1'], df_m2['p1'])        
         np.testing.assert_array_equal(df_m1['p2'], df_m2['p2'])        
 
+        np.testing.assert_array_equal(df_m2['p1'], df_m3['p1'])        
+        np.testing.assert_array_equal(df_m2['p2'], df_m3['p2'])        
         
         
         

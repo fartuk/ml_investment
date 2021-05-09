@@ -10,6 +10,8 @@ from functools import reduce
 from typing import List, Dict
 from .utils import copy_repeat, check_create_folder
 
+import gc
+
 
 class Pipeline:
     '''
@@ -176,7 +178,6 @@ class Pipeline:
 
 
 
-
 class MergePipeline:
     '''
     Class combining list of pipelines to single pipilene.
@@ -213,7 +214,18 @@ class MergePipeline:
             pipeline.fit(index)
 
 
-    def execute(self, index) -> pd.DataFrame:
+    def _single_batch(self, batch):
+        dfs = []
+        for pipeline in self.pipeline_list:
+            dfs.append(pipeline.execute(batch))
+            
+        batch_result = reduce(lambda l, r: pd.merge(
+            l, r, on=self.execute_merge_on, how='left'), dfs)
+
+        return batch_result
+
+
+    def execute(self, index, batch_size=None) -> pd.DataFrame:
         '''     
         Interface for executing pipeline for tickers.
         Features will be based on data from data_loader
@@ -222,21 +234,27 @@ class MergePipeline:
         ----------
         index:
             identifiers for executing pipelines. I.e. list of companies tickers 
+        batch_size:
+            size of batch for execute separation(may be usefull
+            for lower memory usage).
+            OR ``None`` (for full-size executing)
 
         Returns
         -------
         ``pd.DataFrame``
             combined pipelines execute result
-        '''   
-        dfs = []
-        for pipeline in self.pipeline_list:
-            curr_df = pipeline.execute(index)
-            dfs.append(curr_df)
-            
-        result_df = reduce(lambda l, r: pd.merge(
-            l, r, on=self.execute_merge_on, how='left'), dfs)
+        '''
+        if batch_size is None:
+            batch_size = len(index)
+        batches = [index[k:k+batch_size] 
+                    for k in range(0, len(index), batch_size)]
+        result = []
+        for batch in batches:
+            result.append(self._single_batch(batch))
+           
+        result = pd.concat(result, axis=0)
 
-        return result_df
+        return result
             
             
 class LoadingPipeline:
