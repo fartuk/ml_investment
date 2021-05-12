@@ -42,7 +42,7 @@ def main(data_path: str=None):
     index_tickers = ['SPY', 'TLT', 'QQQ']
     os.makedirs(data_path, exist_ok=True)
     
-    p = Pool(6)
+    p = Pool(8)
     for _ in tqdm(p.imap(_single_ticker_download,
                          tickers + index_tickers)):
         None

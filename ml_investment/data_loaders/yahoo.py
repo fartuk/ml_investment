@@ -77,7 +77,9 @@ class YahooQuarterlyData:
             return None
         
         result['date'] = result['date'].astype(np.datetime64)  
-        
+        result = result.drop_duplicates(['ticker', 'date'])
+        result.index = range(len(result))
+
         return result
 
 

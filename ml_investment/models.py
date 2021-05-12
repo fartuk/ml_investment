@@ -235,7 +235,7 @@ class TimeSeriesOOFModel:
             self.base_models.append(deepcopy(base_model))
                     
         self.time_bounds = None
-        
+        self.is_fitted_fold = np.zeros(self.fold_cnt)
    
     def _create_time_bounds(self, times: List[np.datetime64]):
         max_time = max(times)
@@ -264,8 +264,10 @@ class TimeSeriesOOFModel:
         self._create_time_bounds(times)
         for fold_id in range(self.fold_cnt):
             curr_mask = times <= self.time_bounds[fold_id]
-            self.base_models[fold_id].fit(X[curr_mask], y[curr_mask])
-        
+            # check if there are enough samples
+            if curr_mask.sum() > 5:
+                self.base_models[fold_id].fit(X[curr_mask], y[curr_mask])
+                self.is_fitted_fold[fold_id] = 1
           
     def predict(self, X: pd.DataFrame) -> np.array:
         '''     
@@ -289,11 +291,19 @@ class TimeSeriesOOFModel:
             X_curr = X[curr_mask]
             if len(X_curr) == 0:
                 continue
+
+            if not self.is_fitted_fold[fold_id]:
+                curr_pred_df = pd.DataFrame()
+                curr_pred_df['pred'] = [np.nan] * len(X_curr)
+                curr_pred_df.index = X_curr.index
+                pred_df.append(curr_pred_df)
+                continue
+
             try:   
                 pred = self.base_models[fold_id].predict_proba(X_curr)[:, 1]         
             except:
                 pred = self.base_models[fold_id].predict(X_curr)
-                                 
+
             curr_pred_df = pd.DataFrame()
             curr_pred_df['pred'] = pred
             curr_pred_df.index = X_curr.index

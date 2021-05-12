@@ -8,6 +8,25 @@ from ml_investment.download import YahooDownloader
 from ml_investment.utils import load_config, load_tickers, save_json
 
 
+import yfinance as yf
+# Due to tqdm not work with multiple parameters in Pool
+global _data_path
+_data_path = None
+
+def _single_ticker_download(ticker):
+    try:
+        ticker_data = yf.Ticker(ticker)
+        quarterly_df = ticker_data.quarterly_financials.T
+        quarterly_df['date'] = quarterly_df.index
+        quarterly_df.to_csv('{}/quarterly/{}.csv'.format(_data_path, ticker))
+
+        save_json('{}/base/{}.json'.format(_data_path, ticker),
+                  ticker_data.info)
+
+        time.sleep(np.random.uniform(0.1, 0.5))
+    except:
+        None
+
 
 def main(data_path:str=None):
     '''
@@ -24,12 +43,15 @@ def main(data_path:str=None):
         config = load_config()
         data_path = config['yahoo_data_path']
 
+    global _data_path
+    _data_path = data_path
     tickers = load_tickers()['base_us_stocks']
-    downloader = YahooDownloader()
-    print('Downloading quarterly Yahoo data. Total number of iterations: {}'.format(len(tickers)))
-    downloader.download_quarterly_data(data_path, tickers)
-    print('Downloading base Yahoo data. Total number of iterations: {}'.format(len(tickers)))
-    downloader.download_base_data(data_path, tickers)
+    os.makedirs('{}/quarterly'.format(data_path), exist_ok=True)
+    os.makedirs('{}/base'.format(data_path), exist_ok=True)
+
+    p = Pool(12)
+    for _ in tqdm(p.imap(_single_ticker_download, tickers)):
+        None
 
 
 

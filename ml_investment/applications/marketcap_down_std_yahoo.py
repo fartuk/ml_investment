@@ -30,16 +30,17 @@ QUARTER_COUNTS = [1, 2, 4]
 COMPARE_QUARTER_IDXS = [1, 4]
 CAT_COLUMNS = ["sector"]
 QUARTER_COLUMNS = [
-    'quarterlyTotalRevenue',
-    'quarterlyNetIncome',
-    'quarterlyFreeCashFlow',
-    'quarterlyTotalAssets',
-    'quarterlyNetDebt',
-    'quarterlyGrossProfit',
-    'quarterlyWorkingCapital',
-    'quarterlyCashAndCashEquivalents',
-    'quarterlyResearchAndDevelopment',
-    'quarterlyCashDividendsPaid',
+    'totalRevenue',
+    'netIncome',
+    'cash',
+    'totalAssets',
+    'costOfRevenue',
+    'grossProfit',
+    'researchDevelopment',
+    'totalOperatingExpenses',
+    'ebit',
+    'totalLiab',
+    'discontinuedOperations',
 ]
 
 
@@ -140,6 +141,7 @@ def MarketcapDownStdYahoo(pretrained=True) -> Pipeline:
 
     if pretrained:
         if not os.path.exists(core_path):
+            print('Downloading pretrained model')
             urlretrieve(URL, core_path)       
         pipeline.load_core(core_path)
 
