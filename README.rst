@@ -3,8 +3,8 @@ Ml_investment
 
 Machine learning tools for investment tasks.
 The purpose of these tools is to obtain deeper analytics
-about companies traded on the stock exchange.
-
+about companies using fundamental, global market and other data.
+This repo is core of http://fattakhov.site.
 
 .. contents:: Table of content
    :depth: 2
@@ -34,14 +34,6 @@ to know more about Ml_investment library.
 .. code-block:: bash
 
     $ pip install git+https://github.com/fartuk/ml_investment
-
-or
-
-.. code-block:: bash
-
-    $ git clone https://github.com/fartuk/ml_investment
-    $ cd ml_investment
-    $ pip install .
 
 
 **Configuration**

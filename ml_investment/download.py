@@ -277,57 +277,64 @@ class YahooDownloader:
 
 
     def _download_quarterly_data_single(self, ticker):
-        url = 'https://query2.finance.yahoo.com/v10/finance/quoteSummary/{ticker}'
-        url += '?modules=incomeStatementHistoryQuarterly'
-        url += ',balanceSheetHistoryQuarterly'
-        url += ',cashflowStatementHistoryQuarterly'
-
-        r = requests.get(url.format(ticker=ticker))
-        if r.status_code != 200:
-            print(r.status_code, ticker)
-            return
         try:
-            json_data = r.json()['quoteSummary']['result'][0]
+            url = 'https://query2.finance.yahoo.com/v10/finance/quoteSummary/{ticker}'
+            url += '?modules=incomeStatementHistoryQuarterly'
+            url += ',balanceSheetHistoryQuarterly'
+            url += ',cashflowStatementHistoryQuarterly'
+
+            r = requests.get(url.format(ticker=ticker))
+            if r.status_code != 200:
+                print(r.status_code, ticker)
+                return
+            try:
+                json_data = r.json()['quoteSummary']['result'][0]
+            except:
+                return
+            if len(json_data['incomeStatementHistoryQuarterly']['incomeStatementHistory']) == 0:
+                return
+            
+            q1 = self._parse_quarterly_json(json_data['incomeStatementHistoryQuarterly']['incomeStatementHistory'])
+            q2 = self._parse_quarterly_json(json_data['balanceSheetHistoryQuarterly']['balanceSheetStatements'])
+            q3 = self._parse_quarterly_json(json_data['cashflowStatementHistoryQuarterly']['cashflowStatements'])
+
+            quarterly_df = pd.merge(q1, q2, on='date', how='left', suffixes=('', '_y'))
+            quarterly_df = pd.merge(quarterly_df, q3, on='date', how='left', suffixes=('', '_z'))
+            
+            filepath = '{}/quarterly/{}.csv'.format(self._data_path, ticker)
+            quarterly_df.to_csv(filepath, index=False)
+
+            time.sleep(np.random.uniform(0, 0.5))
         except:
-            return
-        if len(json_data['incomeStatementHistoryQuarterly']['incomeStatementHistory']) == 0:
-            return
+            time.sleep(np.random.uniform(0, 0.5))
+
+
         
-        q1 = self._parse_quarterly_json(json_data['incomeStatementHistoryQuarterly']['incomeStatementHistory'])
-        q2 = self._parse_quarterly_json(json_data['balanceSheetHistoryQuarterly']['balanceSheetStatements'])
-        q3 = self._parse_quarterly_json(json_data['cashflowStatementHistoryQuarterly']['cashflowStatements'])
-
-        quarterly_df = pd.merge(q1, q2, on='date', how='left', suffixes=('', '_y'))
-        quarterly_df = pd.merge(quarterly_df, q3, on='date', how='left', suffixes=('', '_z'))
-        
-        filepath = '{}/quarterly/{}.csv'.format(self._data_path, ticker)
-        quarterly_df.to_csv(filepath, index=False)
-
-        time.sleep(np.random.uniform(0, 0.5))
-
-    
     def _download_base_data_single(self, ticker):
-        url = 'https://query2.finance.yahoo.com/v10/finance/quoteSummary/{ticker}'
-        url += '?modules=summaryProfile,defaultKeyStatistics'
-
-        r = requests.get(url.format(ticker=ticker))
-        if r.status_code != 200:
-            print(r.status_code, ticker)
-            return
         try:
-            json_data = r.json()['quoteSummary']['result'][0]
+            url = 'https://query2.finance.yahoo.com/v10/finance/quoteSummary/{ticker}'
+            url += '?modules=summaryProfile,defaultKeyStatistics'
+
+            r = requests.get(url.format(ticker=ticker))
+            if r.status_code != 200:
+                print(r.status_code, ticker)
+                return
+            try:
+                json_data = r.json()['quoteSummary']['result'][0]
+            except:
+                return
+            base_data = {}
+            b1 = self._parse_base_json(json_data['summaryProfile'])
+            b2 = self._parse_base_json(json_data['defaultKeyStatistics'])
+            base_data.update(b1)
+            base_data.update(b2)   
+            filepath = '{}/base/{}.json'.format(self._data_path, ticker)
+            save_json(filepath, base_data)            
+            
+            time.sleep(np.random.uniform(0, 0.5))
         except:
-            return
-        base_data = {}
-        b1 = self._parse_base_json(json_data['summaryProfile'])
-        b2 = self._parse_base_json(json_data['defaultKeyStatistics'])
-        base_data.update(b1)
-        base_data.update(b2)   
-        filepath = '{}/base/{}.json'.format(self._data_path, ticker)
-        save_json(filepath, base_data)            
-        
-        time.sleep(np.random.uniform(0, 0.5))
-        
+            time.sleep(np.random.uniform(0, 0.5))
+            
 
     def download_quarterly_data(self, data_path, tickers, n_jobs=8):
         self._data_path = data_path

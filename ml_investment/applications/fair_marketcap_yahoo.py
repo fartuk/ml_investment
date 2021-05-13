@@ -18,8 +18,6 @@ config = load_config()
 
 URL = 'https://github.com/fartuk/ml_investment/releases/download/weights/fair_marketcap_yahoo.pickle'
 OUT_NAME = 'fair_marketcap_yahoo'
-BAGGING_FRACTION = 0.7
-MODEL_CNT = 20
 FOLD_CNT = 5
 QUARTER_COUNTS = [1, 2, 4]
 CAT_COLUMNS = ['sector']
@@ -72,16 +70,10 @@ def _create_target():
 
 
 def _create_model():
-    base_models = [LogExpModel(lgbm.sklearn.LGBMRegressor()),
-                   LogExpModel(ctb.CatBoostRegressor(verbose=False))]
-    
-    ensemble = EnsembleModel(base_models=base_models, 
-                             bagging_fraction=BAGGING_FRACTION,
-                             model_cnt=MODEL_CNT)
-        
-    model = GroupedOOFModel(base_model=ensemble,
-                            group_column='ticker',
-                            fold_cnt=FOLD_CNT)
+    model = GroupedOOFModel(
+                base_model=LogExpModel(ctb.CatBoostRegressor(verbose=False)),
+                group_column='ticker',
+                fold_cnt=FOLD_CNT)
 
     return model
 

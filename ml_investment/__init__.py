@@ -53,4 +53,10 @@ if not os.path.exists(_tickers_path):
         pass
 
 
-   
+_models_dir = os.path.join(_ml_investments_dir, 'models')
+if not os.path.exists(_models_dir):
+    try:
+        os.makedirs(_models_dir)
+    except OSError:
+        pass
+ 

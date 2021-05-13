@@ -3,8 +3,8 @@ Ml_investment
 
 Machine learning tools for investment tasks. 
 The purpose of these tools is to obtain deeper analytics
-about companies traded on the stock exchange.
-
+about companies using fundamental, global market and other data.
+This repo is core of http://fattakhov.site.
 
 .. contents:: Table of content
    :depth: 2

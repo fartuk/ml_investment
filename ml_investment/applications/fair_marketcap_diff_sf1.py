@@ -19,8 +19,7 @@ from ml_investment.download_scripts import download_sf1, download_commodities
 config = load_config()
 
 
-URL = 'https://github.com/fartuk/ml_investment/releases\
-      /download/weights/fair_marketcap_diff_sf1.pickle'
+URL = 'https://github.com/fartuk/ml_investment/releases/download/weights/fair_marketcap_diff_sf1.pickle'
 OUT_NAME = 'fair_marketcap_diff_sf1'
 CURRENCY = 'USD'
 MAX_BACK_QUARTER = 20
