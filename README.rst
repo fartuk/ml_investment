@@ -136,17 +136,20 @@ Base pipeline consist of the folowing steps:
 
 .. code-block:: python
 
+    import lightgbm as lgbm
     from ml_investment.utils import load_config, load_tickers
     from ml_investment.features import QuarterlyFeatures, BaseCompanyFeatures,\
                                        FeatureMerger
-    from ml_investment.target import BaseInfoTarget
-    from ml_investment.pipeline import Pipeline
+    from ml_investment.targets import BaseInfoTarget
+    from ml_investment.models import LogExpModel, GroupedOOFModel
+    from ml_investment.pipelines import Pipeline
+    from ml_investment.metrics import median_absolute_relative_error
 
     fc1 = QuarterlyFeatures(data_key='quarterly',
-                            columns=['quarterlyNetIncome',
-                                     'quarterlyFreeCashFlow',
-                                     'quarterlyTotalAssets',
-                                     'quarterlyNetDebt'],
+                            columns=['netIncome',
+                                     'cash',
+                                     'totalAssets',
+                                     'ebit'],
                             quarter_counts=[2, 4, 10],
                             max_back_quarter=1)
 
