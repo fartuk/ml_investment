@@ -53,7 +53,7 @@ def _load_df(json_path: str) -> pd.DataFrame:
 
 
 
-def translate_currency(df: pd.DataFrame, columns: List[str]):
+def translate_currency(df: pd.DataFrame, columns: Optional[List[str]] = None):
     '''
     Translate currency of columns to USD according course information
     in appropriate columns(like debtusd-debt)
@@ -70,7 +70,13 @@ def translate_currency(df: pd.DataFrame, columns: List[str]):
     ``pd.DataFrame`` 
         result with the same columns and shapes but with 
         converted currency in columns
-    '''  
+    '''
+    if columns is None:
+        no_translate_cols = ['ticker', 'dimension', 'calendardate', 'datekey',
+                             'reportperiod', 'date', 'marketcap', 'lastupdated']
+        no_translate_cols += [x for x in df.columns if 'usd' in x]
+        columns = [x for x in df.columns if x not in no_translate_cols]
+    
     df = df.infer_objects()
     usd_cols = ['equityusd','epsusd','revenueusd','netinccmnusd',
                 'cashnequsd','debtusd','ebitusd','ebitdausd']
@@ -137,6 +143,8 @@ class SF1QuarterlyData:
             if self.quarter_count is not None:
                 df = df[:self.quarter_count]
             df['date'] = df['datekey']
+
+            #df = translate_currency(df)
             result.append(df)
            
         

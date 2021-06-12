@@ -358,7 +358,7 @@ class DailyAggQuarterFeatures:
                  daily_data_key: str,
                  quarterly_data_key: str,
                  columns: List[str], 
-                 agg_day_counts: List[int] = [100, 200], 
+                 agg_day_counts: List[Union[int, np.timedelta64]] = [100, 200], 
                  max_back_quarter: int=10,
                  daily_index=None,
                  n_jobs: int=cpu_count()):
@@ -412,10 +412,18 @@ class DailyAggQuarterFeatures:
     def _calc_series_feats(self, data: pd.DataFrame,
                            str_prefix: str='') -> Dict[str, float]:
         result = {}
+        if len(data) == 0:
+            return result
         for day_cnt in self.agg_day_counts:
+            if type(day_cnt) == int:
+                curr_data = data[:day_cnt]
+            elif type(day_cnt) == np.timedelta64:
+                daily_dates = data['date'].values
+                curr_data = data[daily_dates > daily_dates[0] - day_cnt]
+
             for col in self.columns:
-                series = data[col].values[:day_cnt][::-1].astype('float')
-                name_prefix = '{}_days{}_{}'.format(str_prefix, day_cnt, col)
+                series = curr_data[col].values[::-1].astype('float')
+                name_prefix = '{}_days{}_{}'.format(str_prefix, str(day_cnt), col)
                 feats = calc_series_stats(series, name_prefix=name_prefix,
                                           norm=True)
 
@@ -444,7 +452,11 @@ class DailyAggQuarterFeatures:
             feats['ticker'] = ticker
             feats['date'] = curr_date
             for idx in daily_data.keys():
-                daily_dates = daily_data[idx]['date'].values      
+                if daily_data[idx] is not None:
+                    daily_dates = daily_data[idx]['date'].values      
+                else:
+                    continue
+                
                 curr_daily_data = daily_data[idx][daily_dates < curr_date]
                 daily_feats = self._calc_series_feats(curr_daily_data, idx)
                 feats.update(daily_feats)
