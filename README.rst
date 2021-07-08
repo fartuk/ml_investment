@@ -223,7 +223,7 @@ Run tests
 
 .. code-block:: bash
 
-    $ cd /path/to/ml_investmant && pytest
+    $ cd /path/to/ml_investment && pytest
 
 
 Run tests in Docker
