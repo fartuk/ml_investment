@@ -83,7 +83,7 @@ class QuarterlyFeatures:
             for all quarters 
         min_back_quarter:
             min bound of company slices in time. 
-            If ``min_back_quarter = 0``(default) than features will be calculated
+            If ``min_back_quarter = 0`` (default) than features will be calculated
             for all quarters. 
             If ``min_back_quarter = 2`` than current and previous quarter slices 
             will not be used for feature calculation 
@@ -213,7 +213,7 @@ class QuarterlyDiffFeatures:
             for all quarters 
         min_back_quarter:
             min bound of company slices in time. 
-            If ``min_back_quarter = 0``(default) than features will be calculated
+            If ``min_back_quarter = 0`` (default) than features will be calculated
             for all quarters. 
             If ``min_back_quarter = 2`` than current and previous quarter slices 
             will not be used for feature calculation 
@@ -413,7 +413,7 @@ class DailyAggQuarterFeatures:
             for all quarters 
         min_back_quarter:
             min bound of company slices in time. 
-            If ``min_back_quarter = 0``(default) than features will be calculated
+            If ``min_back_quarter = 0`` (default) than features will be calculated
             for all quarters. 
             If ``min_back_quarter = 2`` than current and previous quarter slices 
             will not be used for feature calculation 
