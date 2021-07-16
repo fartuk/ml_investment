@@ -26,6 +26,11 @@ def nan_log_loss(gt, pred):
     pred = pred[~mask]
     return log_loss(gt, pred)
     
+def median_abs_diff(gt, pred):
+    gt = np.array(gt)
+    pred = np.array(pred)
+    result = np.median(np.abs(gt - pred))
+    return result
     
 def max_rise_norm(series):
     if len(series) == 0:

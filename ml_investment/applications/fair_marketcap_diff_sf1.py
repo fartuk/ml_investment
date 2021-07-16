@@ -23,6 +23,7 @@ URL = 'https://github.com/fartuk/ml_investment/releases/download/weights/fair_ma
 OUT_NAME = 'fair_marketcap_diff_sf1'
 CURRENCY = 'USD'
 MAX_BACK_QUARTER = 20
+MIN_BACK_QUARTER = 0
 BAGGING_FRACTION = 0.7
 MODEL_CNT = 20
 FOLD_CNT = 5
@@ -78,20 +79,23 @@ def _create_feature():
     fc1 = QuarterlyFeatures(data_key='quarterly',
                             columns=QUARTER_COLUMNS,
                             quarter_counts=QUARTER_COUNTS,
-                            max_back_quarter=MAX_BACK_QUARTER)
+                            max_back_quarter=MAX_BACK_QUARTER,
+                            min_back_quarter=MIN_BACK_QUARTER)
 
     fc2 = BaseCompanyFeatures(data_key='base', cat_columns=CAT_COLUMNS)
         
     fc3 = QuarterlyDiffFeatures(data_key='quarterly',
                                 columns=QUARTER_COLUMNS,
                                 compare_quarter_idxs=COMPARE_QUARTER_IDXS,
-                                max_back_quarter=MAX_BACK_QUARTER)
+                                max_back_quarter=MAX_BACK_QUARTER,
+                                min_back_quarter=MIN_BACK_QUARTER)
 
     fc4 = DailyAggQuarterFeatures(daily_data_key='commodities',
                                   quarterly_data_key='quarterly',
                                   columns=['price'],
                                   agg_day_counts=AGG_DAY_COUNTS,
                                   max_back_quarter=MAX_BACK_QUARTER,
+                                  min_back_quarter=MIN_BACK_QUARTER,
                                   daily_index=COMMODITIES_CODES)
                       
     feature = FeatureMerger(fc1, fc2, on='ticker')
@@ -122,7 +126,9 @@ def _create_model():
 
 
 
-def FairMarketcapDiffSF1(pretrained=True) -> Pipeline:
+def FairMarketcapDiffSF1(max_back_quarter=None,
+                         min_back_quarter=None,
+                         pretrained=True) -> Pipeline:
     '''
     Model is used to evaluate quarter-to-quarter(q2q) company
     fundamental progress. Model uses
@@ -152,6 +158,14 @@ def FairMarketcapDiffSF1(pretrained=True) -> Pipeline:
         Downloading directory path can be changed in
         `~/.ml_investment/config.json` ``models_path``
     '''
+    if max_back_quarter is not None:
+        global MAX_BACK_QUARTER 
+        MAX_BACK_QUARTER = max_back_quarter
+
+    if min_back_quarter is not None:
+        global MIN_BACK_QUARTER 
+        MIN_BACK_QUARTER = min_back_quarter
+
     _check_download_data()
     data = _create_data()
     feature = _create_feature()

@@ -92,18 +92,19 @@ def test_calc_series_stats_nans():
 class TestQuarterlyFeatures:
     @pytest.mark.parametrize('data', datas)    
     @pytest.mark.parametrize(
-        ["tickers", "columns", "quarter_counts", "max_back_quarter"],
-        [(['AAPL', 'TSLA'], ['ebit'], [2], 10), 
-         (['NVDA', 'TSLA'], ['ebit'], [2, 4], 5), 
-         (['AAPL', 'NVDA', 'TSLA', 'WORK'], ['ebit', 'debt'], [2, 4, 10], 10), 
-         (['AAPL', 'ZLG'], ['ebit', 'debt'], [2, 4, 10], 5)]
+        ["tickers", "columns", "quarter_counts", "max_back_quarter", "min_back_quarter"],
+        [(['AAPL', 'TSLA'], ['ebit'], [2], 10, 0), 
+         (['NVDA', 'TSLA'], ['ebit'], [2, 4], 5, 2), 
+         (['AAPL', 'NVDA', 'TSLA', 'WORK'], ['ebit', 'debt'], [2, 4, 10], 10, 0), 
+         (['AAPL', 'ZLG'], ['ebit', 'debt'], [2, 4, 10], 5, 0)]
     )
     def test_calculate(self, data, tickers, columns, 
-                       quarter_counts, max_back_quarter):
+                       quarter_counts, max_back_quarter, min_back_quarter):
         fc = QuarterlyFeatures(data_key='quarterly',
                                columns=columns,
                                quarter_counts=quarter_counts,
-                               max_back_quarter=max_back_quarter)
+                               max_back_quarter=max_back_quarter,
+                               min_back_quarter=min_back_quarter)
                             
         X = fc.calculate(data, tickers)
 
@@ -112,9 +113,9 @@ class TestQuarterlyFeatures:
         assert 'date' in X.index.names
 
         if type(data['quarterly']) == GenQuarterlyData:
-            assert X.shape[0] == max_back_quarter * len(tickers)
+            assert X.shape[0] == (max_back_quarter - min_back_quarter) * len(tickers)
         else:
-            assert X.shape[0] <= max_back_quarter * len(tickers)
+            assert X.shape[0] <= (max_back_quarter - min_back_quarter) * len(tickers)
 
         assert X.shape[1] == 2 * len(calc_series_stats([])) * \
                              len(columns) * len(quarter_counts)
@@ -162,18 +163,19 @@ class TestQuarterlyFeatures:
 class TestQuarterlyDiffFeatures:
     @pytest.mark.parametrize('data', datas) 
     @pytest.mark.parametrize(
-        ["tickers", "columns", "compare_quarter_idxs", "max_back_quarter"],
-        [(['AAPL', 'TSLA'], ['ebit'], [1], 10), 
-         (['NVDA', 'TSLA'], ['ebit'], [1, 4], 5), 
-         (['AAPL', 'NVDA', 'TSLA', 'WORK'], ['ebit', 'debt'], [1, 4, 10], 10), 
-         (['AAPL', 'ZLG'], ['ebit', 'debt'], [1, 4, 10], 5)]
+        ["tickers", "columns", "compare_quarter_idxs", "max_back_quarter", "min_back_quarter"],
+        [(['AAPL', 'TSLA'], ['ebit'], [1], 10, 0), 
+         (['NVDA', 'TSLA'], ['ebit'], [1, 4], 5, 2), 
+         (['AAPL', 'NVDA', 'TSLA', 'WORK'], ['ebit', 'debt'], [1, 4, 10], 10, 0), 
+         (['AAPL', 'ZLG'], ['ebit', 'debt'], [1, 4, 10], 5, 0)]
     )
     def test_calculate(self, data, tickers, columns, 
-                       compare_quarter_idxs, max_back_quarter):
+                       compare_quarter_idxs, max_back_quarter, min_back_quarter):
         fc = QuarterlyDiffFeatures(data_key='quarterly',
                                    columns=columns,
                                    compare_quarter_idxs=compare_quarter_idxs,
-                                   max_back_quarter=max_back_quarter)
+                                   max_back_quarter=max_back_quarter,
+                                   min_back_quarter=min_back_quarter)
 
         X = fc.calculate(data, tickers)
 
@@ -182,9 +184,9 @@ class TestQuarterlyDiffFeatures:
         assert 'date' in X.index.names
 
         if type(data['quarterly']) == GenQuarterlyData:
-            assert X.shape[0] == max_back_quarter * len(tickers)
+            assert X.shape[0] == (max_back_quarter - min_back_quarter) * len(tickers)
         else:
-            assert X.shape[0] <= max_back_quarter * len(tickers)
+            assert X.shape[0] <= (max_back_quarter - min_back_quarter) * len(tickers)
 
         assert X.shape[1] == len(compare_quarter_idxs) * len(columns)
 
@@ -224,19 +226,20 @@ class TestBaseCompanyFeatures:
 class TestDailyAggQuarterFeatures:
     @pytest.mark.parametrize('data', datas) 
     @pytest.mark.parametrize(
-        ["tickers", "columns", "agg_day_counts", "max_back_quarter"],
-        [(['AAPL', 'TSLA'], ['marketcap'], [100], 10), 
-         (['NVDA', 'TSLA'], ['marketcap'], [100, 200], 5), 
-         (['AAPL', 'NVDA', 'TSLA', 'WORK'], ['marketcap', 'pe'], [50, 200], 10), 
-         (['AAPL', 'ZLG'], ['marketcap', 'pe'], [50, 200], 5)]
+        ["tickers", "columns", "agg_day_counts", "max_back_quarter", "min_back_quarter"],
+        [(['AAPL', 'TSLA'], ['marketcap'], [100], 10, 0), 
+         (['NVDA', 'TSLA'], ['marketcap'], [100, 200], 5, 2), 
+         (['AAPL', 'NVDA', 'TSLA', 'WORK'], ['marketcap', 'pe'], [50, 200], 10, 0), 
+         (['AAPL', 'ZLG'], ['marketcap', 'pe'], [50, 200], 5, 0)]
     )
     def test_calculate(self, data, tickers, columns, 
-                       agg_day_counts, max_back_quarter):
+                       agg_day_counts, max_back_quarter, min_back_quarter):
         fc = DailyAggQuarterFeatures(daily_data_key='daily',
                                      quarterly_data_key='quarterly',
                                      columns=columns,
                                      agg_day_counts=agg_day_counts,
-                                     max_back_quarter=max_back_quarter)
+                                     max_back_quarter=max_back_quarter,
+                                     min_back_quarter=min_back_quarter)
 
         X = fc.calculate(data, tickers)
 
@@ -244,7 +247,7 @@ class TestDailyAggQuarterFeatures:
         assert 'ticker' in X.index.names
         assert 'date' in X.index.names
 
-        assert X.shape[0] <= max_back_quarter * len(tickers)     
+        assert X.shape[0] <= (max_back_quarter - min_back_quarter) * len(tickers)     
         assert X.shape[1] == len(calc_series_stats([])) * \
                              len(columns) * len(agg_day_counts)
 
@@ -255,23 +258,29 @@ class TestDailyAggQuarterFeatures:
                 max_col = '_days{}_{}_max'.format(count, col)
                 mean_col = '_days{}_{}_mean'.format(count, col)
                 median_col = '_days{}_{}_median'.format(count, col)
-                assert (X[max_col] >= X[min_col]).min()                
-                assert (X[max_col] >= X[mean_col]).min()                
-                assert (X[max_col] >= X[median_col]).min()                
-                assert (X[mean_col] >= X[min_col]).min()                
-                assert (X[median_col] >= X[min_col]).min()  
+                # There may be no daily data for ticker
+                assert ((X[max_col] >= X[min_col]) | 
+                        (X[max_col].isnull() | X[min_col].isnull())).min()
+                assert ((X[max_col] >= X[mean_col]) | 
+                        (X[max_col].isnull() | X[mean_col].isnull())).min()
+                assert ((X[max_col] >= X[median_col]) | 
+                        (X[max_col].isnull() | X[median_col].isnull())).min()
+                assert ((X[max_col] >= X[min_col]) | 
+                        (X[max_col].isnull() | X[min_col].isnull())).min()
+                assert ((X[median_col] >= X[min_col]) | 
+                        (X[median_col].isnull() | X[min_col].isnull())).min()
 
 
     @pytest.mark.parametrize('data', datas) 
     @pytest.mark.parametrize(
-        ["tickers", "columns", "agg_day_counts", "max_back_quarter"],
-        [(['AAPL', 'TSLA'], ['marketcap'], [100], 10), 
-         (['NVDA', 'TSLA'], ['marketcap'], [100, 200], 5), 
-         (['AAPL', 'NVDA', 'TSLA', 'WORK'], ['marketcap', 'pe'], [50, 200], 10), 
-         (['AAPL', 'ZLG'], ['marketcap', 'pe'], [50, 200], 5)]
+        ["tickers", "columns", "agg_day_counts", "max_back_quarter", "min_back_quarter"],
+        [(['AAPL', 'TSLA'], ['marketcap'], [100], 10, 0), 
+         (['NVDA', 'TSLA'], ['marketcap'], [100, 200], 5, 2), 
+         (['AAPL', 'NVDA', 'TSLA', 'WORK'], ['marketcap', 'pe'], [50, 200], 10, 0), 
+         (['AAPL', 'ZLG'], ['marketcap', 'pe'], [50, 200], 5, 0)]
     )
     def test_calculate_dayly_index(self, data, tickers, columns, 
-                       agg_day_counts, max_back_quarter):
+                       agg_day_counts, max_back_quarter, min_back_quarter):
         # Instead of real commodities to avoid extra dataloaders
         commodities_codes = ['AAPL', 'MSFT']
         fc = DailyAggQuarterFeatures(daily_data_key='daily',
@@ -279,6 +288,7 @@ class TestDailyAggQuarterFeatures:
                                      columns=columns,
                                      agg_day_counts=agg_day_counts,
                                      max_back_quarter=max_back_quarter,
+                                     min_back_quarter=min_back_quarter,
                                      daily_index=commodities_codes)
 
         X = fc.calculate(data, tickers)
@@ -287,7 +297,7 @@ class TestDailyAggQuarterFeatures:
         assert 'ticker' in X.index.names
         assert 'date' in X.index.names
 
-        assert X.shape[0] <= max_back_quarter * len(tickers)     
+        assert X.shape[0] <= (max_back_quarter - min_back_quarter) * len(tickers)     
         assert X.shape[1] == len(calc_series_stats([])) * \
                              len(columns) * len(agg_day_counts) *\
                              len(commodities_codes)
@@ -299,11 +309,17 @@ class TestDailyAggQuarterFeatures:
                     max_col = '{}_days{}_{}_max'.format(code, count, col)
                     mean_col = '{}_days{}_{}_mean'.format(code, count, col)
                     median_col = '{}_days{}_{}_median'.format(code, count, col)
-                    assert (X[max_col] >= X[min_col]).min()                
-                    assert (X[max_col] >= X[mean_col]).min()                
-                    assert (X[max_col] >= X[median_col]).min()                
-                    assert (X[mean_col] >= X[min_col]).min()                
-                    assert (X[median_col] >= X[min_col]).min()  
+                    # For long-history tickers may be none commodities data
+                    assert ((X[max_col] >= X[min_col]) | 
+                            (X[max_col].isnull() | X[min_col].isnull())).min()
+                    assert ((X[max_col] >= X[mean_col]) | 
+                            (X[max_col].isnull() | X[mean_col].isnull())).min()
+                    assert ((X[max_col] >= X[median_col]) | 
+                            (X[max_col].isnull() | X[median_col].isnull())).min()
+                    assert ((X[max_col] >= X[min_col]) | 
+                            (X[max_col].isnull() | X[min_col].isnull())).min()
+                    assert ((X[median_col] >= X[min_col]) | 
+                            (X[median_col].isnull() | X[min_col].isnull())).min()
 
 
 

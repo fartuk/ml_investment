@@ -36,6 +36,10 @@ if os.path.exists(config['sf1_data_path']):
 
 tickers = ['AAPL', 'TSLA', 'K', 'MAC', 'NVDA']
 
+class RandomTarget:
+    def calculate(self, data, index):
+        index['y'] = np.random.uniform(-1, 1, len(index))
+        return index
 
 class TestBasePipeline:
     def _create_base_components(self):                                    
@@ -43,14 +47,14 @@ class TestBasePipeline:
         f1 = QuarterlyFeatures(data_key='quarterly',
                                columns=columns,
                                quarter_counts=[2, 10],
-                               max_back_quarter=1)
+                               max_back_quarter=10)
 
         target = QuarterlyTarget(data_key='quarterly',
                                  col='marketcap',
                                  quarter_shift=0)
 
         model = GroupedOOFModel(lgbm.sklearn.LGBMRegressor(),
-                                group_column='ticker', fold_cnt=4)
+                                group_column='ticker', fold_cnt=2)
         
         return f1, target, model
         
@@ -71,7 +75,23 @@ class TestBasePipeline:
         assert type(df) == pd.DataFrame
         assert df['y_0'].mean() > 0
 
-        
+        # Check filtering via positive training values
+        pipeline = Pipeline(data=data,
+                            feature=f1, 
+                            target=RandomTarget(),
+                            model=model, 
+                            out_name=None)
+
+        res = pipeline.fit(tickers, metric=lambda x, y: y.min(),
+                           target_filter_foo=lambda x: x > 0)
+        assert type(res) == dict
+        assert res['metric_y_0'] > -1
+        df = pipeline.execute(tickers)
+        assert type(df) == pd.DataFrame
+        assert df['y_0'].max() > -1
+
+
+
     @pytest.mark.parametrize('data', datas)
     def test_fit_execute_multi_target(self, data):
         f1, target, model = self._create_base_components()
@@ -94,7 +114,7 @@ class TestBasePipeline:
         assert df['y_0'].mean() > 0   
         assert df['y_1'].mean() > 0   
         assert (df['y_0'] == df['y_1']).min() == False
-        
+
         pipeline = Pipeline(data=data,
                             feature=f1, 
                             target=[target, target],
@@ -107,8 +127,8 @@ class TestBasePipeline:
         assert res['metric_y_1'] > 0
         df = pipeline.execute(tickers)
         assert (df['y_0'] == df['y_1']).min() == True
-      
-        
+
+
     @pytest.mark.parametrize('data', datas)
     def test_fit_execute_multi_target_model(self, data):
         f1, target, model = self._create_base_components()
@@ -132,8 +152,8 @@ class TestBasePipeline:
         assert df['y_0'].mean() > 0   
         assert df['y_1'].mean() > 0   
         assert (df['y_0'] == df['y_1']).min() == False
-        
- 
+
+
     @pytest.mark.parametrize('data', datas)
     def test_fit_execute_multi_target_metric(self, data):
         f1, target, model = self._create_base_components()
@@ -152,10 +172,10 @@ class TestBasePipeline:
         assert res['metric_y_0'] > 0
         assert res['metric_y_1'] > 0
         assert res['metric_y_0'] < res['metric_y_1']
-        
-        
+
+
     @pytest.mark.parametrize('data', datas)
-    def test_fit_execute_multi_names(self, data):
+    def test_fit_execute_multi_target_names(self, data):
         f1, target, model = self._create_base_components()
         pipeline = Pipeline(data=data,
                             feature=f1, 
@@ -172,8 +192,8 @@ class TestBasePipeline:
         assert df['name1'].mean() > 0   
         assert df['name2'].mean() > 0   
         assert (df['name1'] == df['name2']).min() == True
-        
-        
+
+
     @pytest.mark.parametrize('data', datas)        
     def test_export_load(self, data, tmpdir):
         f1, target, model = self._create_base_components()
@@ -187,7 +207,7 @@ class TestBasePipeline:
         pipeline.export_core('{}/pipeline'.format(str(tmpdir)))
         pipeline.load_core('{}/pipeline.pickle'.format(str(tmpdir)))
         df1 = pipeline.execute(tickers)
-        
+
         np.testing.assert_array_equal(df['y_0'].values, df1['y_0'].values)
 
 
@@ -270,12 +290,12 @@ class TestMergePipeline:
 
         np.testing.assert_array_equal(df_m2['p1'], df_m3['p1'])        
         np.testing.assert_array_equal(df_m2['p2'], df_m3['p2'])        
-        
-        
-        
-        
-        
-        
+
+
+
+
+
+
         
         
         

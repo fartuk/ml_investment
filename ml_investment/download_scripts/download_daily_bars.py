@@ -14,11 +14,14 @@ _data_path = None
 
 def _single_ticker_download(ticker):
     global _data_path
-    try:
-        df = web.DataReader(ticker, "yahoo", np.datetime64('2017-01-01'), np.datetime64('now'))
-        df.to_csv('{}/{}.csv'.format(_data_path, ticker))          
-    except:
-        print(ticker)
+    for _ in range(3):
+        try:
+            df = web.DataReader(ticker, "yahoo", 
+                                np.datetime64('2010-01-01'), np.datetime64('now'))
+            df.to_csv('{}/{}.csv'.format(_data_path, ticker))          
+            break
+        except:
+            print(ticker)
 
 
 def main(data_path: str=None):

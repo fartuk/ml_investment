@@ -48,7 +48,7 @@ def _load_df(json_path: str) -> pd.DataFrame:
         df.columns = [x['name'] for x in data['datatable']['columns']]
 
     df = df.infer_objects()
-
+    
     return df
 
 
@@ -143,6 +143,7 @@ class SF1QuarterlyData:
             if self.quarter_count is not None:
                 df = df[:self.quarter_count]
             df['date'] = df['datekey']
+            df = df.sort_values('date', ascending=False)
 
             #df = translate_currency(df)
             result.append(df)

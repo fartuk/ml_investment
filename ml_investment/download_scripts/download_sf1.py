@@ -34,11 +34,11 @@ def main(data_path :str=None):
     
     downloader.ticker_download('datatables/SHARADAR/SF1?ticker={ticker}', tickers, 
                                save_dirpath='{}/core_fundamental'.format(data_path), 
-                               skip_exists=False,  batch_size=10, n_jobs=4)
+                               skip_exists=False,  batch_size=2, n_jobs=4)
 
     downloader.ticker_download('datatables/SHARADAR/DAILY?ticker={ticker}', tickers, 
                                save_dirpath='{}/daily'.format(data_path), 
-                               skip_exists=False, batch_size=5, n_jobs=4)
+                               skip_exists=False, batch_size=2, n_jobs=4)
 
 
 

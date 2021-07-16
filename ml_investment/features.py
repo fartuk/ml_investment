@@ -60,6 +60,7 @@ class QuarterlyFeatures:
                  columns: List[str],
                  quarter_counts: List[int]=[2, 4, 10],
                  max_back_quarter: int=10,
+                 min_back_quarter: int=0,
                  n_jobs: int=cpu_count()):
         '''     
         Parameters
@@ -74,12 +75,18 @@ class QuarterlyFeatures:
             e.g. if ``quarter_counts = [2]`` than statistics will be calculated
             on current and previous quarter
         max_back_quarter:
-            max number of company slices in time. 
+            max bound of company slices in time. 
             If ``max_back_quarter = 1`` than features will be calculated
             for only current company quarter. 
             If max_back_quarter is larger than total number of
             quarters for company than features will be calculated 
             for all quarters 
+        min_back_quarter:
+            min bound of company slices in time. 
+            If ``min_back_quarter = 0``(default) than features will be calculated
+            for all quarters. 
+            If ``min_back_quarter = 2`` than current and previous quarter slices 
+            will not be used for feature calculation 
         n_jobs:
             number of threads for calculation         
         '''
@@ -87,6 +94,7 @@ class QuarterlyFeatures:
         self.columns = columns
         self.quarter_counts = quarter_counts
         self.max_back_quarter = max_back_quarter
+        self.min_back_quarter = min_back_quarter
         self.n_jobs= n_jobs
         self._data_loader = None
         
@@ -115,8 +123,12 @@ class QuarterlyFeatures:
         quarterly_data = self._data_loader.load([ticker])
         if quarterly_data is None:
             return result
+        
         max_back_quarter = min(self.max_back_quarter, len(quarterly_data) - 1)
-        for back_quarter in range(max_back_quarter):
+        min_back_quarter = min(self.min_back_quarter, len(quarterly_data) - 1)
+        assert min_back_quarter <= max_back_quarter
+        
+        for back_quarter in range(min_back_quarter, max_back_quarter):
             curr_data = quarterly_data[back_quarter:]
 
             feats = {
@@ -176,6 +188,7 @@ class QuarterlyDiffFeatures:
                  columns: List[str],
                  compare_quarter_idxs: List[int]=[1, 4],
                  max_back_quarter: int=10,
+                 min_back_quarter: int=0,
                  n_jobs: int=cpu_count()):
         '''     
         Parameters
@@ -192,12 +205,18 @@ class QuarterlyDiffFeatures:
             If ``compare_quarter_idxs = [4]`` than current quarter 
             will be compared with previous year quarter.
         max_back_quarter:
-            max number of company slices in time. 
+            max bound of company slices in time. 
             If ``max_back_quarter = 1`` than features will be calculated
             for only current company quarter. 
             If max_back_quarter is larger than total number of
             quarters for company than features will be calculated 
-            for all quarters
+            for all quarters 
+        min_back_quarter:
+            min bound of company slices in time. 
+            If ``min_back_quarter = 0``(default) than features will be calculated
+            for all quarters. 
+            If ``min_back_quarter = 2`` than current and previous quarter slices 
+            will not be used for feature calculation 
         n_jobs:
             number of threads for calculation         
         '''
@@ -205,6 +224,7 @@ class QuarterlyDiffFeatures:
         self.columns = columns
         self.compare_quarter_idxs = compare_quarter_idxs
         self.max_back_quarter = max_back_quarter
+        self.min_back_quarter = min_back_quarter
         self.n_jobs = n_jobs
         self._data_loader = None
         
@@ -233,8 +253,12 @@ class QuarterlyDiffFeatures:
         quarterly_data = self._data_loader.load([ticker])
         if quarterly_data is None:
             return result
+        
         max_back_quarter = min(self.max_back_quarter, len(quarterly_data) - 1)
-        for back_quarter in range(max_back_quarter):
+        min_back_quarter = min(self.min_back_quarter, len(quarterly_data) - 1)
+        assert min_back_quarter <= max_back_quarter
+
+        for back_quarter in range(min_back_quarter, max_back_quarter):
             curr_data = quarterly_data[back_quarter:]
 
             feats = {
@@ -360,6 +384,7 @@ class DailyAggQuarterFeatures:
                  columns: List[str], 
                  agg_day_counts: List[Union[int, np.timedelta64]] = [100, 200], 
                  max_back_quarter: int=10,
+                 min_back_quarter: int=0,
                  daily_index=None,
                  n_jobs: int=cpu_count()):
         '''     
@@ -380,12 +405,18 @@ class DailyAggQuarterFeatures:
             e.g. if ``agg_day_counts = [100, 200]`` statistics will be 
             calculated based on last 100 and 200 days(separetly). 
         max_back_quarter:
-            max number of company slices in time. 
+            max bound of company slices in time. 
             If ``max_back_quarter = 1`` than features will be calculated
             for only current company quarter. 
             If max_back_quarter is larger than total number of
             quarters for company than features will be calculated 
-            for all quarters
+            for all quarters 
+        min_back_quarter:
+            min bound of company slices in time. 
+            If ``min_back_quarter = 0``(default) than features will be calculated
+            for all quarters. 
+            If ``min_back_quarter = 2`` than current and previous quarter slices 
+            will not be used for feature calculation 
         daily_index:
             indexes for ``data[daily_data_key]`` dataloader. 
             If ``None`` than index will be the same as for ``data[quarterly]``.
@@ -403,6 +434,7 @@ class DailyAggQuarterFeatures:
         self.columns = columns
         self.agg_day_counts = agg_day_counts
         self.max_back_quarter = max_back_quarter
+        self.min_back_quarter = min_back_quarter
         self.daily_index = daily_index
         self.n_jobs = n_jobs
         self._daily_data_loader = None
@@ -444,7 +476,10 @@ class DailyAggQuarterFeatures:
             daily_data[''] = self._daily_data_loader.load([ticker])     
         
         max_back_quarter = min(self.max_back_quarter, len(quarterly_data) - 1)
-        for back_quarter in range(max_back_quarter):
+        min_back_quarter = min(self.min_back_quarter, len(quarterly_data) - 1)
+        assert min_back_quarter <= max_back_quarter
+        
+        for back_quarter in range(min_back_quarter, max_back_quarter):
             curr_data = quarterly_data[back_quarter:]
             curr_date = np.datetime64(curr_data['date'].values[0])
             

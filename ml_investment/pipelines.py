@@ -8,7 +8,7 @@ import lightgbm as lgbm
 from copy import deepcopy
 from functools import reduce
 from typing import List, Dict
-from .utils import copy_repeat, check_create_folder
+from .utils import copy_repeat, check_create_folder, nan_mask
 
 import gc
 
@@ -72,14 +72,7 @@ class Pipeline:
             self.out_name = out_name
         
 
-    # @classmethod
-    # def load(cls, path):
-    #     pipeline = cls(None, None, None, None)
-    #     pipeline.load_core(path)
-    #     return pipeline
-    #
-
-    def fit(self, index: List[str], metric=None):
+    def fit(self, index: List[str], metric=None, target_filter_foo=nan_mask):
         '''     
         Interface to fit pipeline model for tickers.
         Features and target will be based on data from data_loader
@@ -94,21 +87,35 @@ class Pipeline:
             if type of target is ``List``.
             OR ``List`` of such functions(len of this list should be equal to 
             len of target)
-
+        target_filter_foo:
+            function for filtering samples according target values/
+            Should implement ``foo(arr) -> np.array[bool]`` interface. 
+            Len of resulted array should be equal to len of arr.
+            OR ``List`` of such functions(len of this list should be equal to 
+            len of target)
         ''' 
         if type(metric) == list:
             assert len(self.target) == len(metric)
+        
+        if type(target_filter_foo) == list:
+            assert len(self.target) == len(target_filter_foo)
             
         metric = metric if type(metric) == list \
                              else [metric] * len(self.target)
+
+        target_filter_foo = target_filter_foo if type(target_filter_foo) == list \
+                             else [target_filter_foo] * len(self.target)
+
         metrics_result = {}
         X = self.feature.calculate(self.data, index)            
         for k, target in enumerate(self.target):
             y = target.calculate(self.data, 
                                  X.index.to_frame(index=False))
-            leave_mask = (y['y'].isnull() == False)
-            y_ = y[leave_mask.values]
-            X_ = X[leave_mask.values]
+            #leave_mask = (y['y'].isnull() == False)
+            leave_mask = target_filter_foo[k](y['y'].values)
+
+            y_ = y[leave_mask]
+            X_ = X[leave_mask]
             self.core['model'][k].fit(X_, y_['y'])
             
             if metric[0] is not None:
