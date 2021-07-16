@@ -4,7 +4,7 @@ Ml_investment
 Machine learning tools for investment tasks.
 The purpose of these tools is to obtain deeper analytics
 about companies using fundamental, global market and other data.
-This repo is core of http://fattakhov.site.
+This repo is core of https://stocks.ml.
 
 .. contents:: Table of content
    :depth: 2
@@ -223,7 +223,7 @@ Run tests
 
 .. code-block:: bash
 
-    $ cd /path/to/ml_investmant && pytest
+    $ cd /path/to/ml_investment && pytest
 
 
 Run tests in Docker
