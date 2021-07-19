@@ -2,8 +2,6 @@ import setuptools
 from setuptools import find_packages
 import os
 
-here = os.path.abspath(os.path.dirname(__file__))
-
 NAME = 'ml_investment'
 DESCRIPTION = 'Machine learning tools for investment'
 URL = 'https://github.com/fartuk/ml_investment'
@@ -12,9 +10,15 @@ AUTHOR = 'Artur Fattakhov'
 PYTHON_REQUIRES = '>=3.6.0'
 VERSION = "0.0.11"
 
-with open(os.path.join(here, 'requirements.txt'), encoding='utf-8') as f:
-    REQUIRED = f.read().split('\n')
-    
+INSTALL_REQUIRES = ["pandas>=1.0.4",
+                    "lightgbm>=2.3.1",
+                    "catboost>=0.24.4",
+                    "tqdm>=4.46.1",
+                    "requests>=2.23.0",
+                    "pytest>=6.2.2",
+                    "pandas-datareader>=0.10.0",
+                    ]
+
 with open("README.rst", "r", encoding="utf-8") as f:
     LONG_DESCRIPTION = f.read()
     
@@ -37,5 +41,5 @@ setuptools.setup(
     ],
     packages=find_packages(exclude=('tests', 'train', 'images', 'examples')),
     python_requires=PYTHON_REQUIRES,
-    install_requires=REQUIRED,
+    install_requires=INSTALL_REQUIRES,
 )
