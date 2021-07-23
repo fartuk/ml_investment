@@ -87,24 +87,30 @@ def test_calc_series_stats_nans():
 
 
 
-        
+import inspect
 
 class TestQuarterlyFeatures:
-    @pytest.mark.parametrize('data', datas)    
+    @pytest.mark.parametrize('data', datas)
     @pytest.mark.parametrize(
-        ["tickers", "columns", "quarter_counts", "max_back_quarter", "min_back_quarter"],
-        [(['AAPL', 'TSLA'], ['ebit'], [2], 10, 0), 
-         (['NVDA', 'TSLA'], ['ebit'], [2, 4], 5, 2), 
-         (['AAPL', 'NVDA', 'TSLA', 'WORK'], ['ebit', 'debt'], [2, 4, 10], 10, 0), 
-         (['AAPL', 'ZLG'], ['ebit', 'debt'], [2, 4, 10], 5, 0)]
+        ["tickers", "columns", "quarter_counts", "max_back_quarter", 
+         "min_back_quarter", "stats"],
+        [(['AAPL', 'TSLA'], ['ebit'], [2], 10, 0, None), 
+         (['NVDA', 'TSLA'], ['ebit'], [2, 4], 5, 2, {'mean': np.mean}), 
+         (['AAPL', 'NVDA', 'TSLA', 'WORK'], ['ebit', 'debt'], [2, 4, 10], 10, 0, None), 
+         (['AAPL', 'ZLG'], ['ebit', 'debt'], [2, 4, 10], 5, 0, None)]
     )
     def test_calculate(self, data, tickers, columns, 
-                       quarter_counts, max_back_quarter, min_back_quarter):
+                       quarter_counts, max_back_quarter, min_back_quarter, stats):
+        if stats is None:
+            signature = inspect.signature(QuarterlyFeatures.__init__)
+            stats = signature.parameters['stats'].default
+        
         fc = QuarterlyFeatures(data_key='quarterly',
                                columns=columns,
                                quarter_counts=quarter_counts,
                                max_back_quarter=max_back_quarter,
-                               min_back_quarter=min_back_quarter)
+                               min_back_quarter=min_back_quarter,
+                               stats=stats)
                             
         X = fc.calculate(data, tickers)
 
@@ -117,46 +123,52 @@ class TestQuarterlyFeatures:
         else:
             assert X.shape[0] <= (max_back_quarter - min_back_quarter) * len(tickers)
 
-        assert X.shape[1] == 2 * len(calc_series_stats([])) * \
+        assert X.shape[1] == 2 * len(stats) * \
                              len(columns) * len(quarter_counts)
 
-        # Minimum can not be lower with reduction of quarter_count    
-        sorted_quarter_counts = np.sort(quarter_counts)
-        for col in columns:
-            for k in range(len(sorted_quarter_counts) - 1):
-                lower_count = sorted_quarter_counts[k]
-                higher_count = sorted_quarter_counts[k + 1]
-                l_col = 'quarter{}_{}_min'.format(lower_count, col)
-                h_col = 'quarter{}_{}_min'.format(higher_count, col)
+        if 'min' in stats:
+            # Minimum can not be lower with reduction of quarter_count    
+            sorted_quarter_counts = np.sort(quarter_counts)
+            for col in columns:
+                for k in range(len(sorted_quarter_counts) - 1):
+                    lower_count = sorted_quarter_counts[k]
+                    higher_count = sorted_quarter_counts[k + 1]
+                    l_col = 'quarter{}_{}_min'.format(lower_count, col)
+                    h_col = 'quarter{}_{}_min'.format(higher_count, col)
 
-                assert (X[h_col] <= X[l_col]).min()
+                    assert (X[h_col] <= X[l_col]).min()
 
-        # Maximum can not be higher with reduction of quarter_count    
-        sorted_quarter_counts = np.sort(quarter_counts)
-        for col in columns:
-            for k in range(len(sorted_quarter_counts) - 1):
-                lower_count = sorted_quarter_counts[k]
-                higher_count = sorted_quarter_counts[k + 1]
-                l_col = 'quarter{}_{}_max'.format(lower_count, col)
-                h_col = 'quarter{}_{}_max'.format(higher_count, col)
+        if 'max' in stats and 'min' in stats:
+            # Maximum can not be higher with reduction of quarter_count    
+            sorted_quarter_counts = np.sort(quarter_counts)
+            for col in columns:
+                for k in range(len(sorted_quarter_counts) - 1):
+                    lower_count = sorted_quarter_counts[k]
+                    higher_count = sorted_quarter_counts[k + 1]
+                    l_col = 'quarter{}_{}_max'.format(lower_count, col)
+                    h_col = 'quarter{}_{}_max'.format(higher_count, col)
 
-                assert (X[h_col] >= X[l_col]).min()                
+                    assert (X[h_col] >= X[l_col]).min()                
 
-        std_cols = [x for x in X.columns if '_std' in x]
-        for col in std_cols:
-            assert X[col].min() >= 0
+    
+        if 'std' in stats:
+            std_cols = [x for x in X.columns if '_std' in x]
+            for col in std_cols:
+                assert X[col].min() >= 0
 
-        for col in columns:
-            for count in quarter_counts:
-                min_col = 'quarter{}_{}_min'.format(count, col)
-                max_col = 'quarter{}_{}_max'.format(count, col)
-                mean_col = 'quarter{}_{}_mean'.format(count, col)
-                median_col = 'quarter{}_{}_median'.format(count, col)
-                assert (X[max_col] >= X[min_col]).min()                
-                assert (X[max_col] >= X[mean_col]).min()                
-                assert (X[max_col] >= X[median_col]).min()                
-                assert (X[mean_col] >= X[min_col]).min()                
-                assert (X[median_col] >= X[min_col]).min()                
+        if 'max' in stats and 'min' in stats and \
+           'mean' in stats and 'median' in stats:
+            for col in columns:
+                for count in quarter_counts:
+                    min_col = 'quarter{}_{}_min'.format(count, col)
+                    max_col = 'quarter{}_{}_max'.format(count, col)
+                    mean_col = 'quarter{}_{}_mean'.format(count, col)
+                    median_col = 'quarter{}_{}_median'.format(count, col)
+                    assert (X[max_col] >= X[min_col]).min()                
+                    assert (X[max_col] >= X[mean_col]).min()                
+                    assert (X[max_col] >= X[median_col]).min()                
+                    assert (X[mean_col] >= X[min_col]).min()                
+                    assert (X[median_col] >= X[min_col]).min()                
 
 
 

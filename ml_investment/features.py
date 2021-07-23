@@ -4,10 +4,15 @@ import pandas as pd
 
 from multiprocessing import Pool, cpu_count
 from tqdm import tqdm
-from typing import Union, List, Dict
+from typing import Union, List, Dict, Callable
 from .utils import int_hash_of_str
 
 def calc_series_stats(series: Union[List[float], np.array],
+                      stats: Dict[str, Callable]={'mean': np.mean,
+                                                  'median': np.median,
+                                                  'max': np.max,
+                                                  'min': np.min,
+                                                  'std': np.std},
                       name_prefix: str='',
                       norm: bool=False) -> Dict[str, float]:
     '''
@@ -32,18 +37,13 @@ def calc_series_stats(series: Union[List[float], np.array],
     if len(series) == 0:
         series = np.array([np.nan])
         
-    stats = {
-            '{}_mean'.format(name_prefix): np.mean(series),
-            '{}_median'.format(name_prefix): np.median(series),
-            '{}_max'.format(name_prefix): np.max(series),
-            '{}_min'.format(name_prefix): np.min(series),
-            '{}_std'.format(name_prefix): np.std(series),
-            }
+    result = {'{}_{}'.format(name_prefix, key): stats[key](series) 
+              for key in stats}
     
     if norm:
-        stats = {key: stats[key] / np.abs(series[0]) for key in stats}
+        result = {key: result[key] / np.abs(series[0]) for key in result}
     
-    return stats
+    return result
     
               
                 
@@ -61,6 +61,11 @@ class QuarterlyFeatures:
                  quarter_counts: List[int]=[2, 4, 10],
                  max_back_quarter: int=10,
                  min_back_quarter: int=0,
+                 stats: Dict[str, Callable]={'mean': np.mean,
+                                             'median': np.median,
+                                             'max': np.max,
+                                             'min': np.min,
+                                             'std': np.std},
                  n_jobs: int=cpu_count()):
         '''     
         Parameters
@@ -87,6 +92,12 @@ class QuarterlyFeatures:
             for all quarters. 
             If ``min_back_quarter = 2`` than current and previous quarter slices 
             will not be used for feature calculation 
+        stats:
+            aggregation functions for features calculation.
+            Should be as ``Dict[str, Callable]``.
+            Keys of this dict will be used as features names prefixes.
+            Values of this dict should implement 
+            ``foo(x:List) -> float`` interface
         n_jobs:
             number of threads for calculation         
         '''
@@ -95,7 +106,8 @@ class QuarterlyFeatures:
         self.quarter_counts = quarter_counts
         self.max_back_quarter = max_back_quarter
         self.min_back_quarter = min_back_quarter
-        self.n_jobs= n_jobs
+        self.stats = stats
+        self.n_jobs = n_jobs
         self._data_loader = None
         
 
@@ -107,8 +119,12 @@ class QuarterlyFeatures:
                 series = data[col].values[:quarter_cnt][::-1].astype('float')
                 name_prefix = 'quarter{}_{}'.format(quarter_cnt, col)
 
-                feats = calc_series_stats(series, name_prefix=name_prefix)
-                diff_feats = calc_series_stats(np.diff(series), 
+                feats = calc_series_stats(series=series,
+                                          stats=self.stats,
+                                          name_prefix=name_prefix)
+
+                diff_feats = calc_series_stats(series=np.diff(series),
+                                               stats=self.stats,
                                                name_prefix='{}_diff'.format(
                                                     name_prefix))
 
@@ -386,6 +402,11 @@ class DailyAggQuarterFeatures:
                  max_back_quarter: int=10,
                  min_back_quarter: int=0,
                  daily_index=None,
+                 stats: Dict[str, Callable]={'mean': np.mean,
+                                             'median': np.median,
+                                             'max': np.max,
+                                             'min': np.min,
+                                             'std': np.std},
                  n_jobs: int=cpu_count()):
         '''     
         Parameters
@@ -425,7 +446,12 @@ class DailyAggQuarterFeatures:
             list of interesting commodities codes.
             If you want want to use it i.e. for calculating daily price 
             features, ``daily_index`` should be ``None``
-
+        stats:
+            aggregation functions for features calculation.
+            Should be as ``Dict[str, Callable]``.
+            Keys of this dict will be used as features names prefixes.
+            Values of this dict should implement 
+            ``foo(x:List) -> float`` interface
         n_jobs:
             number of threads for calculation         
         '''
@@ -436,6 +462,7 @@ class DailyAggQuarterFeatures:
         self.max_back_quarter = max_back_quarter
         self.min_back_quarter = min_back_quarter
         self.daily_index = daily_index
+        self.stats = stats
         self.n_jobs = n_jobs
         self._daily_data_loader = None
         self._quarterly_data_loader = None
@@ -456,7 +483,9 @@ class DailyAggQuarterFeatures:
             for col in self.columns:
                 series = curr_data[col].values[::-1].astype('float')
                 name_prefix = '{}_days{}_{}'.format(str_prefix, str(day_cnt), col)
-                feats = calc_series_stats(series, name_prefix=name_prefix,
+                feats = calc_series_stats(series=series,
+                                          stats=self.stats,
+                                          name_prefix=name_prefix,
                                           norm=True)
 
                 result.update(feats)
