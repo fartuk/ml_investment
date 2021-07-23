@@ -33,6 +33,14 @@ DailyAggQuarterFeatures
     :undoc-members:
     :show-inheritance:
 
+RelativeGroupFeatures
+~~~~~~~~~~~~~~~~~~~~~~~
+.. autoclass:: ml_investment.features.RelativeGroupFeatures
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
 FeatureMerger
 ~~~~~~~~~~~~~~~~~~~~~~~
 .. autoclass:: ml_investment.features.FeatureMerger
