@@ -5,7 +5,7 @@ import pandas as pd
 from multiprocessing import Pool, cpu_count
 from tqdm import tqdm
 from typing import Union, List, Dict, Callable
-from .utils import int_hash_of_str
+from .utils import int_hash_of_str, get_quarter_idx
 
 def calc_series_stats(series: Union[List[float], np.array],
                       stats: Dict[str, Callable]={'mean': np.mean,
@@ -66,6 +66,7 @@ class QuarterlyFeatures:
                                              'max': np.max,
                                              'min': np.min,
                                              'std': np.std},
+                 calc_stats_on_diffs: bool=True,
                  n_jobs: int=cpu_count()):
         '''     
         Parameters
@@ -98,6 +99,8 @@ class QuarterlyFeatures:
             Keys of this dict will be used as features names prefixes.
             Values of this dict should implement 
             ``foo(x:List) -> float`` interface
+        calc_stats_on_diffs:
+            calculate statistics on series diffs( ``np.diff(series)`` ) or not
         n_jobs:
             number of threads for calculation         
         '''
@@ -107,6 +110,7 @@ class QuarterlyFeatures:
         self.max_back_quarter = max_back_quarter
         self.min_back_quarter = min_back_quarter
         self.stats = stats
+        self.calc_stats_on_diffs = calc_stats_on_diffs
         self.n_jobs = n_jobs
         self._data_loader = None
         
@@ -122,14 +126,14 @@ class QuarterlyFeatures:
                 feats = calc_series_stats(series=series,
                                           stats=self.stats,
                                           name_prefix=name_prefix)
-
-                diff_feats = calc_series_stats(series=np.diff(series),
-                                               stats=self.stats,
-                                               name_prefix='{}_diff'.format(
-                                                    name_prefix))
-
                 result.update(feats)
-                result.update(diff_feats)
+
+                if self.calc_stats_on_diffs:
+                    diff_feats = calc_series_stats(series=np.diff(series),
+                                                   stats=self.stats,
+                                                   name_prefix='{}_diff'\
+                                                    .format(name_prefix))
+                    result.update(diff_feats)
                                 
         return result  
         
@@ -205,6 +209,7 @@ class QuarterlyDiffFeatures:
                  compare_quarter_idxs: List[int]=[1, 4],
                  max_back_quarter: int=10,
                  min_back_quarter: int=0,
+                 norm: bool=True,
                  n_jobs: int=cpu_count()):
         '''     
         Parameters
@@ -232,7 +237,9 @@ class QuarterlyDiffFeatures:
             If ``min_back_quarter = 0`` (default) than features will be calculated
             for all quarters. 
             If ``min_back_quarter = 2`` than current and previous quarter slices 
-            will not be used for feature calculation 
+            will not be used for feature calculation
+        norm:
+            normalize to compare quarter or not
         n_jobs:
             number of threads for calculation         
         '''
@@ -241,6 +248,7 @@ class QuarterlyDiffFeatures:
         self.compare_quarter_idxs = compare_quarter_idxs
         self.max_back_quarter = max_back_quarter
         self.min_back_quarter = min_back_quarter
+        self.norm = norm
         self.n_jobs = n_jobs
         self._data_loader = None
         
@@ -256,7 +264,11 @@ class QuarterlyDiffFeatures:
             else:
                 compare_quarter = np.array([np.nan for col in self.columns], 
                                                  dtype='float')     
-            curr_feats = (curr_quarter - compare_quarter) / compare_quarter
+            curr_feats = curr_quarter - compare_quarter
+            
+            if self.norm:
+                curr_feats = curr_feats / compare_quarter
+
             curr_feats = {'compare{}_{}'.format(quarter_idx, col):val 
                             for col, val in zip(self.columns, curr_feats)}      
             result.update(curr_feats)      
@@ -570,6 +582,96 @@ class DailyAggQuarterFeatures:
         return X
 
 
+class RelativeGroupFeatures:
+    '''
+    Feature calculator for features relative to some group median.
+    I.e. calculate revenue growth relative to median in sector/industry.
+    '''
+    def __init__(self,
+                 feature_calculator, 
+                 group_data_key: str,
+                 group_col: str,
+                 relation_foo = lambda x, y: x - y,
+                 keep_group_feats=False,
+                ):
+        '''     
+        Parameters
+        ----------
+        feature_calculator:
+            key of dataloader in ``data`` argument during 
+            :func:`~ml_investment.features.DailyAggQuarterFeatures.calculate` 
+            for daily data loading
+        group_data_key:
+            key of dataloader in ``data`` argument during 
+            :func:`~ml_investment.features.RelativeGroupFeatures.calculate`
+            for loading data having ``group_col``
+        group_col:
+            column name for groups in which median values will be calculated
+        relation_foo:
+            function implementing ``foo(x, y) -> z`` interface.
+            E.g. if foo = lambda x: x - y, than resulted features will be 
+            calculated as difference between current company features 
+            and group median features.
+        keep_group_feats:
+            return group median features or not 
+        '''
+        self.feature_calculator = feature_calculator
+        self.group_data_key = group_data_key
+        self.group_col = group_col
+        self.relation_foo = relation_foo
+        self.keep_group_feats = keep_group_feats
+        
+        
+    def calculate(self, data, index):
+        '''     
+        Interface to calculate features for tickers 
+        based on data
+        
+        Parameters
+        ----------
+        data:
+            dict having fields named as values in ``group_data_key`` and 
+            necessary for ``feature_calculator`` keys.
+            This fields should contain classes implementing
+            ``load(index) -> pd.DataFrame`` interfaces
+        index:
+            index needed for ``feature_calculator.calculate()``
+                      
+        Returns
+        -------
+        ``pd.DataFrame``
+            resulted features with index as in 
+            ''feature_calculator.calculate``.
+        '''
+
+        X = self.feature_calculator.calculate(data, index)
+        index_cols = list(X.index.names)
+        cols = X.columns
+
+        group_df = data[self.group_data_key].load(index)[['ticker',
+                                                          self.group_col]]
+        X = pd.merge(X.reset_index(), group_df, on='ticker', how='left')
+        X['q_idx'] = X['date'].apply(lambda x: get_quarter_idx(x))
+
+        mean_df = X.groupby([self.group_col, 'q_idx']).median()
+        mean_df.columns = ['{}_median_{}'.format(self.group_col, x) 
+                                            for x in mean_df.columns]
+        mean_df = mean_df.reset_index()
+        X = pd.merge(X, mean_df, on=[self.group_col, 'q_idx'], how='left')
+
+        for col in cols:
+            new_col = 'rel_to_{}_{}'.format(self.group_col, col)
+            mean_col = '{}_median_{}'.format(self.group_col, col)
+            X[new_col] = self.relation_foo(X[col], X[mean_col])
+            
+        keep_cols = [x for x in X.columns if 'rel_to_' in x]
+        if self.keep_group_feats:
+            keep_cols += [x for x in X.columns 
+                            if '{}_median_'.format(self.group_col) in x]
+            
+        keep_cols += index_cols
+        
+        return X[keep_cols].set_index(index_cols)
 
 
 

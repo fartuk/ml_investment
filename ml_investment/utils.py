@@ -76,6 +76,14 @@ def bound_filter_foo_gen(min_bound, max_bound):
     return foo
 
 
+def get_quarter_idx(date: np.datetime64):
+    date = np.datetime64(date)
+    year = date.astype(object).year
+    month = date.astype(object).month
+    bounds = np.array([3, 6, 9, 12])
+    idx = np.where(bounds >= month)[0][0] + 1
+    q_idx = '{}q{}'.format(year, idx)
+    return q_idx
 
 
 

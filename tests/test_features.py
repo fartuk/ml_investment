@@ -6,7 +6,7 @@ from ml_investment.data_loaders.sf1 import SF1QuarterlyData, SF1BaseData,\
                                            SF1DailyData
 from ml_investment.features import calc_series_stats, QuarterlyFeatures, BaseCompanyFeatures,\
                      QuarterlyDiffFeatures, FeatureMerger, \
-                     DailyAggQuarterFeatures
+                     DailyAggQuarterFeatures, RelativeGroupFeatures
 from ml_investment.utils import load_config, int_hash_of_str
 from synthetic_data import GenQuarterlyData, GenBaseData, GenDailyData
 
@@ -332,6 +332,54 @@ class TestDailyAggQuarterFeatures:
                             (X[max_col].isnull() | X[min_col].isnull())).min()
                     assert ((X[median_col] >= X[min_col]) | 
                             (X[median_col].isnull() | X[min_col].isnull())).min()
+
+
+class TestRelativeGroupFeatures:
+    @pytest.mark.parametrize('data', datas) 
+    @pytest.mark.parametrize(
+        ["tickers", "columns", "compare_quarter_idxs", "keep_group_feats"],
+        [(['AAPL', 'TSLA'], ['ebit'], [1], False), 
+         (['NVDA', 'TSLA'], ['ebit'], [1],True), 
+         (['AAPL', 'NVDA', 'TSLA', 'WORK'], ['ebit', 'debt'], [1, 4], True), 
+         (['AAPL', 'ZLG'], ['ebit', 'debt'], [1, 2], False)]
+    )
+    def test_calculate(self, data, tickers, columns, compare_quarter_idxs, keep_group_feats):
+        fc = QuarterlyDiffFeatures(data_key='quarterly',
+                                   columns=columns,
+                                   compare_quarter_idxs=compare_quarter_idxs,
+                                   max_back_quarter=5)
+
+        fc_gr = RelativeGroupFeatures(feature_calculator=fc,
+                                      group_data_key='base',
+                                      group_col='sector',
+                                      relation_foo=lambda x, y: x - y,
+                                      keep_group_feats=keep_group_feats)
+
+        X = fc_gr.calculate(data, tickers)
+
+        assert type(X) == pd.DataFrame
+        assert 'ticker' in X.index.names
+        assert 'date' in X.index.names
+
+        if type(data['quarterly']) == GenQuarterlyData:
+            assert X.shape[0] == 5 * len(tickers)
+        else:
+            assert X.shape[0] <= 5 * len(tickers)
+
+        assert X.shape[1] == len(compare_quarter_idxs) * len(columns) * (keep_group_feats + 1)
+
+        # Check ident realation_foo
+        fc_gr = RelativeGroupFeatures(feature_calculator=fc,
+                                      group_data_key='base',
+                                      group_col='sector',
+                                      relation_foo=lambda x, y: x,
+                                      keep_group_feats=False)
+
+        X = fc_gr.calculate(data, tickers)
+        X1 = fc.calculate(data, tickers)
+        for col, col1 in zip(X.columns, X1.columns):
+            np.testing.assert_array_equal(X[col].values, X1[col1].values)
+
 
 
 
