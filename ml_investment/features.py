@@ -67,6 +67,7 @@ class QuarterlyFeatures:
                                              'min': np.min,
                                              'std': np.std},
                  calc_stats_on_diffs: bool=True,
+                 data_preprocessing: Callable=None,
                  n_jobs: int=cpu_count()):
         '''     
         Parameters
@@ -101,6 +102,9 @@ class QuarterlyFeatures:
             ``foo(x:List) -> float`` interface
         calc_stats_on_diffs:
             calculate statistics on series diffs( ``np.diff(series)`` ) or not
+        data_preprocessing:
+            function implemening ``foo(x) -> x_`` interface. 
+            It will be used before feature calculation.
         n_jobs:
             number of threads for calculation         
         '''
@@ -111,6 +115,7 @@ class QuarterlyFeatures:
         self.min_back_quarter = min_back_quarter
         self.stats = stats
         self.calc_stats_on_diffs = calc_stats_on_diffs
+        self.data_preprocessing = data_preprocessing
         self.n_jobs = n_jobs
         self._data_loader = None
         
@@ -141,8 +146,12 @@ class QuarterlyFeatures:
     def _single_ticker(self, ticker:str) -> List[Dict[str, float]]:
         result = []
         quarterly_data = self._data_loader.load([ticker])
+        
         if quarterly_data is None:
             return result
+
+        if self.data_preprocessing is not None:
+            quarterly_data = self.data_preprocessing(quarterly_data)
         
         max_back_quarter = min(self.max_back_quarter, len(quarterly_data) - 1)
         min_back_quarter = min(self.min_back_quarter, len(quarterly_data) - 1)
@@ -210,6 +219,7 @@ class QuarterlyDiffFeatures:
                  max_back_quarter: int=10,
                  min_back_quarter: int=0,
                  norm: bool=True,
+                 data_preprocessing: Callable=None,
                  n_jobs: int=cpu_count()):
         '''     
         Parameters
@@ -240,6 +250,9 @@ class QuarterlyDiffFeatures:
             will not be used for feature calculation
         norm:
             normalize to compare quarter or not
+        data_preprocessing:
+            function implemening ``foo(x) -> x_`` interface. 
+            It will be used before feature calculation.
         n_jobs:
             number of threads for calculation         
         '''
@@ -249,6 +262,7 @@ class QuarterlyDiffFeatures:
         self.max_back_quarter = max_back_quarter
         self.min_back_quarter = min_back_quarter
         self.norm = norm
+        self.data_preprocessing=data_preprocessing
         self.n_jobs = n_jobs
         self._data_loader = None
         
@@ -279,9 +293,13 @@ class QuarterlyDiffFeatures:
     def _single_ticker(self, ticker: str) -> List[Dict[str, float]]:
         result = []
         quarterly_data = self._data_loader.load([ticker])
+        
         if quarterly_data is None:
             return result
         
+        if self.data_preprocessing is not None:
+            quarterly_data = self.data_preprocessing(quarterly_data)
+
         max_back_quarter = min(self.max_back_quarter, len(quarterly_data) - 1)
         min_back_quarter = min(self.min_back_quarter, len(quarterly_data) - 1)
         assert min_back_quarter <= max_back_quarter
