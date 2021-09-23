@@ -283,7 +283,9 @@ class YahooDownloader:
             url += ',balanceSheetHistoryQuarterly'
             url += ',cashflowStatementHistoryQuarterly'
 
-            r = requests.get(url.format(ticker=ticker))
+            headers = {'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_11_5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/50.0.2661.102 Safari/537.36'}
+
+            r = requests.get(url.format(ticker=ticker), headers=headers)
             if r.status_code != 200:
                 print(r.status_code, ticker)
                 return
@@ -315,7 +317,9 @@ class YahooDownloader:
             url = 'https://query2.finance.yahoo.com/v10/finance/quoteSummary/{ticker}'
             url += '?modules=summaryProfile,defaultKeyStatistics'
 
-            r = requests.get(url.format(ticker=ticker))
+            headers = {'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_11_5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/50.0.2661.102 Safari/537.36'}
+
+            r = requests.get(url.format(ticker=ticker), headers=headers)
             if r.status_code != 200:
                 print(r.status_code, ticker)
                 return
@@ -439,57 +443,3 @@ class TinkoffDownloader:
         response = requests.post(url, data=json.dumps(data), headers=self.headers)
         
         return response
-        
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
