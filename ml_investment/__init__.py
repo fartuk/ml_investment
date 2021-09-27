@@ -32,9 +32,9 @@ if not os.path.exists(_config_path):
 
 if not os.path.exists(_secrets_path):
     _secrets = {
-        "quandl_api_key":None,
-        "tinkoff_token":None,
-        "tinkoff_broker_account_id":None
+        "quandl_api_key": os.getenv("QUANDL_API_KEY") or None,
+        "tinkoff_token": os.getenv("TINKOFF_TOKEN") or None,
+        "tinkoff_broker_account_id": os.getenv("TINKOFF_BROKER_ACCOUNT_ID") or None
     }
 
     try:

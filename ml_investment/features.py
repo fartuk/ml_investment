@@ -437,6 +437,7 @@ class DailyAggQuarterFeatures:
                                              'max': np.max,
                                              'min': np.min,
                                              'std': np.std},
+                 norm: bool=True,
                  n_jobs: int=cpu_count()):
         '''     
         Parameters
@@ -482,6 +483,8 @@ class DailyAggQuarterFeatures:
             Keys of this dict will be used as features names prefixes.
             Values of this dict should implement 
             ``foo(x:List) -> float`` interface
+        norm:
+            normalize daily stats or not
         n_jobs:
             number of threads for calculation         
         '''
@@ -493,6 +496,7 @@ class DailyAggQuarterFeatures:
         self.min_back_quarter = min_back_quarter
         self.daily_index = daily_index
         self.stats = stats
+        self.norm = True
         self.n_jobs = n_jobs
         self._daily_data_loader = None
         self._quarterly_data_loader = None
@@ -516,7 +520,7 @@ class DailyAggQuarterFeatures:
                 feats = calc_series_stats(series=series,
                                           stats=self.stats,
                                           name_prefix=name_prefix,
-                                          norm=True)
+                                          norm=self.norm)
 
                 result.update(feats)
                                

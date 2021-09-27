@@ -3,28 +3,31 @@ import os
 import lightgbm as lgbm
 import catboost as ctb
 from urllib.request import urlretrieve
-from ml_investment.utils import load_config
+from ml_investment.utils import load_config, bound_filter_foo_gen
 from ml_investment.data_loaders.sf1 import SF1BaseData, SF1DailyData, \
                                            SF1QuarterlyData
 from ml_investment.data_loaders.quandl_commodities import QuandlCommoditiesData
 from ml_investment.features import QuarterlyFeatures, BaseCompanyFeatures, \
-                                   FeatureMerger, DailyAggQuarterFeatures
+                                   FeatureMerger, DailyAggQuarterFeatures, \
+                                   QuarterlyDiffFeatures, RelativeGroupFeatures
 from ml_investment.targets import QuarterlyTarget
 from ml_investment.models import GroupedOOFModel, EnsembleModel, LogExpModel
-from ml_investment.metrics import median_absolute_relative_error
+from ml_investment.metrics import median_absolute_relative_error, median_abs_diff
 from ml_investment.pipelines import Pipeline
 from ml_investment.download_scripts import download_sf1, download_commodities
-
+        
 config = load_config()
 
 
-URL = 'https://github.com/fartuk/ml_investment/releases/download/weights/fair_marketcap_sf1.pickle'
-OUT_NAME = 'fair_marketcap_sf1'
+URL = 'https://github.com/fartuk/ml_investment/releases/download/weights/fair_marketcap_sf1_v2.pickle'
+OUT_NAME = 'fair_marketcap_sf1_v2'
 CURRENCY = 'USD'
 MAX_BACK_QUARTER = 20
+MIN_BACK_QUARTER = 0
 BAGGING_FRACTION = 0.7
 MODEL_CNT = 20
 FOLD_CNT = 5
+COMPARE_QUARTER_IDXS = [1, 4]
 QUARTER_COUNTS = [2, 4, 10]
 AGG_DAY_COUNTS = [100, 200, 400, 800]
 SCALE_MARKETCAP = ["3 - Small", "4 - Mid", "5 - Large", "6 - Mega"]
@@ -51,8 +54,6 @@ COMMODITIES_CODES = [
             'LBMA/GOLD',
             'JOHNMATT/PALL',]
 
-
-
 def _check_download_data():
     if not os.path.exists(config['sf1_data_path']):
         print('Downloading sf1 data')
@@ -61,7 +62,6 @@ def _check_download_data():
     if not os.path.exists(config['commodities_data_path']):
         print('Downloading commodities data')
         download_commodities.main()        
-
 
 
 def _create_data():
@@ -74,16 +74,31 @@ def _create_data():
     return data
 
 
+DEV_COLUMNS = ['rnd_invcap', 'capex_invcap', 'ebit_invcap', 'ev_ebitda', 'ev_ebit', 'debt_equity', 'grossmargin_ebitdamargin', 'debt_ebit']
+def _preprocess(x):
+    x['rnd_invcap'] = x['rnd'] / x['invcap']
+    x['capex_invcap'] = x['capex'] / x['invcap']
+    x['ebit_invcap'] = x['ebit'] / x['invcap']
+    x['ev_ebitda'] = x['ev'] / x['ebitda']
+    x['ev_ebit'] = x['ev'] / x['ebit']
+    x['debt_equity'] = x['debt'] / x['equity']
+    x['grossmargin_ebitdamargin'] = x['grossmargin'] / x['ebitdamargin']
+    x['debt_ebit'] = x['debt'] / x['ebitda']
+       
+    return x
+
+
 def _create_feature():
     fc1 = QuarterlyFeatures(data_key='quarterly',
-                            columns=QUARTER_COLUMNS,
+                            columns=QUARTER_COLUMNS + DEV_COLUMNS,
                             quarter_counts=QUARTER_COUNTS,
-                            max_back_quarter=MAX_BACK_QUARTER)
+                            max_back_quarter=MAX_BACK_QUARTER,
+                            min_back_quarter=MIN_BACK_QUARTER,
+                            calc_stats_on_diffs=True,
+                            data_preprocessing=_preprocess)
 
     fc2 = BaseCompanyFeatures(data_key='base', cat_columns=CAT_COLUMNS)
-
-    # Daily agss on marketcap and pe is possible here because it 
-    # normalized and there are no leakage.
+        
     fc3 = DailyAggQuarterFeatures(daily_data_key='daily',
                                   quarterly_data_key='quarterly',
                                   columns=DAILY_AGG_COLUMNS,
@@ -95,11 +110,34 @@ def _create_feature():
                                   columns=['price'],
                                   agg_day_counts=AGG_DAY_COUNTS,
                                   max_back_quarter=MAX_BACK_QUARTER,
+                                  min_back_quarter=MIN_BACK_QUARTER,
                                   daily_index=COMMODITIES_CODES)
+                      
+    fc5 = RelativeGroupFeatures(feature_calculator=fc3,
+                                group_data_key='base',
+                                group_col='industry',
+                                relation_foo=lambda x, y: x - y,
+                                keep_group_feats=True)
+    
+    fc_rel = QuarterlyFeatures(data_key='quarterly',
+                                columns=DEV_COLUMNS,
+                                quarter_counts=QUARTER_COUNTS,
+                                max_back_quarter=MAX_BACK_QUARTER,
+                                min_back_quarter=MIN_BACK_QUARTER,
+                                calc_stats_on_diffs=True,
+                                data_preprocessing=_preprocess)
+    
+    fc6 = RelativeGroupFeatures(feature_calculator=fc_rel,
+                                group_data_key='base',
+                                group_col='industry',
+                                relation_foo=lambda x, y: x - y,
+                                keep_group_feats=True)    
     
     feature = FeatureMerger(fc1, fc2, on='ticker')
     feature = FeatureMerger(feature, fc3, on=['ticker', 'date'])
     feature = FeatureMerger(feature, fc4, on=['ticker', 'date'])
+    feature = FeatureMerger(feature, fc5, on=['ticker', 'date'])
+    feature = FeatureMerger(feature, fc6, on=['ticker', 'date'])
 
     return feature
 
@@ -112,14 +150,14 @@ def _create_target():
 
 
 def _create_model():
-    base_models = [LogExpModel(lgbm.sklearn.LGBMRegressor()),
-                   LogExpModel(ctb.CatBoostRegressor(verbose=False))]
+    base_models = [lgbm.sklearn.LGBMRegressor(),
+                   ctb.CatBoostRegressor(verbose=False)]
                    
     ensemble = EnsembleModel(base_models=base_models, 
                              bagging_fraction=BAGGING_FRACTION,
                              model_cnt=MODEL_CNT)
 
-    model = GroupedOOFModel(base_model=ensemble,
+    model = GroupedOOFModel(ensemble,
                             group_column='ticker',
                             fold_cnt=FOLD_CNT)
     
@@ -127,7 +165,9 @@ def _create_model():
 
 
 
-def FairMarketcapSF1(pretrained=True) -> Pipeline:
+def FairMarketcapSF1V2(max_back_quarter=None,
+                       min_back_quarter=None,
+                       pretrained=True) -> Pipeline:
     '''
     Model is used to estimate fair company marketcap for several last quarters. 
     Pipeline uses features from 
@@ -154,7 +194,19 @@ def FairMarketcapSF1(pretrained=True) -> Pipeline:
         use pretreined weights or not. If so, `fair_marketcap_sf1.pickle`
         will be downloaded. Downloading directory path can be changed in
         `~/.ml_investment/config.json` ``models_path``
+    max_back_quarter:
+        max quarter number which will be used in model
+    min_back_quarter:
+        min quarter number which will be used in model
     '''
+    if max_back_quarter is not None:
+        global MAX_BACK_QUARTER 
+        MAX_BACK_QUARTER = max_back_quarter
+
+    if min_back_quarter is not None:
+        global MIN_BACK_QUARTER 
+        MIN_BACK_QUARTER = min_back_quarter
+
     _check_download_data()
     data = _create_data()
     feature = _create_feature()
@@ -177,16 +229,12 @@ def FairMarketcapSF1(pretrained=True) -> Pipeline:
     return pipeline
 
 
-
-
-
-
 def main():
     '''
     Default model training. Resulted model weights directory path 
     can be changed in `~/.ml_investment/config.json` ``models_path``
     '''
-    pipeline = FairMarketcapSF1(pretrained=False)
+    pipeline = FairMarketcapSF1V2(pretrained=False)
     base_df = SF1BaseData(config['sf1_data_path']).load()
     tickers = base_df[(base_df['currency'] == CURRENCY) &\
                       (base_df['scalemarketcap'].apply(lambda x: x in SCALE_MARKETCAP))
@@ -200,3 +248,17 @@ def main():
 if __name__ == '__main__':
     main() 
     
+
+
+
+
+
+
+
+
+
+
+
+
+
+

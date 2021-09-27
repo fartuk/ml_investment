@@ -3,27 +3,29 @@ import os
 import lightgbm as lgbm
 import catboost as ctb
 from urllib.request import urlretrieve
-from ml_investment.utils import load_config
+from ml_investment.utils import load_config, bound_filter_foo_gen
 from ml_investment.data_loaders.sf1 import SF1BaseData, SF1DailyData, \
                                            SF1QuarterlyData
 from ml_investment.data_loaders.quandl_commodities import QuandlCommoditiesData
 from ml_investment.features import QuarterlyFeatures, BaseCompanyFeatures, \
                                    FeatureMerger, DailyAggQuarterFeatures, \
-                                   QuarterlyDiffFeatures
+                                   QuarterlyDiffFeatures, RelativeGroupFeatures
 from ml_investment.targets import QuarterlyDiffTarget
 from ml_investment.models import GroupedOOFModel, EnsembleModel, LogExpModel
-from ml_investment.metrics import median_absolute_relative_error
+from ml_investment.metrics import median_absolute_relative_error, median_abs_diff
 from ml_investment.pipelines import Pipeline
 from ml_investment.download_scripts import download_sf1, download_commodities
         
 config = load_config()
 
 
-URL = 'https://github.com/fartuk/ml_investment/releases/download/weights/fair_marketcap_diff_sf1.pickle'
-OUT_NAME = 'fair_marketcap_diff_sf1'
+URL = 'https://github.com/fartuk/ml_investment/releases/download/weights/fair_marketcap_diff_sf1_v2.pickle'
+OUT_NAME = 'fair_marketcap_diff_sf1_v2'
 CURRENCY = 'USD'
 MAX_BACK_QUARTER = 20
 MIN_BACK_QUARTER = 0
+MAX_TARGET_BOUND = 1.5
+MIN_TARGET_BOUND = -0.9
 BAGGING_FRACTION = 0.7
 MODEL_CNT = 20
 FOLD_CNT = 5
@@ -75,22 +77,37 @@ def _create_data():
     return data
 
 
+def _preprocess(x):
+    x['rnd_invcap'] = x['rnd'] / x['invcap']
+    x['capex_invcap'] = x['capex'] / x['invcap']
+    x['ebit_invcap'] = x['ebit'] / x['invcap']
+    x['ev_ebitda'] = x['ev'] / x['ebitda']
+    x['ev_ebit'] = x['ev'] / x['ebit']
+    x['debt_equity'] = x['debt'] / x['equity']
+    x['grossmargin_ebitdamargin'] = x['grossmargin'] / x['ebitdamargin']
+    x['debt_ebit'] = x['debt'] / x['ebitda']
+       
+    return x
+
+DEV_COLUMNS = ['rnd_invcap', 'capex_invcap', 'ebit_invcap', 'ev_ebitda', 'ev_ebit', 'debt_equity', 'grossmargin_ebitdamargin', 'debt_ebit']
+
 def _create_feature():
     fc1 = QuarterlyFeatures(data_key='quarterly',
-                            columns=QUARTER_COLUMNS,
+                            columns=QUARTER_COLUMNS + DEV_COLUMNS,
                             quarter_counts=QUARTER_COUNTS,
                             max_back_quarter=MAX_BACK_QUARTER,
-                            min_back_quarter=MIN_BACK_QUARTER)
-
-    fc2 = BaseCompanyFeatures(data_key='base', cat_columns=CAT_COLUMNS)
+                            min_back_quarter=MIN_BACK_QUARTER,
+                            calc_stats_on_diffs=True,
+                            data_preprocessing=_preprocess)
         
-    fc3 = QuarterlyDiffFeatures(data_key='quarterly',
-                                columns=QUARTER_COLUMNS,
+    fc2 = QuarterlyDiffFeatures(data_key='quarterly',
+                                columns=QUARTER_COLUMNS + DEV_COLUMNS,
                                 compare_quarter_idxs=COMPARE_QUARTER_IDXS,
                                 max_back_quarter=MAX_BACK_QUARTER,
-                                min_back_quarter=MIN_BACK_QUARTER)
+                                min_back_quarter=MIN_BACK_QUARTER,
+                                data_preprocessing=_preprocess)
 
-    fc4 = DailyAggQuarterFeatures(daily_data_key='commodities',
+    fc3 = DailyAggQuarterFeatures(daily_data_key='commodities',
                                   quarterly_data_key='quarterly',
                                   columns=['price'],
                                   agg_day_counts=AGG_DAY_COUNTS,
@@ -98,11 +115,26 @@ def _create_feature():
                                   min_back_quarter=MIN_BACK_QUARTER,
                                   daily_index=COMMODITIES_CODES)
                       
-    feature = FeatureMerger(fc1, fc2, on='ticker')
+    fc4 = RelativeGroupFeatures(feature_calculator=fc3,
+                                group_data_key='base',
+                                group_col='industry',
+                                relation_foo=lambda x, y: x - y,
+                                keep_group_feats=True)
+    
+    fc5 = RelativeGroupFeatures(feature_calculator=fc1,
+                                group_data_key='base',
+                                group_col='industry',
+                                relation_foo=lambda x, y: x - y,
+                                keep_group_feats=True)    
+    
+    #feature = FeatureMerger(fc1, fc2, on='ticker')
+    feature = FeatureMerger(fc1, fc2, on=['ticker', 'date'])
     feature = FeatureMerger(feature, fc3, on=['ticker', 'date'])
     feature = FeatureMerger(feature, fc4, on=['ticker', 'date'])
+    feature = FeatureMerger(feature, fc5, on=['ticker', 'date'])
 
     return feature
+
 
 
 def _create_target():
@@ -126,18 +158,16 @@ def _create_model():
 
 
 
-def FairMarketcapDiffSF1(max_back_quarter=None,
-                         min_back_quarter=None,
-                         pretrained=True) -> Pipeline:
+def FairMarketcapDiffSF1V2(max_back_quarter=None,
+                           min_back_quarter=None,
+                           pretrained=True) -> Pipeline:
     '''
     Model is used to evaluate quarter-to-quarter(q2q) company
     fundamental progress. Model uses
     :class:`~ml_investment.features.QuarterlyDiffFeatures`
     (q2q results progress, e.g. 30% revenue increase,
     decrease in debt by 15% etc), 
-    :class:`~ml_investment.features.BaseCompanyFeatures`,
     :class:`~ml_investment.features.QuarterlyFeatures`
-    :class:`~ml_investment.features.CommoditiesAggQuarterFeatures`
     and trying to predict real q2q marketcap difference( 
     :class:`~ml_investment.targets.QuarterlyDiffTarget` ).
     So model prediction may be interpreted as "fair" marketcap
@@ -154,9 +184,13 @@ def FairMarketcapDiffSF1(max_back_quarter=None,
     ----------
     pretrained:
         use pretreined weights or not. If so,
-        `fair_marketcap_diff_sf1.pickle` will be downloaded. 
+        `fair_marketcap_diff_sf1_v2.pickle` will be downloaded. 
         Downloading directory path can be changed in
         `~/.ml_investment/config.json` ``models_path``
+    max_back_quarter:
+        max quarter number which will be used in model
+    min_back_quarter:
+        min quarter number which will be used in model
     '''
     if max_back_quarter is not None:
         global MAX_BACK_QUARTER 
@@ -193,12 +227,18 @@ def main():
     Default model training. Resulted model weights directory path 
     can be changed in `~/.ml_investment/config.json` ``models_path``
     '''
-    pipeline = FairMarketcapDiffSF1(pretrained=False)
+    pipeline = FairMarketcapDiffSF1V2(pretrained=False)    
     base_df = SF1BaseData(config['sf1_data_path']).load()
     tickers = base_df[(base_df['currency'] == CURRENCY) &\
                       (base_df['scalemarketcap'].apply(lambda x: x in SCALE_MARKETCAP))
                      ]['ticker'].values
-    result = pipeline.fit(tickers, median_absolute_relative_error)
+
+    filter_foo = bound_filter_foo_gen(min_bound=MIN_TARGET_BOUND,
+                                      max_bound=MAX_TARGET_BOUND)
+
+    result = pipeline.fit(tickers,
+                          metric=median_abs_diff,
+                          target_filter_foo=filter_foo)
     print(result)
     path = '{}/{}'.format(config['models_path'], OUT_NAME)
     pipeline.export_core(path)    
@@ -207,3 +247,4 @@ def main():
 if __name__ == '__main__':
     main() 
     
+

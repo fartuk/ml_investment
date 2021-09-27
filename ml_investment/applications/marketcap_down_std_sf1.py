@@ -177,12 +177,12 @@ def main():
     tickers = base_df[(base_df['currency'] == CURRENCY) &\
                       (base_df['scalemarketcap'].apply(lambda x: x in SCALE_MARKETCAP))
                      ]['ticker'].values
-    result = pipeline.fit(tickers[:200], median_absolute_relative_error)
+    result = pipeline.fit(tickers, median_absolute_relative_error)
     print(result)
     path = '{}/{}'.format(config['models_path'], OUT_NAME)
     pipeline.export_core(path)    
 
 
 if __name__ == '__main__':
-   main() 
+    main() 
     
