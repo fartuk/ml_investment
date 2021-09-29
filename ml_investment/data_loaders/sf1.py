@@ -21,7 +21,7 @@ import numpy as np
 import pandas as pd
 from tqdm import tqdm
 from typing import Optional, Union, List
-from ..utils import load_json
+from ..utils import load_json, load_config
 
 
 
@@ -95,13 +95,59 @@ def translate_currency(df: pd.DataFrame, columns: Optional[List[str]] = None):
 
 
 
+class SF1BaseData: 
+    '''
+    Load base information about company(like sector, industry etc)
+    '''
+    def __init__(self, data_path: Optional[str]=None):
+        '''
+        Parameters
+        ----------
+        data_path:
+            path to :mod:`~ml_investment.data_loaders.sf1` dataset folder
+            If None, than will be used ``sf1_data_path``
+            from `~/.ml_investment/config.json`
+        '''
+        if data_path is None:
+            data_path = load_config()['sf1_data_path']
+        self.data_path = data_path
+
+
+    def load(self, index: Optional[List[str]]=None) -> pd.DataFrame:
+        '''
+        Parameters
+        ----------
+        index:
+            list of ticker to load data for, i.e. ``['AAPL', 'TSLA']`` 
+            OR ``None`` (loading for all possible tickers)
+        Returns
+        -------
+        ``pd.DataFrame`` 
+            base companies information
+        '''
+        path = '{}/tickers.zip'.format(self.data_path)
+        tickers_df = pd.read_csv(path)
+        tickers_df = tickers_df[tickers_df['table'] == 'SF1']
+        if index is not None:
+            tmp = pd.DataFrame()
+            tmp['ticker'] = index
+            tmp['flag'] = True
+            tickers_df = pd.merge(tickers_df, tmp, on='ticker', how='left')
+            tickers_df['flag'] = tickers_df['flag'].fillna(False)
+            tickers_df = tickers_df[tickers_df['flag']]
+            del tickers_df['flag']
+
+        return tickers_df.reset_index(drop=True)
+
+
+
 class SF1QuarterlyData: 
     '''
     Loader for quartely fundamental information about
     companies(debt, revenue etc)
     '''
     def __init__(self,
-                 data_path: str,
+                 data_path: Optional[str]=None,
                  quarter_count: Optional[int]=None,
                  dimension: Optional[str]='ARQ'):
         '''
@@ -109,6 +155,8 @@ class SF1QuarterlyData:
         ----------
         data_path:
             path to :mod:`~ml_investment.data_loaders.sf1` dataset folder
+            If None, than will be used ``sf1_data_path``
+            from `~/.ml_investment/config.json`
         quarter_count:
             maximum number of last quarters to return. 
             Resulted number may be less due to short history in some companies
@@ -116,6 +164,8 @@ class SF1QuarterlyData:
             one of ``['MRY', 'MRT', 'MRQ', 'ARY', 'ART', 'ARQ']``.
             SF1 dataset-based parameter
         '''
+        if data_path is None:
+            data_path = load_config()['sf1_data_path']
         self.data_path = data_path
         self.quarter_count = quarter_count
         self.dimension = dimension
@@ -157,67 +207,33 @@ class SF1QuarterlyData:
      
         return result
 
-
-
-class SF1BaseData: 
-    '''
-    Load base information about company(like sector, industry etc)
-    '''
-    def __init__(self, data_path: str):
-        '''
-        Parameters
-        ----------
-        data_path:
-            path to :mod:`~ml_investment.data_loaders.sf1` dataset folder
-        '''
-        self.data_path = data_path
-
-
-    def load(self, index: Optional[List[str]]=None) -> pd.DataFrame:
-        '''
-        Parameters
-        ----------
-        index:
-            list of ticker to load data for, i.e. ``['AAPL', 'TSLA']`` 
-            OR ``None`` (loading for all possible tickers)
-        Returns
-        -------
-        ``pd.DataFrame`` 
-            base companies information
-        '''
-        path = '{}/tickers.zip'.format(self.data_path)
-        tickers_df = pd.read_csv(path)
-        tickers_df = tickers_df[tickers_df['table'] == 'SF1']
-        if index is not None:
-            tmp = pd.DataFrame()
-            tmp['ticker'] = index
-            tmp['flag'] = True
-            tickers_df = pd.merge(tickers_df, tmp, on='ticker', how='left')
-            tickers_df['flag'] = tickers_df['flag'].fillna(False)
-            tickers_df = tickers_df[tickers_df['flag']]
-            del tickers_df['flag']
-
-        return tickers_df.reset_index(drop=True)
         
         
 class SF1DailyData():
     '''
     Load daily information about company(marketcap, pe etc)
     '''
-    def __init__(self, data_path: str, days_count: Optional[int]=None):
+    def __init__(self, 
+                 data_path: Optional[str]=None,
+                 days_count: Optional[int]=None):
         '''
         Parameters
         ----------
         data_path:
             path to :mod:`~ml_investment.data_loaders.sf1` dataset folder
+            If None, than will be used ``sf1_data_path``
+            from `~/.ml_investment/config.json`
         days_count:
             maximum number of last days to return. 
             Resulted number may be less due to short history in some companies
         '''
+        if data_path is None:
+            data_path = load_config()['sf1_data_path']
+        if days_count is None:
+            days_count = int(1e5)    
+
         self.data_path = data_path
         self.days_count = days_count
-        if self.days_count is None:
-            self.days_count = int(1e5)    
 
 
     def load(self, index: List[str]) -> pd.DataFrame:

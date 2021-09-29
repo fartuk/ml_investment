@@ -16,32 +16,39 @@ import numpy as np
 import pandas as pd
 from tqdm import tqdm
 from typing import Optional, Union, List
-from ..utils import load_json
+from ..utils import load_json, load_config
 
 
 class DailyBarsData:
     '''
     Loader for daywise price bars.
     '''
-    def __init__(self, data_path: str, days_count: Optional[int]=None):
+    def __init__(self,
+                 data_path: Optional[str]=None,
+                 days_count: Optional[int]=None):
         '''
         Parameters
         ----------
         data_path:
             path to :mod:`~ml_investment.data_loaders.daily_bars`
             dataset folder
+            If None, than will be used ``daily_bars_data_path``
+            from `~/.ml_investment/config.json`
         days_count:
-            maximum number of last last days to return. 
+            maximum number of last days to return. 
             Resulted number may be less due to short history in some companies
         '''
+        if data_path is None:
+            data_path = load_config()['daily_bars_data_path']
+
+        if days_count is None:
+            days_count = int(1e5)
+
         self.data_path = data_path
         self.days_count = days_count
-        if self.days_count is None:
-            self.days_count = int(1e5)
 
 
-    def load(self, index: List[str], 
-                        ) -> pd.DataFrame:
+    def load(self, index: List[str]) -> pd.DataFrame:
         '''
         Load daily price bars
         

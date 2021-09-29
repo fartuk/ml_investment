@@ -17,8 +17,7 @@ import numpy as np
 import pandas as pd
 from tqdm import tqdm
 from typing import Optional, Union, List
-from ..utils import load_json
-
+from ..utils import load_json, load_config
 
 
 
@@ -26,12 +25,16 @@ class QuandlCommoditiesData:
     '''
     Loader for commodities price information. 
     '''
-    def __init__(self, data_path: str):
+    def __init__(self, data_path: Optional[str]=None):
         '''
         data_path:
             path to :mod:`~ml_investment.data_loaders.quandl_commodities`
             dataset folder
+            If None, than will be used ``commodities_data_path``
+            from `~/.ml_investment/config.json`
         '''
+        if data_path is None:
+            data_path = load_config()['commodities_data_path']
         self.data_path = data_path
 
         

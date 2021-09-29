@@ -3,7 +3,7 @@ import numpy as np
 import pandas as pd
 from tqdm import tqdm
 
-def balance_portfolio(portfolio_df, prop_col):
+def balance_portfolio_sec(portfolio_df, prop_col):
     sectors = [
             {'sector': 'Basic Materials', 'sector_part': 0.06931405604649113},
             {'sector': 'Communication Services', 'sector_part': 0.12239164380419218},
@@ -24,6 +24,12 @@ def balance_portfolio(portfolio_df, prop_col):
     tmp = portfolio_df.groupby('sector')[prop_col].sum().reset_index().rename({prop_col:'sum'}, axis=1)
     portfolio_df = pd.merge(portfolio_df, tmp, on='sector', how='left')
     portfolio_df['part'] = portfolio_df[prop_col] / portfolio_df['sum'] * portfolio_df['sector_part'] #* 52_000
+    
+    return portfolio_df['part'].values
+
+
+def balance_portfolio(portfolio_df, prop_col):
+    portfolio_df['part'] = portfolio_df[prop_col] / portfolio_df[prop_col].sum() #* 52_000
     
     return portfolio_df['part'].values
 

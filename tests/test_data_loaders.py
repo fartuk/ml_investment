@@ -4,33 +4,46 @@ import numpy as np
 import os
 from ml_investment.data_loaders.sf1 import SF1BaseData, SF1QuarterlyData,\
                                            SF1DailyData, translate_currency
+from ml_investment.data_loaders.mongo import SF1BaseData as SF1BaseDataMongo,\
+                        SF1QuarterlyData as SF1QuarterlyDataMongo,\
+                        SF1DailyData as SF1DailyDataMongo,\
+                        QuandlCommoditiesData as QuandlCommoditiesDataMongo,\
+                        DailyBarsData as DailyBarsDataMongo
+
 from ml_investment.data_loaders.yahoo import YahooBaseData, YahooQuarterlyData
 from ml_investment.data_loaders.quandl_commodities import QuandlCommoditiesData
 from ml_investment.data_loaders.daily_bars import DailyBarsData
-from ml_investment.utils import load_json, load_config
+from ml_investment.utils import load_json, load_config, load_secrets
+from pymongo import MongoClient
 
 
 config = load_config()
+secrets = load_secrets()
 
 
-@pytest.mark.skipif(not os.path.exists(config['sf1_data_path']),
-                    reason="There are no SF1 dataset")
+
 class TestSF1BaseData:
-    def test_load_no_param(self):
-        data_loader = SF1BaseData(config['sf1_data_path'])
+    datas = []
+    if os.path.exists(config['sf1_data_path']):
+        datas.append(SF1BaseData())
+    if secrets['mongodb_admin_username'] is not None:
+        datas.append(SF1BaseDataMongo())
+
+    @pytest.mark.parametrize('data_loader', datas)
+    def test_load_no_param(self, data_loader):
         df = data_loader.load()
         assert type(df) == pd.DataFrame
         assert len(df) > 0
         assert 'ticker' in df.columns
         assert df['ticker'].isnull().max() == False
 
+    @pytest.mark.parametrize('data_loader', datas)
     @pytest.mark.parametrize(
         ["tickers"],
         [(['AAPL', 'ZRAN', 'TSLA', 'WORK'],),
          (['INTC', 'ZRAN', 'XRDC', 'XOM'],)]
     )
-    def test_load(self, tickers):
-        data_loader = SF1BaseData(config['sf1_data_path'])
+    def test_load(self, tickers, data_loader):
         df = data_loader.load(tickers)
         assert type(df) == pd.DataFrame
         assert len(df) > 0
@@ -39,21 +52,25 @@ class TestSF1BaseData:
 
 
 
-@pytest.mark.skipif(not os.path.exists(config['sf1_data_path']),
-                    reason="There are no SF1 dataset")
 class TestSF1QuarterlyData:
+    data_classes = []
+    if os.path.exists(config['sf1_data_path']):
+        data_classes.append(SF1QuarterlyData)
+    if secrets['mongodb_admin_username'] is not None:
+        data_classes.append(SF1QuarterlyDataMongo)
+
+    @pytest.mark.parametrize('data_loader_class', data_classes)
     @pytest.mark.parametrize(
         ["tickers", "quarter_count", "dimension"],
         [(['AAPL', 'ZRAN', 'TSLA', 'WORK'], 10, 'ARQ'),
          (['INTC', 'ZRAN', 'XRDC', 'XOM'], 5, 'ARQ'),
-         (['INTC', 'ZRAN', 'XRDC', 'XOM'], 5, 'MRY'),
+         (['INTC', 'ZRAN', 'XRDC', 'XOM'], 5, 'ARQ'),
          (['NVDA'], 10, 'ARQ'),
          (['ZRAN'], 10, 'ARQ')],
     )
-    def test_load(self, tickers, quarter_count, dimension):
-        data_loader = SF1QuarterlyData(config['sf1_data_path'], 
-                              quarter_count=quarter_count,
-                              dimension=dimension)
+    def test_load(self, tickers, quarter_count, dimension, data_loader_class):
+        data_loader = data_loader_class(quarter_count=quarter_count,
+                                       dimension=dimension)
         quarterly_df = data_loader.load(tickers)
         
         assert type(quarterly_df) == pd.DataFrame
@@ -78,9 +95,14 @@ class TestSF1QuarterlyData:
 
 
 
-@pytest.mark.skipif(not os.path.exists(config['sf1_data_path']), 
-                    reason="There are no SF1 dataset")
 class TestSF1DailyData:
+    data_classes = []
+    if os.path.exists(config['sf1_data_path']):
+        data_classes.append(SF1DailyData)
+    if secrets['mongodb_admin_username'] is not None:
+        data_classes.append(SF1DailyDataMongo)
+
+    @pytest.mark.parametrize('data_loader_class', data_classes)
     @pytest.mark.parametrize(
         ["tickers", "days_count"],
         [(['AAPL', 'ZRAN', 'TSLA', 'WORK'], 100),
@@ -89,8 +111,8 @@ class TestSF1DailyData:
          (['NVDA'], 100),
          (['ZRAN'], 10)],
     )    
-    def test_load(self, tickers, days_count):
-        data_loader = SF1DailyData(config['sf1_data_path'], days_count=days_count)
+    def test_load(self, tickers, days_count, data_loader_class):
+        data_loader = data_loader_class(days_count=days_count)
         daily_df = data_loader.load(tickers)  
         assert type(daily_df) == pd.DataFrame
         assert 'ticker' in daily_df.columns
@@ -215,16 +237,23 @@ class TestYahooQuarterlyData:
 
 
 
-@pytest.mark.skipif(not os.path.exists(config['commodities_data_path']), 
-                    reason="There are no commodities dataset")
+
 class TestQuandlCommoditiesData:
+    data_classes = []
+    if os.path.exists(config['commodities_data_path']):
+        data_classes.append(QuandlCommoditiesData)
+    if secrets['mongodb_admin_username'] is not None:
+        data_classes.append(QuandlCommoditiesDataMongo)
+
+    @pytest.mark.parametrize('data_loader_class', data_classes)
     @pytest.mark.parametrize(
         ["commodities_codes"],
         [(['LBMA/GOLD', 'CHRIS/CME_CL1'], ),
          (['LBMA/GOLD'], )]
     )
-    def test_load_commodities_data(self, commodities_codes):
-        data_loader = QuandlCommoditiesData(config['commodities_data_path'])
+    def test_load_commodities_data(self, commodities_codes, data_loader_class):
+        data_loader = data_loader_class()
+        commodities_codes = [x.replace('/', '_') for x in commodities_codes]
         df = data_loader.load(commodities_codes)
         assert type(df) == pd.DataFrame
         assert len(df) > 0
@@ -234,9 +263,14 @@ class TestQuandlCommoditiesData:
 
 
 
-@pytest.mark.skipif(not os.path.exists(config['daily_bars_data_path']), 
-                    reason="There are no daily bars dataset")
 class TestDailyBarsData:
+    data_classes = []
+    if os.path.exists(config['daily_bars_data_path']):
+        data_classes.append(DailyBarsData)
+    if secrets['mongodb_admin_username'] is not None:
+        data_classes.append(DailyBarsDataMongo)
+
+    @pytest.mark.parametrize('data_loader_class', data_classes)
     @pytest.mark.parametrize(
         ["tickers", "days_count"],
         [(['AAPL', 'ZRAN', 'TSLA', 'WORK'], 100),
@@ -244,8 +278,8 @@ class TestDailyBarsData:
          (['INTC', 'ZRAN', 'XRDC', 'XOM'], None),
          (['NVDA'], 100)],
     )    
-    def test_load(self, tickers, days_count):
-        data_loader = DailyBarsData(config['daily_bars_data_path'], days_count=days_count)
+    def test_load(self, tickers, days_count, data_loader_class):
+        data_loader = data_loader_class(days_count=days_count)
         daily_df = data_loader.load(tickers)  
         assert type(daily_df) == pd.DataFrame
         assert 'ticker' in daily_df.columns
