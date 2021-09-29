@@ -13,8 +13,8 @@ from ..utils import load_secrets
 def create_connection():
     secrets = load_secrets()
     client = MongoClient('mongodb://mongo:27017/',
-                          username=secrets['mongodb_admin_username'],
-                          password=secrets['mongodb_admin_password'])
+                          username=secrets['mongodb_adminusername'],
+                          password=secrets['mongodb_adminpassword'])
     db = client.ml_investment
     return db
 
@@ -67,7 +67,7 @@ class SF1BaseData:
         db:
             pymongo database to load data from. 
             If None, than connection will be created from secrets file:
-            fields ``mongodb_admin_username`` and ``mongodb_admin_password`` 
+            fields ``mongodb_adminusername`` and ``mongodb_adminpassword`` 
             at `~/.ml_investment/secrets.json`
         '''
         if db is None:
@@ -117,7 +117,7 @@ class SF1QuarterlyData:
         db:
             pymongo database to load data from. 
             If None, than connection will be created from secrets file:
-            fields ``mongodb_admin_username`` and ``mongodb_admin_password`` 
+            fields ``mongodb_adminusername`` and ``mongodb_adminpassword`` 
             at `~/.ml_investment/secrets.json`
         quarter_count:
             maximum number of last quarters to return. 
@@ -181,7 +181,7 @@ class SF1DailyData():
         db:
             pymongo database to load data from. 
             If None, than connection will be created from secrets file:
-            fields ``mongodb_admin_username`` and ``mongodb_admin_password`` 
+            fields ``mongodb_adminusername`` and ``mongodb_adminpassword`` 
             at `~/.ml_investment/secrets.json`
         days_count:
             maximum number of last days to return. 
@@ -237,7 +237,7 @@ class QuandlCommoditiesData:
         db:
             pymongo database to load data from. 
             If None, than connection will be created from secrets file:
-            fields ``mongodb_admin_username`` and ``mongodb_admin_password`` 
+            fields ``mongodb_adminusername`` and ``mongodb_adminpassword`` 
             at `~/.ml_investment/secrets.json`
         '''
         if db is None:
@@ -286,7 +286,7 @@ class DailyBarsData:
         db:
             pymongo database to load data from. 
             If None, than connection will be created from secrets file:
-            fields ``mongodb_admin_username`` and ``mongodb_admin_password`` 
+            fields ``mongodb_adminusername`` and ``mongodb_adminpassword`` 
             at `~/.ml_investment/secrets.json`
         collection_name:
             name of collection containing daily bars information

@@ -26,7 +26,7 @@ class TestSF1BaseData:
     datas = []
     if os.path.exists(config['sf1_data_path']):
         datas.append(SF1BaseData())
-    if secrets['mongodb_admin_username'] is not None:
+    if secrets['mongodb_adminusername'] is not None:
         datas.append(SF1BaseDataMongo())
 
     @pytest.mark.parametrize('data_loader', datas)
@@ -56,7 +56,7 @@ class TestSF1QuarterlyData:
     data_classes = []
     if os.path.exists(config['sf1_data_path']):
         data_classes.append(SF1QuarterlyData)
-    if secrets['mongodb_admin_username'] is not None:
+    if secrets['mongodb_adminusername'] is not None:
         data_classes.append(SF1QuarterlyDataMongo)
 
     @pytest.mark.parametrize('data_loader_class', data_classes)
@@ -99,7 +99,7 @@ class TestSF1DailyData:
     data_classes = []
     if os.path.exists(config['sf1_data_path']):
         data_classes.append(SF1DailyData)
-    if secrets['mongodb_admin_username'] is not None:
+    if secrets['mongodb_adminusername'] is not None:
         data_classes.append(SF1DailyDataMongo)
 
     @pytest.mark.parametrize('data_loader_class', data_classes)
@@ -242,7 +242,7 @@ class TestQuandlCommoditiesData:
     data_classes = []
     if os.path.exists(config['commodities_data_path']):
         data_classes.append(QuandlCommoditiesData)
-    if secrets['mongodb_admin_username'] is not None:
+    if secrets['mongodb_adminusername'] is not None:
         data_classes.append(QuandlCommoditiesDataMongo)
 
     @pytest.mark.parametrize('data_loader_class', data_classes)
@@ -267,7 +267,7 @@ class TestDailyBarsData:
     data_classes = []
     if os.path.exists(config['daily_bars_data_path']):
         data_classes.append(DailyBarsData)
-    if secrets['mongodb_admin_username'] is not None:
+    if secrets['mongodb_adminusername'] is not None:
         data_classes.append(DailyBarsDataMongo)
 
     @pytest.mark.parametrize('data_loader_class', data_classes)
