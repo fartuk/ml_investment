@@ -10,14 +10,6 @@ from typing import Optional, Union, List
 from ..utils import load_secrets
 
 
-def create_connection():
-    secrets = load_secrets()
-    client = MongoClient('mongodb://mongo:27017/',
-                          username=secrets['mongodb_adminusername'],
-                          password=secrets['mongodb_adminpassword'])
-    db = client.ml_investment
-    return db
-
 
 
 
@@ -60,7 +52,11 @@ class SF1BaseData:
     '''
     Load base information about company(like sector, industry etc)
     '''
-    def __init__(self, db: Optional[pymongo.database.Database]=None):
+    def __init__(self,
+                 host: str='mongodb://mongo:27017/',
+                 username: str=load_secrets()['mongodb_adminusername'],
+                 password: str=load_secrets()['mongodb_adminpassword'],
+                 db_name: str='ml_investment'):
         '''
         Parameters
         ----------
@@ -70,9 +66,10 @@ class SF1BaseData:
             fields ``mongodb_adminusername`` and ``mongodb_adminpassword`` 
             at `~/.ml_investment/secrets.json`
         '''
-        if db is None:
-            db = create_connection()
-        self.db = db
+        self.host = host
+        self.username = username
+        self.password = password
+        self.db_name = db_name
 
 
     def load(self, index: Optional[List[str]]=None) -> pd.DataFrame:
@@ -87,12 +84,17 @@ class SF1BaseData:
         ``pd.DataFrame`` 
             base companies information
         '''
-        if index is not None:
-            cursor = self.db["sf1_base"].find({"ticker": {'$in': index} })
-        else:
-            cursor = self.db["sf1_base"].find()
+        with MongoClient(host=self.host,
+                         username=self.username,
+                         password=self.password) as client:
+            if index is not None:
+                cursor = client[self.db_name]["sf1_base"].find(
+                                                    {"ticker":{'$in': list(index)} })
+            else:
+                cursor = client[self.db_name]["sf1_base"].find()
 
-        result = [x for x in cursor]
+            result = [x for x in cursor]
+        
         if len(result) == 0:
             return None
 
@@ -108,13 +110,16 @@ class SF1QuarterlyData:
     companies(debt, revenue etc)
     '''
     def __init__(self,
-                 db: Optional[pymongo.database.Database]=None,
+                 host: str='mongodb://mongo:27017/',
+                 username: str=load_secrets()['mongodb_adminusername'],
+                 password: str=load_secrets()['mongodb_adminpassword'],
+                 db_name: str='ml_investment',
                  quarter_count: Optional[int]=None,
                  dimension: Optional[str]='ARQ'):
         '''
         Parameters
         ----------
-        db:
+        host:
             pymongo database to load data from. 
             If None, than connection will be created from secrets file:
             fields ``mongodb_adminusername`` and ``mongodb_adminpassword`` 
@@ -126,13 +131,13 @@ class SF1QuarterlyData:
             one of ``['MRY', 'MRT', 'MRQ', 'ARY', 'ART', 'ARQ']``.
             SF1 dataset-based parameter
         '''
-        if db is None:
-            db = create_connection()
-        
         if quarter_count is None:
             quarter_count = 200
 
-        self.db = db
+        self.host = host
+        self.username = username
+        self.password = password
+        self.db_name = db_name
         self.quarter_count = quarter_count
         self.dimension = dimension
 
@@ -150,20 +155,25 @@ class SF1QuarterlyData:
             quarterly information about companies
         '''
         pipeline = [{'$match': 
-                        {'ticker': {'$in': index},
+                        {'ticker': {'$in': list(index)},
                          'dimension': self.dimension}
                     }]
 
         pipeline.extend(get_group_top_pipeline(group_col='ticker',
                                                sorted_col='date',
                                                top=self.quarter_count))
-        result = [x for x in self.db["sf1_quarterly"].aggregate(pipeline)]
+        
+        with MongoClient(host=self.host,
+                         username=self.username,
+                         password=self.password) as client:
+            result = [x for x in client[self.db_name]["sf1_quarterly"].aggregate(pipeline)]
+        
         if len(result) == 0:
             return None
 
         result = pd.DataFrame(result)
         result['date'] = result['date'].apply(lambda x: np.datetime64(x, 'ms'))
-
+    
         return result
       
 
@@ -173,7 +183,10 @@ class SF1DailyData():
     Load daily information about company(marketcap, pe etc)
     '''
     def __init__(self,
-                 db: Optional[pymongo.database.Database]=None,
+                 host: str='mongodb://mongo:27017/',
+                 username: str=load_secrets()['mongodb_adminusername'],
+                 password: str=load_secrets()['mongodb_adminpassword'],
+                 db_name: str='ml_investment',
                  days_count: Optional[int]=None):
         '''
         Parameters
@@ -187,13 +200,13 @@ class SF1DailyData():
             maximum number of last days to return. 
             Resulted number may be less due to short history in some companies
         '''
-        if db is None:
-            db = create_connection()
-        
         if days_count is None:
             days_count = int(1e5)    
 
-        self.db = db
+        self.host = host
+        self.username = username
+        self.password = password
+        self.db_name = db_name
         self.days_count = days_count
 
 
@@ -210,14 +223,18 @@ class SF1DailyData():
             daily information about companies
         '''                        
         pipeline = [{'$match': 
-                        {'ticker': {'$in': index}}
+                        {'ticker': {'$in': list(index)}}
                     }]
         
         pipeline.extend(get_group_top_pipeline(group_col='ticker',
                                                sorted_col='date',
                                                top=self.days_count))
 
-        result = [x for x in self.db["sf1_daily"].aggregate(pipeline)]
+        with MongoClient(host=self.host,
+                         username=self.username,
+                         password=self.password) as client:
+            result = [x for x in client[self.db_name]["sf1_daily"].aggregate(pipeline)]
+        
         if len(result) == 0:
             return None
 
@@ -232,7 +249,11 @@ class QuandlCommoditiesData:
     '''
     Loader for commodities price information. 
     '''
-    def __init__(self, db: Optional[pymongo.database.Database]=None):
+    def __init__(self,
+                 host: str='mongodb://mongo:27017/',
+                 username: str=load_secrets()['mongodb_adminusername'],
+                 password: str=load_secrets()['mongodb_adminpassword'],
+                 db_name: str='ml_investment'):
         '''
         db:
             pymongo database to load data from. 
@@ -240,9 +261,10 @@ class QuandlCommoditiesData:
             fields ``mongodb_adminusername`` and ``mongodb_adminpassword`` 
             at `~/.ml_investment/secrets.json`
         '''
-        if db is None:
-            db = create_connection()
-        self.db = db
+        self.host = host
+        self.username = username
+        self.password = password
+        self.db_name = db_name
        
 
     def load(self, index: List[str]) -> pd.DataFrame:
@@ -261,10 +283,14 @@ class QuandlCommoditiesData:
             time series price information
         '''  
         index = [x.replace('/', '_') for x in index]
-        cursor = self.db["quandl_commodities"].find({'commodity_code': 
-                                                        {'$in': index}})
-        cursor = cursor.sort('date', pymongo.DESCENDING)
-        result = [x for x in cursor]
+        with MongoClient(host=self.host,
+                         username=self.username,
+                         password=self.password) as client:
+            cursor = client[self.db_name]["quandl_commodities"].find(
+                                            {'commodity_code': {'$in': index}})
+            cursor = cursor.sort('date', pymongo.DESCENDING)
+            result = [x for x in cursor]
+        
         result = pd.DataFrame(result)
         result['date'] = result['date'].apply(lambda x: np.datetime64(x, 'ms'))
         
@@ -277,7 +303,10 @@ class DailyBarsData:
     Loader for daywise price bars.
     '''
     def __init__(self,
-                 db: Optional[pymongo.database.Database]=None,
+                 host: str='mongodb://mongo:27017/',
+                 username: str=load_secrets()['mongodb_adminusername'],
+                 password: str=load_secrets()['mongodb_adminpassword'],
+                 db_name: str='ml_investment',
                  collection_name: str='daily_bars',
                  days_count: Optional[int]=None):
         '''
@@ -294,13 +323,13 @@ class DailyBarsData:
             maximum number of last last days to return. 
             Resulted number may be less due to short history in some companies
         '''
-        if db is None:
-            db = create_connection()
-        
         if days_count is None:
             days_count = int(1e5)
         
-        self.db = db
+        self.host = host
+        self.username = username
+        self.password = password
+        self.db_name = db_name
         self.collection_name = collection_name
         self.days_count = days_count
 
@@ -320,14 +349,20 @@ class DailyBarsData:
             daily price bars
         '''                        
         pipeline = [{'$match': 
-                        {'ticker': {'$in': index}}
+                        {'ticker': {'$in': list(index)}}
                     }]
         
         pipeline.extend(get_group_top_pipeline(group_col='ticker',
                                                sorted_col='date',
                                                top=self.days_count))
 
-        result = [x for x in self.db[self.collection_name].aggregate(pipeline)]
+        with MongoClient(host=self.host,
+                         username=self.username,
+                         password=self.password) as client:
+            cursor = client[self.db_name][self.collection_name].aggregate(pipeline, allowDiskUse=True)
+            #cursor = cursor.allowDiskUse()
+            result = [x for x in cursor]
+
         if len(result) == 0:
             return None
 

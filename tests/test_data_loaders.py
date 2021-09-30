@@ -63,7 +63,7 @@ class TestSF1QuarterlyData:
     @pytest.mark.parametrize(
         ["tickers", "quarter_count", "dimension"],
         [(['AAPL', 'ZRAN', 'TSLA', 'WORK'], 10, 'ARQ'),
-         (['INTC', 'ZRAN', 'XRDC', 'XOM'], 5, 'ARQ'),
+         (['INTC', 'ZRAN', 'XRDC', 'XOM', 'PNK'], 5, 'ARQ'),
          (['INTC', 'ZRAN', 'XRDC', 'XOM'], 5, 'ARQ'),
          (['NVDA'], 10, 'ARQ'),
          (['ZRAN'], 10, 'ARQ')],
@@ -77,6 +77,8 @@ class TestSF1QuarterlyData:
         assert 'ticker' in quarterly_df.columns
         assert 'date' in quarterly_df.columns
         
+        assert len(quarterly_df.drop_duplicates(['ticker', 'date'])) == len(quarterly_df)
+
         # Data should be ordered by date inside ticker
         quarterly_df['date_'] = quarterly_df['date'].astype(np.datetime64)
         quarterly_df['def_order'] = range(len(quarterly_df))[::-1]
@@ -106,7 +108,7 @@ class TestSF1DailyData:
     @pytest.mark.parametrize(
         ["tickers", "days_count"],
         [(['AAPL', 'ZRAN', 'TSLA', 'WORK'], 100),
-         (['INTC', 'ZRAN', 'XRDC', 'XOM'], 50),
+         (['INTC', 'ZRAN', 'XRDC', 'XOM', 'PNK'], 50),
          (['INTC', 'ZRAN', 'XRDC', 'XOM'], None),
          (['NVDA'], 100),
          (['ZRAN'], 10)],
@@ -117,6 +119,8 @@ class TestSF1DailyData:
         assert type(daily_df) == pd.DataFrame
         assert 'ticker' in daily_df.columns
         assert 'date' in daily_df.columns
+        
+        assert len(daily_df.drop_duplicates(['ticker', 'date'])) == len(daily_df)
            
         # Data should be ordered by date inside ticker
         daily_df['date_'] = daily_df['date'].astype(np.datetime64)
