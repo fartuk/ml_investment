@@ -10,6 +10,16 @@ from typing import Optional, Union, List
 from ..utils import load_secrets
 
 
+def pymongo_auto_reconnect(num_tries):
+    def decorator(func):
+        def f_retry(*args, **kwargs):
+            for i in range(num_tries):
+                try:
+                    return func(*args, **kwargs)
+                except pymongo.errors.AutoReconnect as e:
+                    continue
+        return f_retry
+    return decorator
 
 
 
@@ -72,6 +82,7 @@ class SF1BaseData:
         self.db_name = db_name
 
 
+    @pymongo_auto_reconnect(3)
     def load(self, index: Optional[List[str]]=None) -> pd.DataFrame:
         '''
         Parameters
@@ -142,6 +153,7 @@ class SF1QuarterlyData:
         self.dimension = dimension
 
 
+    @pymongo_auto_reconnect(3)
     def load(self, index: List[str]) -> pd.DataFrame:
         '''    
         Parameters
@@ -166,7 +178,7 @@ class SF1QuarterlyData:
         with MongoClient(host=self.host,
                          username=self.username,
                          password=self.password) as client:
-            result = [x for x in client[self.db_name]["sf1_quarterly"].aggregate(pipeline)]
+            result = [x for x in client[self.db_name]["sf1_quarterly"].aggregate(pipeline, allowDiskUse=True)]
         
         if len(result) == 0:
             return None
@@ -210,6 +222,7 @@ class SF1DailyData():
         self.days_count = days_count
 
 
+    @pymongo_auto_reconnect(3)
     def load(self, index: List[str]) -> pd.DataFrame:
         '''    
         Parameters
@@ -233,7 +246,7 @@ class SF1DailyData():
         with MongoClient(host=self.host,
                          username=self.username,
                          password=self.password) as client:
-            result = [x for x in client[self.db_name]["sf1_daily"].aggregate(pipeline)]
+            result = [x for x in client[self.db_name]["sf1_daily"].aggregate(pipeline, allowDiskUse=True)]
         
         if len(result) == 0:
             return None
@@ -267,6 +280,7 @@ class QuandlCommoditiesData:
         self.db_name = db_name
        
 
+    @pymongo_auto_reconnect(3)
     def load(self, index: List[str]) -> pd.DataFrame:
         '''
         Load time-series information about commodity price
@@ -334,6 +348,7 @@ class DailyBarsData:
         self.days_count = days_count
 
 
+    @pymongo_auto_reconnect(3)
     def load(self, index: List[str]) -> pd.DataFrame:
         '''
         Load daily price bars
