@@ -1,7 +1,10 @@
 import argparse
 import os
+import time
 import numpy as np
 import pandas_datareader.data as web
+
+from typing import List, Optional
 from tqdm import tqdm
 from multiprocessing import Pool
 from ml_investment.download import TinkoffDownloader
@@ -12,19 +15,35 @@ from ml_investment.utils import load_config, load_tickers
 global _data_path
 _data_path = None
 
+global _from_date
+_from_date = None
+    
+global _to_date
+_to_date = None
+
 def _single_ticker_download(ticker):
     global _data_path
+    global _from_date
+    global _to_date
+    success = False
     for _ in range(3):
         try:
             df = web.DataReader(ticker, "yahoo", 
-                                np.datetime64('2010-01-01'), np.datetime64('now'))
+                                _from_date, _to_date)
             df.to_csv('{}/{}.csv'.format(_data_path, ticker))          
+            success = True
+            time.sleep(np.random.uniform(0.2, 1.0))
             break
         except:
-            print(ticker)
+            None
+    if not success:
+        print('Can not download', ticker)
 
 
-def main(data_path: str=None):
+def main(data_path: str=None, 
+         tickers: Optional[List]=None,
+         from_date: Optional[np.datetime64]=None,
+         to_date: Optional[np.datetime64]=None):
     '''
     Download daily price bars for base US stocks and indexes. 
 
@@ -36,18 +55,29 @@ def main(data_path: str=None):
         `~/.ml_investment/config.json`
     '''
     if data_path is None:
-        config = load_config()
-        data_path = config['daily_bars_data_path']
+        data_path = load_config()['daily_bars_data_path']
+    
+    if tickers is None:
+        tickers = load_tickers()['base_us_stocks'] + ['SPY', 'TLT', 'QQQ']
+    
+    if from_date is None:
+        from_date = np.datetime64('2010-01-01')
+
+    if to_date is None:
+        to_date = np.datetime64('now')
 
     global _data_path
     _data_path = data_path
-    tickers = load_tickers()['base_us_stocks']
-    index_tickers = ['SPY', 'TLT', 'QQQ']
     os.makedirs(data_path, exist_ok=True)
+
+    global _from_date
+    _from_date = from_date
     
-    p = Pool(8)
-    for _ in tqdm(p.imap(_single_ticker_download,
-                         tickers + index_tickers)):
+    global _to_date
+    _to_date = to_date
+
+    p = Pool(4)
+    for _ in tqdm(p.imap(_single_ticker_download, tickers)):
         None
 
 
