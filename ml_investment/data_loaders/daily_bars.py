@@ -70,12 +70,17 @@ class DailyBarsData:
             daily_df = pd.read_csv(path)[::-1][:self.days_count]
             daily_df['ticker'] = ticker
             result.append(daily_df)
-        if len(result) > 0:    
+
+        if len(result) == 0:
+            return
+
+        if len(result) == 1:
+            result = result[0]
+        else:    
             result = pd.concat(result, axis=0).reset_index(drop=True)
-            result = result.infer_objects()
-            result['date'] = result['Date'].astype(np.datetime64) 
-        else:
-            return None
+
+        result = result.infer_objects()
+        result['date'] = result['Date'].astype(np.datetime64) 
 
         return result
 
