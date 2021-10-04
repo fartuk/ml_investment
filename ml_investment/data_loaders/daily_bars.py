@@ -79,3 +79,16 @@ class DailyBarsData:
 
         return result
 
+
+    def existing_index(self):
+        '''  
+        Returns
+        -------
+        ``List``
+            existing index values that can pe pushed to `load`
+        '''
+        index = [x.split('.csv')[0] for x in os.listdir(self.data_path)]
+        return index 
+
+
+

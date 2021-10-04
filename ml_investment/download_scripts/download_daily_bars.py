@@ -25,19 +25,15 @@ def _single_ticker_download(ticker):
     global _data_path
     global _from_date
     global _to_date
-    success = False
     for _ in range(3):
         try:
             df = web.DataReader(ticker, "yahoo", 
                                 _from_date, _to_date)
             df.to_csv('{}/{}.csv'.format(_data_path, ticker))          
-            success = True
             time.sleep(np.random.uniform(0.2, 1.0))
             break
         except:
             None
-    if not success:
-        print('Can not download', ticker)
 
 
 def main(data_path: str=None, 
@@ -76,9 +72,9 @@ def main(data_path: str=None,
     global _to_date
     _to_date = to_date
 
-    p = Pool(4)
-    for _ in tqdm(p.imap(_single_ticker_download, tickers)):
-        None
+    with Pool(4) as p:
+        for _ in tqdm(p.imap(_single_ticker_download, tickers)):
+            None
 
 
 

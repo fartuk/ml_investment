@@ -139,6 +139,18 @@ class SF1BaseData:
 
         return tickers_df.reset_index(drop=True)
 
+    def existing_index(self):
+        '''  
+        Returns
+        -------
+        ``List``
+            existing index values that can pe pushed to `load`
+        '''
+        path = '{}/tickers.zip'.format(self.data_path)
+        tickers_df = pd.read_csv(path)
+        tickers_df = tickers_df[tickers_df['table'] == 'SF1']
+        index = list(tickers_df['ticker'].unique())
+        return index 
 
 
 class SF1QuarterlyData: 
@@ -192,12 +204,11 @@ class SF1QuarterlyData:
             df = df[df['dimension'] == self.dimension]
             if self.quarter_count is not None:
                 df = df[:self.quarter_count]
+
             df['date'] = df['datekey']
             df = df.sort_values('date', ascending=False)
-
             #df = translate_currency(df)
             result.append(df)
-           
         
         if len(result) == 0:
             return None
@@ -207,7 +218,19 @@ class SF1QuarterlyData:
      
         return result
 
-        
+
+    def existing_index(self):
+        '''  
+        Returns
+        -------
+        ``List``
+            existing index values that can pe pushed to `load`
+        '''
+        dir_path = '{}/core_fundamental'.format(self.data_path)
+        index = [x.split('.json')[0] for x in os.listdir(dir_path)]
+        return index 
+
+
         
 class SF1DailyData():
     '''
@@ -265,6 +288,19 @@ class SF1DailyData():
         result['date'] = result['date'].astype(np.datetime64) 
                 
         return result
+
+
+    def existing_index(self):
+        '''  
+        Returns
+        -------
+        ``List``
+            existing index values that can pe pushed to `load`
+        '''
+        dir_path = '{}/daily'.format(self.data_path)
+        index = [x.split('.json')[0] for x in os.listdir(dir_path)]
+        return index 
+
 
 
 
