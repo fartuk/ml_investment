@@ -302,5 +302,65 @@ class SF1DailyData():
         return index 
 
 
+class SF1SNP500Data: 
+    '''
+    S&P500 historical constituents
+    '''
+    def __init__(self, data_path: Optional[str]=None):
+        '''
+        Parameters
+        ----------
+        data_path:
+            path to :mod:`~ml_investment.data_loaders.sf1` dataset folder
+            If None, than will be used ``sf1_data_path``
+            from `~/.ml_investment/config.json`
+        '''
+        if data_path is None:
+            data_path = load_config()['sf1_data_path']
+        self.data_path = data_path
 
+
+    def load(self, index: Optional[List[np.datetime64]]=None) -> pd.DataFrame:
+        '''
+        Parameters
+        ----------
+        index:
+            list of dates to load constituents data for,
+            i.e. ``[np.datetime64('2018-01-01'), np.datetime64('2018-05-10')]`` 
+            OR ``None`` (loading for all dates when constituents was changed)
+        Returns
+        -------
+        ``pd.DataFrame`` 
+            constituents information
+        '''
+        path = '{}/snp500.zip'.format(self.data_path)
+        df = pd.read_csv(path)
+        df['date'] = df['date'].astype(np.datetime64)
+        df = df[df['action'] == 'historical']
+     
+        result = []
+        for date in index:
+            tmp = df[(df['date'] <= date)]
+            result.append(tmp[tmp['date'] == tmp['date'].max()])
+        
+        if len(result) == 0:
+            return
+
+        result = pd.concat(result, axis=0)
+        
+        return result
+    
+
+    def existing_index(self):
+        '''  
+        Returns
+        -------
+        ``List``
+            existing index values that can pe pushed to `load`
+        '''
+        path = '{}/snp500.zip'.format(self.data_path)
+        df = pd.read_csv(path)
+        df['date'] = df['date'].astype(np.datetime64)
+        index = list(df['date'].unique())
+        return index
 

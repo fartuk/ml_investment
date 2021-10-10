@@ -69,6 +69,8 @@ class DailyBarsData:
                 continue
             daily_df = pd.read_csv(path)[::-1][:self.days_count]
             daily_df['ticker'] = ticker
+            daily_df['return'] = (daily_df['Adj Close'] / 
+                                  daily_df['Adj Close'].shift(-1)).fillna(1)
             result.append(daily_df)
 
         if len(result) == 0:
@@ -81,6 +83,7 @@ class DailyBarsData:
 
         result = result.infer_objects()
         result['date'] = result['Date'].astype(np.datetime64) 
+        result = result.reset_index(drop=True)
 
         return result
 

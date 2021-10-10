@@ -29,6 +29,9 @@ def main(data_path :str=None):
     downloader.zip_download('datatables/SHARADAR/TICKERS?qopts.export=true',
                             '{}/tickers.zip'.format(data_path))
 
+    downloader.zip_download('datatables/SHARADAR/SP500?qopts.export=true',
+                            '{}/snp500.zip'.format(data_path))
+    
     base_df = SF1BaseData(data_path).load()
     tickers = base_df['ticker'].unique().tolist()
     

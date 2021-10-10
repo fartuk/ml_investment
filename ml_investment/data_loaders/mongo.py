@@ -246,7 +246,8 @@ class SF1DailyData():
         with MongoClient(host=self.host,
                          username=self.username,
                          password=self.password) as client:
-            result = [x for x in client[self.db_name]["sf1_daily"].aggregate(pipeline, allowDiskUse=True)]
+            result = [x for x in client[self.db_name]["sf1_daily"].aggregate(
+                                                  pipeline, allowDiskUse=True)]
         
         if len(result) == 0:
             return None
@@ -374,7 +375,8 @@ class DailyBarsData:
         with MongoClient(host=self.host,
                          username=self.username,
                          password=self.password) as client:
-            cursor = client[self.db_name][self.collection_name].aggregate(pipeline, allowDiskUse=True)
+            cursor = client[self.db_name][self.collection_name].aggregate(
+                                                   pipeline, allowDiskUse=True)
             #cursor = cursor.allowDiskUse()
             result = [x for x in cursor]
 
@@ -382,7 +384,16 @@ class DailyBarsData:
             return None
 
         result = pd.DataFrame(result)
-        result['date'] = result['date'].apply(lambda x: np.datetime64(x, 'ms'))
+        result['Date'] = result['date'].apply(lambda x: np.datetime64(x, 'ms'))
+        #df['Date'] = df['Date'].astype(np.datetime64)
+        result = result.sort_values(['ticker', 'Date']).reset_index(drop=True)
+        first_df = result.groupby('ticker')['Close'].first().reset_index()
+        first_df = first_df.rename({'Close':'first_close'}, axis=1)
+        result['cum_prod'] = result.groupby('ticker')['return'].cumprod()
+        result = pd.merge(result, first_df, on='ticker')
+        result['Adj Close'] = result['cum_prod'] * result['first_close']
+        result = result.sort_values(['ticker', 'Date'], ascending=False)
+        result = result.reset_index(drop=True)
 
         return result
 
