@@ -259,6 +259,96 @@ class SF1DailyData():
 
 
 
+class SF1SNP500Data():
+    '''
+    Load SNP500 constituents
+    '''
+    def __init__(self,
+                 host: str='mongodb://mongo:27017/',
+                 username: str=load_secrets()['mongodb_adminusername'],
+                 password: str=load_secrets()['mongodb_adminpassword'],
+                 db_name: str='ml_investment'):
+        '''
+        Parameters
+        ----------
+        db:
+            pymongo database to load data from. 
+            If None, than connection will be created from secrets file:
+            fields ``mongodb_adminusername`` and ``mongodb_adminpassword`` 
+            at `~/.ml_investment/secrets.json`
+        '''
+        self.host = host
+        self.username = username
+        self.password = password
+        self.db_name = db_name
+        
+        with MongoClient(host=self.host,
+                         username=self.username,
+                         password=self.password) as client:
+            dates = client[self.db_name]['sf1_snp500'].find().distinct("date")
+            dates = [np.datetime64(x, 'ms') for x in dates]
+            dates = np.sort(dates)
+        self.dates = dates
+        self.cash = {}
+    
+
+    @pymongo_auto_reconnect(3)
+    def load(self, index: List[str]) -> pd.DataFrame:
+        '''    
+        Parameters
+        ----------
+        index:
+            list of ticker to load data for, i.e. ``['AAPL', 'TSLA']`` 
+             
+        Returns
+        -------
+        ``pd.DataFrame``
+            snp500 constituents
+        '''                     
+        result = []
+        for date in index:
+            past_dates = self.dates[self.dates <= date]
+            
+            if len(past_dates) == 0:
+                continue
+
+            change_date = int(past_dates[-1].astype('long'))
+            if change_date in self.cash:
+                result.append(self.cash[change_date])
+                continue
+
+            with MongoClient(host=self.host,
+                             username=self.username,
+                             password=self.password) as client:
+                cursor = client[self.db_name]['sf1_snp500'].find(
+                                {'date': change_date})
+                curr_df = pd.DataFrame([x for x in cursor])
+                curr_df['date'] = curr_df['date'].apply(lambda x: 
+                                                        np.datetime64(x, 'ms'))
+                result.append(curr_df)
+                self.cash[change_date] = curr_df
+
+        if len(result) == 0:
+            return None
+
+        result = pd.concat(result, axis=0)
+
+        return result
+
+
+    @pymongo_auto_reconnect(3)
+    def existing_index(self) -> List:
+        with MongoClient(host=self.host,
+                         username=self.username,
+                         password=self.password) as client:
+            dates = client[self.db_name]['sf1_snp500'].find().distinct("date")
+            dates = [np.datetime64(x, 'ms') for x in dates]
+            dates = list(np.sort(dates))
+
+        return dates
+
+
+
 class QuandlCommoditiesData:
     '''
     Loader for commodities price information. 
@@ -398,9 +488,14 @@ class DailyBarsData:
         return result
 
 
+    @pymongo_auto_reconnect(3)
+    def existing_index(self) -> List:
+        with MongoClient(host=self.host,
+                         username=self.username,
+                         password=self.password) as client:
+            tickers = client[self.db_name][self.collection_name].find().distinct("ticker")
 
-
-
+        return tickers
 
 
 

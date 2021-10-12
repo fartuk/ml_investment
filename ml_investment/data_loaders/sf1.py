@@ -325,8 +325,9 @@ class SF1SNP500Data:
         Parameters
         ----------
         index:
-            list of dates to load constituents data for,
+            list of dates to load constituents for,
             i.e. ``[np.datetime64('2018-01-01'), np.datetime64('2018-05-10')]`` 
+            If there are no such date, than nearest past date will be used.
             OR ``None`` (loading for all dates when constituents was changed)
         Returns
         -------
@@ -337,7 +338,11 @@ class SF1SNP500Data:
         df = pd.read_csv(path)
         df['date'] = df['date'].astype(np.datetime64)
         df = df[df['action'] == 'historical']
-     
+        
+        if index is None:
+            return df
+
+        
         result = []
         for date in index:
             tmp = df[(df['date'] <= date)]
@@ -361,6 +366,7 @@ class SF1SNP500Data:
         path = '{}/snp500.zip'.format(self.data_path)
         df = pd.read_csv(path)
         df['date'] = df['date'].astype(np.datetime64)
+        df = df[df['action'] == 'historical']
         index = list(df['date'].unique())
         return index
 
