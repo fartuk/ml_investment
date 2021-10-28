@@ -8,6 +8,7 @@ import lightgbm as lgbm
 from copy import deepcopy
 from functools import reduce
 from typing import List, Dict
+from collections import Sequence
 from .utils import copy_repeat, check_create_folder, nan_mask
 
 import gc
@@ -21,7 +22,7 @@ class Pipeline:
     execute-phase.
     Support multi-target with different models and metrics.
     '''
-    def __init__(self, data: Dict, feature, target, model, out_name=None):
+    def __init__(self, data: Dict, feature, target, model, out_name=None, quantiles=None):
         '''     
         Parameters
         ----------
@@ -48,10 +49,13 @@ class Pipeline:
             OR ``List[str]`` (len of this list should be equal to 
             len of target)
             OR ``None`` ( ``List['y_0', 'y_1'...]`` will be used in this case)
+        quantiles:
+            list of quantile values, required if quntile regressors were trained
         '''
         self.core = {}
         self.data = data
-        self.feature = feature    
+        self.feature = feature
+        self.quantiles = quantiles
         
         if type(target) == list and type(model) == list:
             assert len(target) == len(model)
@@ -146,7 +150,12 @@ class Pipeline:
         X = self.feature.calculate(self.data, index)
         for k, target in enumerate(self.target):
             pred = self.core['model'][k].predict(X)
-            result[self.out_name[k]] = pred
+            if self.quantiles is not None:
+                for i, q in enumerate(self.quantiles):
+                    result[f'quantile: {q}'] = pred[i]
+            else:
+                result[self.out_name[k]] = pred
+        print(result)
         result.index = X.index
 
         return result

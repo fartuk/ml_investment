@@ -11,7 +11,7 @@ REPO_NAME=ml_investment
 # check if being sourced (bash only)
 function is_sourced() {
     if [ "$(uname)" == "Darwin" ] ; then
-        false
+        [[ "${BASH_SOURCE[0]}" != "${0}" ]]
     else
         [[ ${FUNCNAME[-1]} == "source" ]]
     fi
@@ -37,12 +37,8 @@ if [ "$1" == install -o "$1" == i ] ; then
 fi
 
 if [ "$1" == activate -o "$1" == a ] ; then
-    if [ "$(uname)" == "Darwin" ] ; then
-        set +e && source $VENV_NAME/bin/activate
-    else
-        echo TYPE in command line to activate venv
-        echo ". v"
-    fi
+    echo TYPE in command line to activate venv
+    echo ". v"
 fi
 
 if [ "$1" == pip ] ; then

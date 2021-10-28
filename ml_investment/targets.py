@@ -5,6 +5,185 @@ from tqdm import tqdm
 from typing import List, Dict, Tuple, Callable
 
 
+class DailyTarget:
+    '''
+    Calculator of target represented as column in daily-based data.
+    Work with quarterly slices of company.
+    '''
+
+    def __init__(self,
+                 data_key: str,
+                 col: str,
+                 days_shift: int = 0,
+                 n_jobs: int = cpu_count()):
+        '''
+        Parameters
+        ----------
+        data_key:
+            key of dataloader in ``data`` argument during
+            :func:`~ml_investment.targets.DailyTarget.calculate`
+        col:
+            column name for target calculation(like marketcap, revenue)
+        days_shift:
+            number of days to shift.
+            e.g. if ``days_shift = 0`` than value for current date
+            will be returned.
+            If ``days_shift = 1`` than value for next date
+            will be returned.
+            If ``days_shift = -1`` than value for previous date
+            will be returned.
+        '''
+        self.data_key = data_key
+        self.col = col
+        self.days_shift = days_shift
+        self.n_jobs = n_jobs
+        self._data_loader = None
+
+    def _single_ticker_target(self,
+                              ticker_and_dates: Tuple[str,
+                                                      List]) -> pd.DataFrame:
+        ticker, dates = ticker_and_dates
+        daily_data = self._data_loader.load([ticker])[::-1]
+        daily_dates = daily_data['date'].astype(np.datetime64).values
+        vals = []
+        for date in dates:
+            assert np.datetime64(date) in daily_dates
+            curr_date_mask = daily_dates == np.datetime64(date)
+            curr_quarter_idx = np.where(curr_date_mask)[0][0]
+            idx = curr_quarter_idx + self.days_shift
+            if idx >= 0 and idx < len(daily_data):
+                value = daily_data[self.col].values[idx]
+            else:
+                value = np.nan
+
+            vals.append(value)
+
+        result = pd.DataFrame()
+        result['y'] = vals
+        result['date'] = dates
+        result['ticker'] = ticker
+
+        return result
+
+    def calculate(self, data: Dict, index: pd.DataFrame) -> pd.DataFrame:
+        '''
+        Interface to calculate targets for dates and tickers
+        in index parameter based on data
+
+        Parameters
+        ----------
+        data:
+            dict having field named as value in ``data_key`` param of
+            :func:`~ml_investment.targets.DailyTarget.__init__`
+            This field should contain class implementing
+            ``load(index) -> pd.DataFrame`` interface
+        index:
+            ``pd.DataFrame`` containing information of tickers and dates
+            to calculate targets for.
+            Should have columns: ``["ticker", "date"]``
+
+        Returns
+        -------
+        ``pd.DataFrame``
+            targets having 'y' column. Index of this dataframe has the same
+            values as ``index`` param.
+            Each row contains target for ``ticker`` company
+            at ``date`` quarter
+        '''
+        self._data_loader = data[self.data_key]
+        grouped = index.groupby('ticker')['date'].apply(lambda x:
+                                                        x.tolist()).reset_index()
+        params = [(ticker, dates) for ticker, dates in grouped.values]
+
+        with Pool(self.n_jobs) as p:
+            result = []
+            for ticker_result in tqdm(p.imap(self._single_ticker_target, params)):
+                result.append(ticker_result)
+
+        result = pd.concat(result, axis=0)
+        result = result.drop_duplicates(['ticker', 'date'])
+        result = pd.merge(index, result, on=['ticker', 'date'], how='left')
+        result = result.set_index(['ticker', 'date'])
+        result = result.infer_objects()
+
+        return result
+
+
+class DailyDiffTarget:
+    '''
+    Calculator of target represented as difference between column values
+    in current date and date 'days_count' ago.
+    Work with quarterly slices of company.
+    '''
+
+    def __init__(self,
+                 data_key: str,
+                 col: str,
+                 norm: bool = True,
+                 days_diff: int = 90,
+                 n_jobs: int = cpu_count()):
+        '''
+        Parameters
+        ----------
+        data_key:
+            key of dataloader in ``data`` argument during
+            :func:`~ml_investment.targets.DailyDiffTarget.calculate`
+        col:
+            column name for target calculation(like marketcap, revenue)
+        norm:
+            normalize difference to previous quarter or not
+        n_jobs:
+            number of threads for calculation
+        days_diff:
+            period between current and last target
+
+        '''
+
+        self.curr_target = DailyTarget(data_key=data_key,
+                                       col=col,
+                                       days_shift=0,
+                                       n_jobs=n_jobs)
+
+        self.last_target = DailyTarget(data_key=data_key,
+                                       col=col,
+                                       days_shift=-days_diff,
+                                       n_jobs=n_jobs)
+        self.norm = norm
+
+    def calculate(self, data: Dict, index: pd.DataFrame) -> pd.DataFrame:
+        '''
+        Interface to calculate targets for dates and tickers
+        in index parameter based on data
+
+        Parameters
+        ----------
+        data:
+            dict having field named as value in ``data_key`` param of
+            :func:`~ml_investment.targets.DailyTarget.__init__`
+            This field should contain class implementing
+            ``load(index) -> pd.DataFrame`` interface
+        index:
+            ``pd.DataFrame`` containing information of tickers and dates
+            to calculate targets for.
+            Should have columns: ``["ticker", "date"]``
+
+        Returns
+        -------
+        ``pd.DataFrame``
+            targets having 'y' column. Index of this dataframe has the same
+            values as ``index`` param.
+            Each row contains target for ``ticker`` company
+            at ``date`` quarter
+        '''
+        curr_df = self.curr_target.calculate(data, index)
+        last_df = self.last_target.calculate(data, index)
+        curr_df['y'] = curr_df['y'] - last_df['y']
+        if self.norm:
+            curr_df['y'] = curr_df['y'] / np.abs(last_df['y'])
+
+        return curr_df
+
+
 
 class QuarterlyTarget:
     '''
@@ -122,7 +301,7 @@ class QuarterlyDiffTarget:
                  col: str,
                  norm: bool=True,
                  n_jobs: int = cpu_count()):
-        '''     
+        '''
         Parameters
         ----------
         data_key:
@@ -517,8 +696,8 @@ class ReportGapTarget:
 
         return curr_df        
         
-        
-        
+
+
 class BaseInfoTarget:
     '''
     Calculator of target represented by base company information
