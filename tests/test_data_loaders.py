@@ -304,7 +304,7 @@ class TestDailyBarsData:
         
         if days_count is not None:
             for cnt in daily_df.groupby('ticker').size():
-                assert cnt == days_count
+                assert cnt <= days_count
 
 
 

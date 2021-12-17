@@ -7,7 +7,7 @@ import pandas as pd
 import pymongo
 from pymongo import MongoClient
 from typing import Optional, Union, List
-from ..utils import load_secrets
+from ..utils import load_config, load_secrets
 
 
 def pymongo_auto_reconnect(num_tries):
@@ -63,7 +63,7 @@ class SF1BaseData:
     Load base information about company(like sector, industry etc)
     '''
     def __init__(self,
-                 host: str='mongodb://mongo:27017/',
+                 host: str=load_config()['mongodb_host'],
                  username: str=load_secrets()['mongodb_adminusername'],
                  password: str=load_secrets()['mongodb_adminpassword'],
                  db_name: str='ml_investment'):
@@ -121,7 +121,7 @@ class SF1QuarterlyData:
     companies(debt, revenue etc)
     '''
     def __init__(self,
-                 host: str='mongodb://mongo:27017/',
+                 host: str=load_config()['mongodb_host'],
                  username: str=load_secrets()['mongodb_adminusername'],
                  password: str=load_secrets()['mongodb_adminpassword'],
                  db_name: str='ml_investment',
@@ -195,7 +195,7 @@ class SF1DailyData():
     Load daily information about company(marketcap, pe etc)
     '''
     def __init__(self,
-                 host: str='mongodb://mongo:27017/',
+                 host: str=load_config()['mongodb_host'],
                  username: str=load_secrets()['mongodb_adminusername'],
                  password: str=load_secrets()['mongodb_adminpassword'],
                  db_name: str='ml_investment',
@@ -264,7 +264,7 @@ class SF1SNP500Data():
     Load SNP500 constituents
     '''
     def __init__(self,
-                 host: str='mongodb://mongo:27017/',
+                 host: str=load_config()['mongodb_host'],
                  username: str=load_secrets()['mongodb_adminusername'],
                  password: str=load_secrets()['mongodb_adminpassword'],
                  db_name: str='ml_investment'):
@@ -354,7 +354,7 @@ class QuandlCommoditiesData:
     Loader for commodities price information. 
     '''
     def __init__(self,
-                 host: str='mongodb://mongo:27017/',
+                 host: str=load_config()['mongodb_host'],
                  username: str=load_secrets()['mongodb_adminusername'],
                  password: str=load_secrets()['mongodb_adminpassword'],
                  db_name: str='ml_investment'):
@@ -408,7 +408,7 @@ class DailyBarsData:
     Loader for daywise price bars.
     '''
     def __init__(self,
-                 host: str='mongodb://mongo:27017/',
+                 host: str=load_config()['mongodb_host'],
                  username: str=load_secrets()['mongodb_adminusername'],
                  password: str=load_secrets()['mongodb_adminpassword'],
                  db_name: str='ml_investment',
@@ -475,7 +475,7 @@ class DailyBarsData:
 
         result = pd.DataFrame(result)
         result['Date'] = result['date'].apply(lambda x: np.datetime64(x, 'ms'))
-        #df['Date'] = df['Date'].astype(np.datetime64)
+        result['date'] = result['Date'].astype(str)
         result = result.sort_values(['ticker', 'Date']).reset_index(drop=True)
         first_df = result.groupby('ticker')['Close'].first().reset_index()
         first_df = first_df.rename({'Close':'first_close'}, axis=1)

@@ -16,12 +16,14 @@ if not os.path.exists(_ml_investments_dir):
     
 if not os.path.exists(_config_path):
     _config = {
-        "sf1_data_path":os.path.join(_ml_investments_dir, 'data', 'sf1'),
-        "yahoo_data_path":os.path.join(_ml_investments_dir, 'data', 'yahoo'),
-        "commodities_data_path":os.path.join(_ml_investments_dir, 'data', 'commodities'),
-        "daily_bars_data_path":os.path.join(_ml_investments_dir, 'data', 'daily_bars'),
-        "models_path":os.path.join(_ml_investments_dir, 'models'),
-        "out_path":os.path.join(_ml_investments_dir, 'data', 'out'),
+        "sf1_data_path": os.path.join(_ml_investments_dir, 'data', 'sf1'),
+        "yahoo_data_path": os.path.join(_ml_investments_dir, 'data', 'yahoo'),
+        "commodities_data_path": os.path.join(_ml_investments_dir, 'data', 'commodities'),
+        "daily_bars_data_path": os.path.join(_ml_investments_dir, 'data', 'daily_bars'),
+        "models_path": os.path.join(_ml_investments_dir, 'models'),
+        "out_path": os.path.join(_ml_investments_dir, 'data', 'out'),
+        "quandl_api_url": 'https://www.quandl.com/api/v3',
+        "mongodb_host": os.getenv("MONGODB_HOST") or 'mongodb://mongo:27017/',
     }
 
     try:

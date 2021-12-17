@@ -49,7 +49,7 @@ QUARTER_COLUMNS = [
             "divyield",
             "currentratio",
             "netinccmn"
-         ]
+            ]
 COMMODITIES_CODES = [
             'LBMA/GOLD',
             'JOHNMATT/PALL',

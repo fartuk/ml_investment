@@ -51,7 +51,7 @@ QUARTER_COLUMNS = [
             "divyield",
             "currentratio",
             "netinccmn"
-         ]
+            ]
 DEV_COLUMNS = ['rnd_invcap', 'capex_invcap', 'ebit_invcap', 'ev_ebitda',\
                'ev_ebit', 'debt_equity', 'grossmargin_ebitdamargin', 'debt_ebit']
 COMMODITIES_CODES = [
