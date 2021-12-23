@@ -1,4 +1,6 @@
 import argparse
+import time
+import numpy as np
 from tqdm import tqdm
 from ml_investment.download import QuandlDownloader
 from ml_investment.utils import load_config, save_json
@@ -34,7 +36,8 @@ quandl_commodities_codes = ['LBMA/GOLD',
                             'ODA/PCOTTIND_USD'
                            ]
 
-def main(data_path: str=None):
+def main(data_path: str=load_config()['commodities_data_path'],
+         verbose: bool=False):
     '''
     Download commodities price history from 
     https://blog.quandl.com/api-for-commodity-data
@@ -49,22 +52,26 @@ def main(data_path: str=None):
         path to folder in which downloaded data will be stored.
         OR ``None`` (downloading path will be as ``commodities_data_path`` from 
         `~/.ml_investment/config.json`
+    verbose:
+        show progress or not
     '''
-    if data_path is None:
-        config = load_config()
-        data_path = config['commodities_data_path']
-
     downloader = QuandlDownloader(sleep_time=0.8)
-    for code in tqdm(quandl_commodities_codes):
-        downloader.single_download('datasets/{}'.format(code),
-                                   '{}/{}.json'.format(data_path,
+    
+    print('Start commodities downloading: {}'.format(
+            str(np.datetime64(int(time.time() * 1000), 'ms'))))
+    for code in tqdm(quandl_commodities_codes, disable=not verbose):
+        downloader.single_download(
+                base_url_route='datasets/{}'.format(code),
+                save_filepath='{}/{}.json'.format(data_path,
                                                   code.replace('/', '_')))
- 
 
+        
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     arg = parser.add_argument
     arg('--data_path', type=str)
-    args = parser.parse_args()
-    main(args.data_path)
+    arg('--verbose', type=bool)
+    args = vars(parser.parse_args())
+    args = {key:args[key] for key in args if args[key] is not None}  
+    main(**args)
    

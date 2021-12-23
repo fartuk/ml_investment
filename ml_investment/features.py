@@ -7,6 +7,9 @@ from tqdm import tqdm
 from typing import Union, List, Dict, Callable
 from .utils import int_hash_of_str, get_quarter_idx
 
+np.seterr(divide='ignore', invalid='ignore')
+
+
 def calc_series_stats(series: Union[List[float], np.array],
                       stats: Dict[str, Callable]={'mean': np.mean,
                                                   'median': np.median,
@@ -47,9 +50,6 @@ def calc_series_stats(series: Union[List[float], np.array],
     
               
                 
-       
-
-
 class QuarterlyFeatures:
     '''
     Feature calculator for qaurtrly-based statistics. 

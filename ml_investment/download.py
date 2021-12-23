@@ -30,28 +30,32 @@ class QuandlDownloader:
         return url 
 
 
-    def _batch_ticker_download(self, ticker_list):
+    def _batch_ticker_download(self, tickers):
         time.sleep(np.random.uniform(0, self.sleep_time))
-        url = self._base_url_route.format(ticker=','.join(ticker_list))
+        url = self._base_url_route.format(ticker=','.join(tickers))
         url = self._form_quandl_url(url)
         for _ in range(10):
             try:
                 response = requests.get(url)
                 break
             except:
-                print(11)
                 time.sleep(np.random.uniform(0, self.sleep_time))
 
         if response.status_code != 200:
+            print('Error downloading tickers: {}'.format(tickers))
             return
+
         data = response.json()
         datatable_data = np.array(data['datatable']['data'])
-        ticker_seq = np.array([x[0] for x in data['datatable']['data']])
+        if len(datatable_data) == 0:
+            return
+        
+        ticker_seq = np.array([str(x[0]) for x in datatable_data])
         
         curr_data = copy.deepcopy(data)
         curr_data['datatable']['data'] = []
 
-        for ticker in ticker_list:
+        for ticker in tickers:
             curr_datatable_data = datatable_data[ticker_seq == ticker].tolist()
             curr_data['datatable']['data'] = curr_datatable_data
 
@@ -59,21 +63,26 @@ class QuandlDownloader:
             save_json(save_filepath, curr_data)            
 
             
-    def ticker_download(self, base_url_route, ticker_list, save_dirpath,
-                 skip_exists=False, batch_size=5, n_jobs=12):
+    def ticker_download(self, 
+                        base_url_route,
+                        tickers,
+                        save_dirpath: str,
+                        skip_exists: bool=False,
+                        batch_size: int=5,
+                        n_jobs=12,
+                        verbose: bool=False):
         self._save_dirpath = save_dirpath
         self._base_url_route = base_url_route
         os.makedirs(save_dirpath, exist_ok=True)
         if skip_exists:
             exist_tickers = [x.split('.')[0] for x in os.listdir(save_dirpath)]
-            ticker_list = list(set(ticker_list).difference(set(exist_tickers)))
+            tickers = list(set(tickers).difference(set(exist_tickers)))
         
-        batches = [ticker_list[k:k+batch_size] 
-                        for k in range(0, len(ticker_list), batch_size)]
+        batches = [tickers[k:k+batch_size] 
+                        for k in range(0, len(tickers), batch_size)]
         with Pool(n_jobs) as p:
-            for _ in tqdm(p.imap(self._batch_ticker_download, batches)):
-#         for batch in tqdm(batches):
-#             self._batch_ticker_download(batch)
+            for _ in tqdm(p.imap(self._batch_ticker_download, batches),
+                          disable=not verbose):
                 None
             
 
@@ -84,15 +93,18 @@ class QuandlDownloader:
         for _ in range(10):
             try:
                 response = requests.get(url)
-                break
+                if response.status_code == 200:
+                    break
             except:
-                print(11)
-                time.sleep(np.random.uniform(0, 2))    
-        if response.status_code != 200:
-            print(12)
-        data = response.json()
-        save_json(save_filepath, data)
-    
+                print("request error")
+                time.sleep(np.random.uniform(0, 2))
+                
+        if response.status_code == 200:
+            data = response.json()
+            save_json(save_filepath, data)
+        else:
+            print('single download error')
+            
     
     def zip_download(self, base_url_route, save_filepath):
         url = self._form_quandl_url(base_url_route)
@@ -135,8 +147,9 @@ class YahooDownloaderV1:
             name_set = set(data.keys()).intersection(set(self.type_list))
             if len(name_set) == 1:
                 name = list(name_set)[0]
-                new_data = [{'date': row['asOfDate'], name: row['reportedValue']['raw']}
-                            for row in data[name]]
+                new_data = [{'date': row['asOfDate'],
+                             name: row['reportedValue']['raw']}
+                                            for row in data[name]]
                 dfs.append(pd.DataFrame(new_data))
         if len(dfs) == 0:
             return

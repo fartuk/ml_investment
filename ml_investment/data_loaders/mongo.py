@@ -112,7 +112,17 @@ class SF1BaseData:
         result = pd.DataFrame(result)
 
         return result
+    
+    
+    @pymongo_auto_reconnect(3)
+    def existing_index(self) -> List:
+        with MongoClient(host=self.host,
+                         username=self.username,
+                         password=self.password) as client:
+            tickers = client[self.db_name]['sf1_base'].find().distinct("ticker")
+            tickers = [x for x in tickers]
 
+        return tickers
 
 
 class SF1QuarterlyData: 
@@ -475,7 +485,7 @@ class DailyBarsData:
 
         result = pd.DataFrame(result)
         result['Date'] = result['date'].apply(lambda x: np.datetime64(x, 'ms'))
-        result['date'] = result['Date'].astype(str)
+        result['date'] = result['Date']#.astype(str)
         result = result.sort_values(['ticker', 'Date']).reset_index(drop=True)
         first_df = result.groupby('ticker')['Close'].first().reset_index()
         first_df = first_df.rename({'Close':'first_close'}, axis=1)
