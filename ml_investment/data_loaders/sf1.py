@@ -43,7 +43,7 @@ def _load_df(json_path: str) -> pd.DataFrame:
     df = pd.DataFrame(data['datatable']['data'])
     if len(df) == 0:
         columns = [x['name'] for x in data['datatable']['columns']]
-        df = pd.DataFrame(columns=columns)
+        df = pd.DataFrame(columns=columns, dtype=object)
     else:
         df.columns = [x['name'] for x in data['datatable']['columns']]
 
@@ -214,6 +214,7 @@ class SF1QuarterlyData:
             return None
 
         result = pd.concat(result, axis=0).reset_index(drop=True)
+        result = result.infer_objects()
         result['date'] = result['date'].astype(np.datetime64) 
      
         return result
