@@ -8,7 +8,7 @@ URL = 'https://github.com/fartuk/ml_investment'
 EMAIL = 'fao3864@gmail.com'
 AUTHOR = 'Artur Fattakhov'
 PYTHON_REQUIRES = '>=3.6.0'
-VERSION = "0.0.20"
+VERSION = "0.0.21"
 
 INSTALL_REQUIRES = ["pandas>=1.0.4",
                     "lightgbm>=2.3.1",
