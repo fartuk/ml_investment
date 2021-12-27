@@ -13,6 +13,7 @@ from ml_investment.data_loaders.mongo import SF1BaseData as SF1BaseDataMongo,\
 from ml_investment.data_loaders.yahoo import YahooBaseData, YahooQuarterlyData
 from ml_investment.data_loaders.quandl_commodities import QuandlCommoditiesData
 from ml_investment.data_loaders.daily_bars import DailyBarsData
+from ml_investment.data_loaders.data import HashingDataWrapper
 from ml_investment.utils import load_json, load_config, load_secrets
 from pymongo import MongoClient
 
@@ -307,7 +308,28 @@ class TestDailyBarsData:
                 assert cnt <= days_count
 
 
+class TestHashingDataWrapper:
+    data_loaders = []
+    if os.path.exists(config['sf1_data_path']):
+        data_loaders.append(SF1QuarterlyData())
+    if secrets['mongodb_adminusername'] is not None:
+        data_loaders.append(SF1QuarterlyDataMongo())
 
-
+    @pytest.mark.parametrize('data_loader', data_loaders)
+    @pytest.mark.parametrize('tickers', [['AAPL', 'ZRAN', 'TSLA', 'WORK'],
+                                         ['INTC', 'ZRAN', 'XRDC', 'XOM', 'PNK'],
+                                         ['INTC', 'ZRAN', 'XRDC', 'XOM'],
+                                         ['NVDA'],
+                                         ['ZRAN']])
+    def test_load(self, tickers, data_loader):
+        hashing_data_loader = HashingDataWrapper(data_loader)
+        df = data_loader.load(tickers)
+        df1 = hashing_data_loader.load(tickers)
+        df2 = hashing_data_loader.load(tickers)
+        
+        assert type(df) == type(df1)
+        assert type(df) == type(df2)
+        assert df.shape == df1.shape
+        assert df.shape == df2.shape
 
 

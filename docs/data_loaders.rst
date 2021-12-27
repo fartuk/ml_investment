@@ -1,7 +1,7 @@
 Data loaders
 ================
 
-Collection of data loaders
+Collection of data loaders and utils for it
 
 Yahoo
 ~~~~~~~~~~~~~~~~~~
@@ -27,6 +27,13 @@ Quandl Commodities
 Daily Price Bars
 ~~~~~~~~~~~~~~~~~~
 .. automodule:: ml_investment.data_loaders.daily_bars
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+Data loading utils
+~~~~~~~~~~~~~~~~~~
+.. automodule:: ml_investment.data_loaders.data
    :members:
    :undoc-members:
    :show-inheritance:

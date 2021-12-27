@@ -37,7 +37,7 @@ def _load_df(json_path: str) -> pd.DataFrame:
         
     Returns
     -------
-        pd.DataFrame content of file
+        ``pd.DataFrame`` content of file
     '''
     data = load_json(json_path)
     df = pd.DataFrame(data['datatable']['data'])
