@@ -68,7 +68,8 @@ class QuarterlyFeatures:
                                              'std': np.std},
                  calc_stats_on_diffs: bool=True,
                  data_preprocessing: Callable=None,
-                 n_jobs: int=cpu_count()):
+                 n_jobs: int=cpu_count(),
+                 verbose: bool=False):
         '''     
         Parameters
         ----------
@@ -106,7 +107,9 @@ class QuarterlyFeatures:
             function implemening ``foo(x) -> x_`` interface. 
             It will be used before feature calculation.
         n_jobs:
-            number of threads for calculation         
+            number of threads for calculation
+        verbose:
+            show progress or not
         '''
         self.data_key = data_key
         self.columns = columns
@@ -117,6 +120,7 @@ class QuarterlyFeatures:
         self.calc_stats_on_diffs = calc_stats_on_diffs
         self.data_preprocessing = data_preprocessing
         self.n_jobs = n_jobs
+        self.verbose = verbose
         self._data_loader = None
         
 
@@ -195,10 +199,14 @@ class QuarterlyFeatures:
             Each row contains features for ``ticker`` company 
             at ``date`` quarter
         '''
+        if self.verbose:
+            print("Quarterly features calculation")
+
         self._data_loader = data[self.data_key]
         with Pool(self.n_jobs) as p:
             X = []
-            for ticker_feats_arr in tqdm(p.imap(self._single_ticker, index)):
+            for ticker_feats_arr in tqdm(p.imap(self._single_ticker, index),
+                                         disable=not self.verbose):
                 X.extend(ticker_feats_arr)
 
         X = pd.DataFrame(X).set_index(['ticker', 'date'])
@@ -220,7 +228,8 @@ class QuarterlyDiffFeatures:
                  min_back_quarter: int=0,
                  norm: bool=True,
                  data_preprocessing: Callable=None,
-                 n_jobs: int=cpu_count()):
+                 n_jobs: int=cpu_count(),
+                 verbose: bool=False):
         '''     
         Parameters
         ----------
@@ -255,6 +264,8 @@ class QuarterlyDiffFeatures:
             It will be used before feature calculation.
         n_jobs:
             number of threads for calculation         
+        verbose:
+            show progress or not
         '''
         self.data_key = data_key
         self.columns = columns
@@ -264,6 +275,7 @@ class QuarterlyDiffFeatures:
         self.norm = norm
         self.data_preprocessing=data_preprocessing
         self.n_jobs = n_jobs
+        self.verbose = verbose
         self._data_loader = None
         
 
@@ -341,10 +353,14 @@ class QuarterlyDiffFeatures:
             Each row contains features for ``ticker`` company 
             at ``date`` quarter
         '''
+        if self.verbose:
+            print("Quarterly diff features calculation")
+
         self._data_loader = data[self.data_key]
         with Pool(self.n_jobs) as p:
             X = []
-            for ticker_feats_arr in tqdm(p.imap(self._single_ticker, index)):
+            for ticker_feats_arr in tqdm(p.imap(self._single_ticker, index),
+                                         disable=not self.verbose):
                 X.extend(ticker_feats_arr)
 
         X = pd.DataFrame(X).set_index(['ticker', 'date'])
@@ -366,7 +382,10 @@ class BaseCompanyFeatures:
     Encode categorical columns via hashing label encoding. 
     Return features for current company state.
     '''
-    def __init__(self, data_key:str, cat_columns:List[str]):
+    def __init__(self, 
+                 data_key:str,
+                 cat_columns:List[str],
+                 verbose: bool=False):
         '''     
         Parameters
         ----------
@@ -375,9 +394,12 @@ class BaseCompanyFeatures:
             :func:`~ml_investment.features.BaseCompanyFeatures.calculate`
         cat_columns:
             column names of categorical features for encoding
+        verbose:
+            show progress or not
         '''
         self.data_key = data_key
         self.cat_columns = cat_columns
+        self.verbose = verbose
         self.he = HashingEncoder()
 
     def calculate(self, data: Dict, index: List[str]) -> pd.DataFrame:
@@ -401,6 +423,9 @@ class BaseCompanyFeatures:
             resulted features with index ``['ticker']``.
             Each row contains features for ``ticker`` company
         '''
+        if self.verbose:
+            print("Base features calculation")
+
         base_df = data[self.data_key].load(index)
         for col in self.cat_columns:
             base_df[col] = base_df[col].fillna('None')
@@ -438,7 +463,8 @@ class DailyAggQuarterFeatures:
                                              'min': np.min,
                                              'std': np.std},
                  norm: bool=True,
-                 n_jobs: int=cpu_count()):
+                 n_jobs: int=cpu_count(),
+                 verbose: bool=False):
         '''     
         Parameters
         ----------
@@ -487,6 +513,8 @@ class DailyAggQuarterFeatures:
             normalize daily stats or not
         n_jobs:
             number of threads for calculation         
+        verbose:
+            show progress or not
         '''
         self.daily_data_key = daily_data_key
         self.quarterly_data_key = quarterly_data_key
@@ -498,6 +526,7 @@ class DailyAggQuarterFeatures:
         self.stats = stats
         self.norm = True
         self.n_jobs = n_jobs
+        self.verbose = verbose
         self._daily_data_loader = None
         self._quarterly_data_loader = None
 
@@ -587,6 +616,9 @@ class DailyAggQuarterFeatures:
             Each row contains features for ``ticker`` company 
             at ``date`` quarter
         '''
+        if self.verbose:
+            print("Daily agg quarter features calculation")
+
         self._daily_data_loader = data[self.daily_data_key]
         self._quarterly_data_loader = data[self.quarterly_data_key]
         self.daily_data = {}
@@ -596,7 +628,8 @@ class DailyAggQuarterFeatures:
 
         with Pool(self.n_jobs) as p:
             X = []
-            for ticker_feats_arr in tqdm(p.imap(self._single_ticker, index)):
+            for ticker_feats_arr in tqdm(p.imap(self._single_ticker, index),
+                                         disable=not self.verbose):
                 X.extend(ticker_feats_arr)
 
         X = pd.DataFrame(X).set_index(['ticker', 'date'])
@@ -615,7 +648,7 @@ class RelativeGroupFeatures:
                  group_col: str,
                  relation_foo = lambda x, y: x - y,
                  keep_group_feats=False,
-                ):
+                 verbose: bool=False):
         '''     
         Parameters
         ----------
@@ -636,12 +669,15 @@ class RelativeGroupFeatures:
             and group median features.
         keep_group_feats:
             return group median features or not 
+        verbose:
+            show progress or not
         '''
         self.feature_calculator = feature_calculator
         self.group_data_key = group_data_key
         self.group_col = group_col
         self.relation_foo = relation_foo
         self.keep_group_feats = keep_group_feats
+        self.verbose = verbose
         
         
     def calculate(self, data, index):
@@ -665,6 +701,8 @@ class RelativeGroupFeatures:
             resulted features with index as in 
             ''feature_calculator.calculate``.
         '''
+        if self.verbose:
+            print("Relative group features calculation")
 
         X = self.feature_calculator.calculate(data, index)
         index_cols = list(X.index.names)

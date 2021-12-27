@@ -300,9 +300,9 @@ class LoadingPipeline:
         ``pd.DataFrame``
             resulted data
         '''  
-        quarterly_data = self.data_loader.load(index)
-        quarterly_df = quarterly_data[self.columns]
-        return quarterly_df            
+        data_df = self.data_loader.load(index)
+        data_df = data_df[self.columns]
+        return data_df            
             
             
             

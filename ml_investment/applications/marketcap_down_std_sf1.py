@@ -22,6 +22,7 @@ URL = 'https://github.com/fartuk/ml_investment/releases/download/weights/marketc
 OUT_NAME = 'marketcap_down_std_sf1'
 DATA_SOURCE='sf1'
 CURRENCY = 'USD'
+VERBOSE = True
 TARGET_HORIZON = 90
 MAX_BACK_QUARTER = 20
 MIN_BACK_QUARTER = 0
@@ -82,22 +83,27 @@ def _create_feature():
                             columns=QUARTER_COLUMNS,
                             quarter_counts=QUARTER_COUNTS,
                             max_back_quarter=MAX_BACK_QUARTER,
-                            min_back_quarter=MIN_BACK_QUARTER)
+                            min_back_quarter=MIN_BACK_QUARTER,
+                            verbose=VERBOSE)
 
-    fc2 = BaseCompanyFeatures(data_key='base', cat_columns=CAT_COLUMNS)
+    fc2 = BaseCompanyFeatures(data_key='base',
+                              cat_columns=CAT_COLUMNS,
+                              verbose=VERBOSE)
         
     fc3 = QuarterlyDiffFeatures(data_key='quarterly',
                                 columns=QUARTER_COLUMNS,
                                 compare_quarter_idxs=COMPARE_QUARTER_IDXS,
                                 max_back_quarter=MAX_BACK_QUARTER,
-                                min_back_quarter=MIN_BACK_QUARTER)
+                                min_back_quarter=MIN_BACK_QUARTER,
+                                verbose=VERBOSE)
     
     fc4 = DailyAggQuarterFeatures(daily_data_key='daily',
                                   quarterly_data_key='quarterly',
                                   columns=DAILY_AGG_COLUMNS,
                                   agg_day_counts=AGG_DAY_COUNTS,
                                   max_back_quarter=MAX_BACK_QUARTER,
-                                  min_back_quarter=MIN_BACK_QUARTER)
+                                  min_back_quarter=MIN_BACK_QUARTER,
+                                  verbose=VERBOSE)
 
     feature = FeatureMerger(fc1, fc2, on='ticker')
     feature = FeatureMerger(feature, fc3, on=['ticker', 'date'])
@@ -133,7 +139,8 @@ def _create_model():
 def MarketcapDownStdSF1(max_back_quarter: int=None,
                         min_back_quarter: int=None,
                         data_source: Optional[str]=None,
-                        pretrained: bool=True) -> Pipeline:
+                        pretrained: bool=True,
+                        verbose: bool=None) -> Pipeline:
     '''
     Model is used to predict future down-std value.
     Pipeline consist of time-series model training( 
@@ -165,6 +172,8 @@ def MarketcapDownStdSF1(max_back_quarter: int=None,
         use pretreined weights or not.  
         Downloading directory path can be changed in
         `~/.ml_investment/config.json` ``models_path``
+    verbose:
+        show progress or not
     '''
     if data_source is not None:
         global DATA_SOURCE 
@@ -177,6 +186,10 @@ def MarketcapDownStdSF1(max_back_quarter: int=None,
     if min_back_quarter is not None:
         global MIN_BACK_QUARTER 
         MIN_BACK_QUARTER = min_back_quarter
+
+    if verbose is not None:
+        global VERBOSE 
+        VERBOSE = verbose
 
     if DATA_SOURCE == 'sf1':
         _check_download_data()

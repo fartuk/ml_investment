@@ -22,6 +22,7 @@ URL = 'https://github.com/fartuk/ml_investment/releases/download/weights/fair_ma
 OUT_NAME = 'fair_marketcap_diff_sf1_v2'
 DATA_SOURCE='sf1'
 CURRENCY = 'USD'
+VERBOSE = True
 MAX_BACK_QUARTER = 20
 MIN_BACK_QUARTER = 0
 MAX_TARGET_BOUND = 1.5
@@ -107,14 +108,16 @@ def _create_feature():
                             max_back_quarter=MAX_BACK_QUARTER,
                             min_back_quarter=MIN_BACK_QUARTER,
                             calc_stats_on_diffs=True,
-                            data_preprocessing=_preprocess)
+                            data_preprocessing=_preprocess,
+                            verbose=VERBOSE)
         
     fc2 = QuarterlyDiffFeatures(data_key='quarterly',
                                 columns=QUARTER_COLUMNS + DEV_COLUMNS,
                                 compare_quarter_idxs=COMPARE_QUARTER_IDXS,
                                 max_back_quarter=MAX_BACK_QUARTER,
                                 min_back_quarter=MIN_BACK_QUARTER,
-                                data_preprocessing=_preprocess)
+                                data_preprocessing=_preprocess,
+                                verbose=VERBOSE)
 
     fc3 = DailyAggQuarterFeatures(daily_data_key='commodities',
                                   quarterly_data_key='quarterly',
@@ -122,19 +125,22 @@ def _create_feature():
                                   agg_day_counts=AGG_DAY_COUNTS,
                                   max_back_quarter=MAX_BACK_QUARTER,
                                   min_back_quarter=MIN_BACK_QUARTER,
-                                  daily_index=COMMODITIES_CODES)
+                                  daily_index=COMMODITIES_CODES,
+                                  verbose=VERBOSE)
                       
     fc4 = RelativeGroupFeatures(feature_calculator=fc3,
                                 group_data_key='base',
                                 group_col='industry',
                                 relation_foo=lambda x, y: x - y,
-                                keep_group_feats=True)
+                                keep_group_feats=True,
+                                verbose=VERBOSE)
     
     fc5 = RelativeGroupFeatures(feature_calculator=fc1,
                                 group_data_key='base',
                                 group_col='industry',
                                 relation_foo=lambda x, y: x - y,
-                                keep_group_feats=True)    
+                                keep_group_feats=True,
+                                verbose=VERBOSE)    
     
     feature = FeatureMerger(fc1, fc2, on=['ticker', 'date'])
     feature = FeatureMerger(feature, fc3, on=['ticker', 'date'])
@@ -169,7 +175,8 @@ def _create_model():
 def FairMarketcapDiffSF1V2(max_back_quarter: int=None,
                            min_back_quarter: int=None,
                            data_source: Optional[str]=None,
-                           pretrained: bool=True) -> Pipeline:
+                           pretrained: bool=True,
+                           verbose: bool=None) -> Pipeline:
     '''
     Model is used to evaluate quarter-to-quarter(q2q) company
     fundamental progress. Model uses
@@ -205,6 +212,8 @@ def FairMarketcapDiffSF1V2(max_back_quarter: int=None,
         use pretreined weights or not.  
         Downloading directory path can be changed in
         `~/.ml_investment/config.json` ``models_path``
+    verbose:
+        show progress or not
     '''
     if data_source is not None:
         global DATA_SOURCE 
@@ -217,6 +226,10 @@ def FairMarketcapDiffSF1V2(max_back_quarter: int=None,
     if min_back_quarter is not None:
         global MIN_BACK_QUARTER 
         MIN_BACK_QUARTER = min_back_quarter
+
+    if verbose is not None:
+        global VERBOSE 
+        VERBOSE = verbose
 
     if DATA_SOURCE == 'sf1':
         _check_download_data()
