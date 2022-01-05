@@ -116,6 +116,12 @@ class SF1BaseData:
     
     @pymongo_auto_reconnect(3)
     def existing_index(self) -> List:
+        '''  
+        Returns
+        -------
+        ``List``
+            existing index values that can pe pushed to `load`
+        '''
         with MongoClient(host=self.host,
                          username=self.username,
                          password=self.password) as client:
@@ -195,7 +201,9 @@ class SF1QuarterlyData:
 
         result = pd.DataFrame(result)
         result['date'] = result['date'].apply(lambda x: np.datetime64(x, 'ms'))
-    
+        result = result.sort_values(['ticker', 'date'], ascending=False)
+        result.index = range(len(result))
+
         return result
       
 
@@ -348,6 +356,12 @@ class SF1SNP500Data():
 
     @pymongo_auto_reconnect(3)
     def existing_index(self) -> List:
+        '''  
+        Returns
+        -------
+        ``List``
+            existing index values that can pe pushed to `load`
+        '''
         with MongoClient(host=self.host,
                          username=self.username,
                          password=self.password) as client:
@@ -500,6 +514,12 @@ class DailyBarsData:
 
     @pymongo_auto_reconnect(3)
     def existing_index(self) -> List:
+        '''  
+        Returns
+        -------
+        ``List``
+            existing index values that can pe pushed to `load`
+        '''
         with MongoClient(host=self.host,
                          username=self.username,
                          password=self.password) as client:
