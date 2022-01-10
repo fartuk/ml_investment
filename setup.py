@@ -8,16 +8,10 @@ URL = 'https://github.com/fartuk/ml_investment'
 EMAIL = 'fao3864@gmail.com'
 AUTHOR = 'Artur Fattakhov'
 PYTHON_REQUIRES = '>=3.6.0'
-VERSION = "0.0.22"
+VERSION = "0.0.23"
 
-INSTALL_REQUIRES = ["pandas>=1.1.0",
-                    "lightgbm>=2.3.1",
-                    "catboost>=0.24.4",
-                    "tqdm>=4.46.1",
-                    "requests>=2.23.0",
-                    "pytest>=6.2.2",
-                    "pandas-datareader>=0.10.0",
-                    ]
+with open("requirements.txt") as f:
+    INSTALL_REQUIRES = f.readlines()
 
 with open("README.rst", "r", encoding="utf-8") as f:
     LONG_DESCRIPTION = f.read()
