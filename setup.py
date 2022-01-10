@@ -10,7 +10,7 @@ AUTHOR = 'Artur Fattakhov'
 PYTHON_REQUIRES = '>=3.6.0'
 VERSION = "0.0.22"
 
-INSTALL_REQUIRES = ["pandas>=1.0.4",
+INSTALL_REQUIRES = ["pandas>=1.1.0",
                     "lightgbm>=2.3.1",
                     "catboost>=0.24.4",
                     "tqdm>=4.46.1",

@@ -21,7 +21,7 @@ class Order:
 
 class Strategy:
     def __init__(self):
-        self._data_loader = None
+        self.data_loader = None
         self._data = {}
         self._cash = 0
         self._active_orders = []
@@ -56,8 +56,7 @@ class Strategy:
 
     def _check_create_ticker_data(self, ticker):
         if ticker not in self._data:
-            
-            df = self._data_loader.load([ticker])
+            df = self.data_loader.load([ticker])
             df[self.date_col] = df[self.date_col].astype(np.datetime64)
             df = df.sort_values(self.date_col)
             df.index = range(len(df))
@@ -85,23 +84,30 @@ class Strategy:
             # older values as cumulative returns
             result.loc[0, 'return'] = 1
 
+            result['missed'] = result['price'].isnull()
+            # If last date of data less then some step_date
+            result['closed'] = result['missed'][::-1].cumprod()[::-1]
+            result['price'] = result['price'].ffill()
+            
             result['price_return'] = (result['price'] /\
                                       result['price'].shift(1)).fillna(1)
             result['prev_price'] = result['price'].shift(1)
             result['dividend'] = result['return'] - result['price_return']
-            result['dividend'] = (result['dividend'].abs() > 1e-5) * result['dividend']
-            result['missed'] = result['price'].isnull()
-            result['closed'] = result['missed'][::-1].cumprod()[::-1]
-            result['price'] = result['price'].ffill()
+            result['dividend'] *= result['dividend'].abs() > 1e-5
             #result['missed'] = result['missed'].ffill()
 
             self._data[ticker] = result
-            return True
 
 
-    def _possible_size(self, order):
+    def _aposteriori_next_step_max_size(self, order):
         idx = self.step_idx + 1
-        execute_date = self._data[order['ticker']].loc[idx, 'date']
+        if len(self._data[order['ticker']]) <= idx:
+            return
+        
+        missed = self._data[order['ticker']].loc[idx, 'missed']
+        if missed:
+            return
+
         price = self._data[order['ticker']].loc[idx, 'price']
         size = self.portfolio[order['ticker']]
         
@@ -117,12 +123,19 @@ class Strategy:
     def _execute_market_order(self, order):
         idx = self.step_idx + 1
         if idx >= len(self.step_dates):
-            return 
+            order['status'] = Order.EXPIRED
+            order['price'] = np.nan
+            order['execution_date'] = np.nan
+            self.orders.append(order)
+            return
 
-        execution_date = self._data[order['ticker']].loc[idx, 'date']
+        execution_date = np.datetime64(
+                            self._data[order['ticker']].loc[idx, 'date'])
         
         if order['creation_date'] + order['lifetime'] < execution_date:
             order['status'] = Order.EXPIRED
+            order['price'] = np.nan
+            order['execution_date'] = np.nan
             self.orders.append(order)
             return
 
@@ -131,8 +144,8 @@ class Strategy:
             return
  
         price = self._data[order['ticker']].loc[idx, 'price']
-        possible_size = self._possible_size(order)
-        if possible_size == 0:
+        possible_size = self._aposteriori_next_step_max_size(order)
+        if possible_size == 0 or possible_size is None:
             self._active_orders.append(order)
             return
 
@@ -142,7 +155,8 @@ class Strategy:
 
         execution_size = min(order['size'], possible_size)
         self.portfolio[order['ticker']] += order['direction'] * execution_size
-        self._cash -= order['direction'] * price * execution_size * (1 + self.comission)
+        self._cash -= order['direction'] * price *\
+                      execution_size * (1 + self.comission)
         
         order['execution_date'] = execution_date
         order['price'] = price
@@ -168,6 +182,9 @@ class Strategy:
                 
             if order['order_type'] == Order.MARKET:            
                 self._execute_market_order(order)
+
+            if order['order_type'] == Order.LIMIT:            
+                raise NotImplementedError
                     
         
     def _calc_equity(self):
@@ -183,16 +200,13 @@ class Strategy:
             closed = self._data[ticker].loc[self.step_idx, 'closed']
             if closed:
                 self.portfolio[ticker] = 0
-                self._cash += eq
-            #    print('CLOSED', ticker)
+                self._cash = self._cash + eq * (1 - self.comission)
                 continue
 
             equity += eq
 
-
             dividend = self._data[ticker].loc[self.step_idx, 'dividend']
             if (not np.isnan(dividend)) and dividend != 0:
-                #print('div')
                 prev_price = self._data[ticker].loc[self.step_idx, 'prev_price']
                 self._cash += size * prev_price * dividend
         
@@ -208,7 +222,6 @@ class Strategy:
                    order_type: int,
                    lifetime=None,
                    allow_partial=True):
-        #assert size != 0
         if size == 0:
             return
         self._active_orders.append({'ticker': ticker,
@@ -324,7 +337,7 @@ class Strategy:
         '''
         Backtesting
         '''
-        self._data_loader = data_loader
+        self.data_loader = data_loader
         self.date_col = date_col
         self.price_col = price_col
         self.return_col = return_col
