@@ -19,7 +19,10 @@ class DfData:
         self.df = df
 
     def load(self, index):
-        return self.df
+        if type(self.df) == dict:
+            return self.df[index[0]]
+        else:
+            return self.df
 
 
 class TestStrategy:
@@ -31,7 +34,7 @@ class TestStrategy:
             ('data/step_dates3.csv', 'data/df3.csv', 'data/expected3.csv'),
 
         ]
-      )
+    )
     def test__cast_data(self, step_dates_path, df_path, expected_path):
         step_dates = [np.datetime64(x) for x in 
                                         pd.read_csv(step_dates_path)['date']]
@@ -68,7 +71,7 @@ class TestStrategy:
             ('data/step_dates1.csv', 'data/df10.csv', 'data/expected5.csv',
              'date', 'price', 'adj_price', 'price'),
         ]
-      )
+    )
     def test__check_create_ticker_data(self, step_dates_path, df_path, 
                                       expected_path, date_col, price_col,
                                       return_col, return_format):
@@ -121,7 +124,7 @@ class TestStrategy:
             ('data/step_dates3.csv', 'data/df3.csv', 1, {'AAPL': 10}, 175., 0.0025,
              Order.BUY, 9),
         ]
-      )
+    )
     def test__aposteriori_next_step_max_size(self, step_dates_path, df_path, step_idx, 
             portfolio, cash, direction, comission, expected):
         step_dates = [np.datetime64(x) for x in 
@@ -227,7 +230,7 @@ class TestStrategy:
               {'AAPL': 10}, 243.3, 'orders', 1, np.nan,
               Order.EXPIRED, np.nan),
         ]
-      )
+    )
     def test__execute_market_order(self, 
             step_dates_path, df_path, step_idx, portfolio, cash, comission,
             direction, size, allow_partial, creation_date, lifetime,
@@ -285,11 +288,363 @@ class TestStrategy:
         np.testing.assert_equal(result['execution_date'], expected_execution_date)
 
 
+    @pytest.mark.parametrize(
+        ['step_dates_path', 'df_pathes', 'step_idx', 'portfolio', 'cash', 
+         'expected__cash'],
+        [
+            ('data/step_dates1.csv', ['data/df1.csv', 'data/df2.csv'], 4,
+             {'AAPL0': 2, 'AAPL1': 10}, 120, 120.),
+
+            ('data/step_dates1.csv', ['data/df1.csv', 'data/df2.csv'], 9,
+             {'AAPL0': 2, 'AAPL1': 10}, 120, 120.),
+
+            ('data/step_dates1.csv', ['data/df1.csv', 'data/df2.csv'], 9,
+             {'AAPL0': 0, 'AAPL1': 10}, 120, 120.),
+
+            ('data/step_dates1.csv', ['data/df1.csv', 'data/df5.csv'], 5,
+             {'AAPL0': 2, 'AAPL1': 10}, 120, 285.5),
+
+            ('data/step_dates1.csv', ['data/df6.csv', 'data/df5.csv'], 5,
+             {'AAPL0': 2, 'AAPL1': 10}, 0., 169.26),
+        ]
+    )
+    def test__receive_dividends(self, step_dates_path, df_pathes, step_idx, 
+                                portfolio, cash, expected__cash):
+        step_dates = [np.datetime64(x) for x in 
+                                        pd.read_csv(step_dates_path)['date']]
+        dfs = {}
+        for k, df_path in enumerate(df_pathes):
+            df = pd.read_csv(df_path)
+            df['date'] = df['date'].astype(np.datetime64)
+            dfs['AAPL{}'.format(k)] = df
+        data_loader = DfData(dfs)
+
+        strategy = Strategy()
+        strategy.data_loader = data_loader
+        strategy.step_dates = step_dates
+        strategy.date_col = 'date'
+        strategy.price_col = 'price'
+        strategy.return_col = 'return'
+        strategy.return_format = 'ratio'
+        strategy._cash = cash
+        strategy.portfolio = portfolio
+        strategy.step_idx = step_idx
+
+        for k, df_path in enumerate(df_pathes):
+            strategy._check_create_ticker_data('AAPL{}'.format(k))
+
+        strategy._receive_dividends()
+
+        np.testing.assert_almost_equal(strategy._cash, expected__cash)
 
 
 
+    @pytest.mark.parametrize(
+        ['step_dates_path', 'df_pathes', 'step_idx', 'portfolio', 'cash', 
+         'expected_equity'],
+        [
+            ('data/step_dates1.csv', ['data/df1.csv', 'data/df2.csv'], 4,
+             {'AAPL0': 2, 'AAPL1': 10}, 120, 634.),
+            
+            ('data/step_dates1.csv', ['data/df1.csv', 'data/df2.csv'], 9,
+             {'AAPL0': 2, 'AAPL1': 10}, 120, 746.4),
+
+            ('data/step_dates1.csv', ['data/df1.csv', 'data/df2.csv'], 9,
+             {'AAPL0': 0, 'AAPL1': 10}, 120, 262.),
+
+            ('data/step_dates1.csv', ['data/df1.csv', 'data/df5.csv'], 5,
+             {'AAPL0': 2, 'AAPL1': 10}, 120, 2144.4),
+
+            ('data/step_dates1.csv', ['data/df6.csv', 'data/df5.csv'], 5,
+             {'AAPL0': 2, 'AAPL1': 10}, 0., 1713.8),
+        ]
+    )
+    def test__calc_equity(self, step_dates_path, df_pathes, step_idx, 
+                          portfolio, cash, expected_equity):
+        step_dates = [np.datetime64(x) for x in 
+                                        pd.read_csv(step_dates_path)['date']]
+        dfs = {}
+        for k, df_path in enumerate(df_pathes):
+            df = pd.read_csv(df_path)
+            df['date'] = df['date'].astype(np.datetime64)
+            dfs['AAPL{}'.format(k)] = df
+        data_loader = DfData(dfs)
+
+        strategy = Strategy()
+        strategy.data_loader = data_loader
+        strategy.step_dates = step_dates
+        strategy.date_col = 'date'
+        strategy.price_col = 'price'
+        strategy.return_col = 'return'
+        strategy.return_format = 'ratio'
+        strategy._cash = cash
+        strategy.portfolio = portfolio
+        strategy.step_idx = step_idx
+
+        for k, df_path in enumerate(df_pathes):
+            strategy._check_create_ticker_data('AAPL{}'.format(k))
+
+        equity = strategy._calc_equity()
+
+        np.testing.assert_almost_equal(equity, expected_equity)
 
 
+
+    @pytest.mark.parametrize(
+        ['step_dates_path', 'df_pathes', 'step_idx', 'portfolio', 
+         'expected_orders'],
+        [
+            ('data/step_dates3.csv', ['data/df2.csv', 'data/df6.csv'], 10,
+             {'AAPL0': 2, 'AAPL1': 10}, 
+             [{'ticker': 'AAPL0', 'direction': Order.SELL, 'size': 2},
+              {'ticker': 'AAPL1', 'direction': Order.SELL, 'size': 10}]),
+
+            ('data/step_dates3.csv', ['data/df2.csv', 'data/df5.csv'], 8,
+             {'AAPL0': 2, 'AAPL1': 10}, 
+             [{'ticker': 'AAPL1', 'direction': Order.SELL, 'size': 10}]),
+            
+            ('data/step_dates3.csv', ['data/df2.csv', 'data/df5.csv'], 7,
+             {'AAPL0': 2, 'AAPL1': 10}, 
+             []),
+        ]
+    )
+    def test__post_close_orders(self, step_dates_path, df_pathes, step_idx, 
+                                portfolio, expected_orders):
+        step_dates = [np.datetime64(x) for x in 
+                                        pd.read_csv(step_dates_path)['date']]
+        dfs = {}
+        for k, df_path in enumerate(df_pathes):
+            df = pd.read_csv(df_path)
+            df['date'] = df['date'].astype(np.datetime64)
+            dfs['AAPL{}'.format(k)] = df
+        data_loader = DfData(dfs)
+
+        strategy = Strategy()
+        strategy.data_loader = data_loader
+        strategy.step_dates = step_dates
+        strategy.date_col = 'date'
+        strategy.price_col = 'price'
+        strategy.return_col = 'return'
+        strategy.return_format = 'ratio'
+        strategy.portfolio = portfolio
+        strategy.step_idx = step_idx
+        strategy.verbose = False
+
+        for k, df_path in enumerate(df_pathes):
+            strategy._check_create_ticker_data('AAPL{}'.format(k))
+
+        strategy._post_close_orders()
+        
+        assert len(strategy._active_orders) == len(expected_orders)
+        for order, expected in zip(strategy._active_orders, expected_orders):
+            np.testing.assert_equal(order['ticker'], expected['ticker'])
+            np.testing.assert_equal(order['direction'], expected['direction'])
+            np.testing.assert_equal(order['size'], expected['size'])
+
+
+
+    @pytest.mark.parametrize(
+        ['step_dates_path', 'df_path', 'step_idx', 'direction', 'value', 
+         'expected_orders'],
+        [
+            ('data/step_dates1.csv', 'data/df1.csv', 3, Order.BUY, 1000.,
+             [{'ticker': 'AAPL', 'direction': Order.BUY, 'size': 6}]),
+
+            ('data/step_dates1.csv', 'data/df1.csv', 3, Order.BUY, 960.,
+             [{'ticker': 'AAPL', 'direction': Order.BUY, 'size': 5}]),
+
+            ('data/step_dates1.csv', 'data/df1.csv', 8, Order.BUY, 1000.,
+             [{'ticker': 'AAPL', 'direction': Order.BUY, 'size': 5}]),
+
+            ('data/step_dates1.csv', 'data/df1.csv', 8, Order.SELL, 1000.,
+             [{'ticker': 'AAPL', 'direction': Order.SELL, 'size': 5}]),
+     
+        ]
+    )
+    def test_post_order_value(self, step_dates_path, df_path, step_idx, 
+                              direction, value, expected_orders):
+        step_dates = [np.datetime64(x) for x in 
+                                        pd.read_csv(step_dates_path)['date']]
+        df = pd.read_csv(df_path)
+        df['date'] = df['date'].astype(np.datetime64)
+        data_loader = DfData(df)
+
+        strategy = Strategy()
+        strategy.data_loader = data_loader
+        strategy.step_dates = step_dates
+        strategy.date_col = 'date'
+        strategy.price_col = 'price'
+        strategy.return_col = 'return'
+        strategy.return_format = 'ratio'
+        strategy.step_idx = step_idx
+        strategy.verbose = False
+
+        strategy.post_order_value(ticker='AAPL',
+                                  direction=direction,
+                                  order_type=Order.MARKET,
+                                  value=value,
+                                  lifetime=np.timedelta64(300, 'D'),
+                                  allow_partial=True)
+
+        
+        assert len(strategy._active_orders) == len(expected_orders)
+        for order, expected in zip(strategy._active_orders, expected_orders):
+            np.testing.assert_equal(order['ticker'], expected['ticker'])
+            np.testing.assert_equal(order['direction'], expected['direction'])
+            np.testing.assert_equal(order['size'], expected['size'])
+
+
+
+    @pytest.mark.parametrize(
+        ['portfolio', 'size', 'expected_orders'],
+        [
+            ({'AAPL': 3}, 10,
+             [{'ticker': 'AAPL', 'direction': Order.BUY, 'size': 7}]),
+
+            ({'AAPL': 0}, 10,
+             [{'ticker': 'AAPL', 'direction': Order.BUY, 'size': 10}]),
+    
+            ({'AAPL': 10}, 4,
+             [{'ticker': 'AAPL', 'direction': Order.SELL, 'size': 6}]),
+
+            ({}, 10,
+             [{'ticker': 'AAPL', 'direction': Order.BUY, 'size': 10}]),
+
+            ({'AAPL': 10}, 10,
+             []),
+        ]
+    )
+    def test_post_portfolio_size(self, portfolio, size, expected_orders):
+        strategy = Strategy()
+        strategy.portfolio = portfolio
+
+        strategy.post_portfolio_size(ticker='AAPL',
+                                     size=size,
+                                     lifetime=np.timedelta64(300, 'D'),
+                                     allow_partial=True)
+
+        
+        assert len(strategy._active_orders) == len(expected_orders)
+        for order, expected in zip(strategy._active_orders, expected_orders):
+            np.testing.assert_equal(order['ticker'], expected['ticker'])
+            np.testing.assert_equal(order['direction'], expected['direction'])
+            np.testing.assert_equal(order['size'], expected['size'])
+
+
+
+    @pytest.mark.parametrize(
+        ['step_dates_path', 'df_path', 'step_idx', 'portfolio', 'value', 
+         'expected_orders'],
+        [
+            ('data/step_dates1.csv', 'data/df1.csv', 4, {'AAPL': 0}, 1000.,
+             [{'ticker': 'AAPL', 'direction': Order.BUY, 'size': 6}]),
+
+            ('data/step_dates1.csv', 'data/df1.csv', 4, {'AAPL': 0}, 20.,
+             []),
+
+            ('data/step_dates1.csv', 'data/df1.csv', 4, {'AAPL': 6}, 1000.,
+             []),
+
+            ('data/step_dates1.csv', 'data/df11.csv', 2, {}, 1000.,
+             []),
+
+            ('data/step_dates1.csv', 'data/df1.csv', 12, {}, 1000.,
+             [{'ticker': 'AAPL', 'direction': Order.BUY, 'size': 4}]),
+
+            ('data/step_dates1.csv', 'data/df1.csv', 4, {'AAPL': 2}, 1000.,
+             [{'ticker': 'AAPL', 'direction': Order.BUY, 'size': 4}]),
+
+            ('data/step_dates1.csv', 'data/df1.csv', 4, {'AAPL': 20}, 1000.,
+             [{'ticker': 'AAPL', 'direction': Order.SELL, 'size': 14}]),
+
+    
+        ]
+    )
+    def test_post_portfolio_value(self, step_dates_path, df_path, step_idx, 
+                                  portfolio, value, expected_orders):
+        step_dates = [np.datetime64(x) for x in 
+                                        pd.read_csv(step_dates_path)['date']]
+        df = pd.read_csv(df_path)
+        df['date'] = df['date'].astype(np.datetime64)
+        data_loader = DfData(df)
+
+        strategy = Strategy()
+        strategy.portfolio = portfolio
+        strategy.data_loader = data_loader
+        strategy.step_dates = step_dates
+        strategy.date_col = 'date'
+        strategy.price_col = 'price'
+        strategy.return_col = 'return'
+        strategy.return_format = 'ratio'
+        strategy.step_idx = step_idx
+        strategy.verbose = False
+
+        strategy.post_portfolio_value(ticker='AAPL',
+                                      value=value,
+                                      lifetime=np.timedelta64(300, 'D'),
+                                      allow_partial=True)
+        
+        assert len(strategy._active_orders) == len(expected_orders)
+        for order, expected in zip(strategy._active_orders, expected_orders):
+            np.testing.assert_equal(order['ticker'], expected['ticker'])
+            np.testing.assert_equal(order['direction'], expected['direction'])
+            np.testing.assert_equal(order['size'], expected['size'])
+
+
+
+    @pytest.mark.parametrize(
+        ['step_dates_path', 'df_path', 'step_idx', 'portfolio', 'step_equity', 'part', 
+         'expected_orders'],
+        [
+            ('data/step_dates1.csv', 'data/df1.csv', 4, {'AAPL': 0}, 1000., 1.0,
+             [{'ticker': 'AAPL', 'direction': Order.BUY, 'size': 6}]),
+
+            ('data/step_dates1.csv', 'data/df1.csv', 4, {'AAPL': 0}, 1000., 0.5,
+             [{'ticker': 'AAPL', 'direction': Order.BUY, 'size': 3}]),
+
+            ('data/step_dates1.csv', 'data/df1.csv', 4, {'AAPL': 0}, 1000., 0.3,
+             [{'ticker': 'AAPL', 'direction': Order.BUY, 'size': 2}]),
+
+            ('data/step_dates1.csv', 'data/df1.csv', 4, {'AAPL': 1}, 1000., 0.3,
+             [{'ticker': 'AAPL', 'direction': Order.BUY, 'size': 1}]),
+
+            ('data/step_dates1.csv', 'data/df1.csv', 4, {'AAPL': 5}, 1000., 0.3,
+             [{'ticker': 'AAPL', 'direction': Order.SELL, 'size': 3}]),
+
+    
+        ]
+    )
+    def test_post_portfolio_part(self, step_dates_path, df_path, step_idx, 
+                                 portfolio, step_equity, part, expected_orders):
+        step_dates = [np.datetime64(x) for x in 
+                                        pd.read_csv(step_dates_path)['date']]
+        df = pd.read_csv(df_path)
+        df['date'] = df['date'].astype(np.datetime64)
+        data_loader = DfData(df)
+
+        strategy = Strategy()
+        strategy.equity = [0] * len(step_dates)
+        strategy.equity[step_idx] = step_equity
+        strategy.portfolio = portfolio
+        strategy.data_loader = data_loader
+        strategy.step_dates = step_dates
+        strategy.date_col = 'date'
+        strategy.price_col = 'price'
+        strategy.return_col = 'return'
+        strategy.return_format = 'ratio'
+        strategy.step_idx = step_idx
+        strategy.verbose = False
+
+        strategy.post_portfolio_part(ticker='AAPL',
+                                     part=part,
+                                     lifetime=np.timedelta64(300, 'D'),
+                                     allow_partial=True)
+        
+        assert len(strategy._active_orders) == len(expected_orders)
+        for order, expected in zip(strategy._active_orders, expected_orders):
+            np.testing.assert_equal(order['ticker'], expected['ticker'])
+            np.testing.assert_equal(order['direction'], expected['direction'])
+            np.testing.assert_equal(order['size'], expected['size'])
 
 
 

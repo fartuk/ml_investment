@@ -185,8 +185,44 @@ class Strategy:
 
             if order['order_type'] == Order.LIMIT:            
                 raise NotImplementedError
-                    
-        
+               
+
+    def _post_close_orders(self):
+        if self.step_idx >= len(self.step_dates) - 2:
+            return
+
+        for ticker in self.portfolio.keys():
+            size = self.portfolio[ticker]
+            if size == 0:
+                continue
+
+            closed = self._data[ticker].loc[self.step_idx + 2, 'closed']
+            if closed:
+                if self.verbose:
+                    print('Close ticker {}'.format(ticker))
+
+                direction = Order.SELL if size > 0 else Order.BUY
+                size = abs(size)
+                self.post_order(ticker=ticker,
+                                direction=direction,
+                                size=size,
+                                order_type=Order.MARKET,
+                                lifetime=np.timedelta64(300, 'D'),
+                                allow_partial=False)
+
+
+    def _receive_dividends(self):
+        for ticker in self.portfolio.keys():
+            size = self.portfolio[ticker]
+            if size == 0:
+                continue
+
+            dividend = self._data[ticker].loc[self.step_idx, 'dividend']
+            if (not np.isnan(dividend)) and dividend != 0:
+                prev_price = self._data[ticker].loc[self.step_idx, 'prev_price']
+                self._cash += size * prev_price * dividend
+
+
     def _calc_equity(self):
         equity = 0
         for ticker in self.portfolio.keys():
@@ -195,20 +231,7 @@ class Strategy:
                 continue
 
             price = self._data[ticker].loc[self.step_idx, 'price']
-            eq = size * price 
-
-            closed = self._data[ticker].loc[self.step_idx, 'closed']
-            if closed:
-                self.portfolio[ticker] = 0
-                self._cash = self._cash + eq * (1 - self.comission)
-                continue
-
-            equity += eq
-
-            dividend = self._data[ticker].loc[self.step_idx, 'dividend']
-            if (not np.isnan(dividend)) and dividend != 0:
-                prev_price = self._data[ticker].loc[self.step_idx, 'prev_price']
-                self._cash += size * prev_price * dividend
+            equity += size * price
         
         equity += self._cash
 
@@ -252,7 +275,6 @@ class Strategy:
                         allow_partial=allow_partial)
 
        
-        
     def post_portfolio_size(self,
                             ticker,
                             size,
@@ -282,6 +304,10 @@ class Strategy:
                              allow_partial):
         self._check_create_ticker_data(ticker)
         price = self._data[ticker].loc[self.step_idx, 'price']
+        if np.isnan(price): 
+            if self.verbose:
+                print("There are no price for {} yet".format(ticker))
+            return
 
         needed_size = round(value / price)
         self.post_portfolio_size(ticker=ticker,
@@ -347,12 +373,16 @@ class Strategy:
         self.comission = comission
         self.latency = latency
         self.allow_short = allow_short
+        self.verbose = verbose
+
         for self.step_idx, self.step_date in tqdm(enumerate(self.step_dates),
-                                                  disable=not verbose):
+                                                  disable=not self.verbose):
+            self._receive_dividends()
             self.equity.append(self._calc_equity())
             self.cash.append(self._cash)
 
             self.step()
+            self._post_close_orders()
             self._execute_orders()
 
         self.equity = np.array(self.equity)
