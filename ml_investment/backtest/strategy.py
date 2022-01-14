@@ -27,8 +27,7 @@ class Strategy:
     This class incapsulate backtesting and metrics calculation process and 
     also contains information about orders.
 
-    Attributes
-    ----------
+    Attributes:
         equity:
             array with equity at each step date
         cash:
