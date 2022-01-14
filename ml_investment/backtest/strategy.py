@@ -27,8 +27,13 @@ class Strategy:
     This class incapsulate backtesting and metrics calculation process and 
     also contains information about orders.
 
-    Attributes:
-        cash Fdfdfdfdf
+    Attributes
+    ----------
+        equity:
+            array with equity at each step date
+        cash:
+            array with cash at each step date
+
     '''
     def __init__(self):
         self.data_loader = None
@@ -38,13 +43,12 @@ class Strategy:
         self._data_step_idxs = {}
 
         self.portfolio = {}
-        self.step_dates = None
-        "attribute Strategy.step_dates doc-string (1)"
+        self.step_dates:List[] = None
         self.step_date = None
         self.step_idx = None
         self.orders = []
               
-        self.cash: List[np.datetime64] = []
+        self.cash: List = []
         self.returns: List[float] = []
         self.equity: List[float] = []
         
