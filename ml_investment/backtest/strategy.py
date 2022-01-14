@@ -39,6 +39,7 @@ class Strategy:
 
         self.portfolio = {}
         self.step_dates = None
+        "attribute Strategy.step_dates doc-string (1)"
         self.step_date = None
         self.step_idx = None
         self.orders = []
@@ -286,6 +287,28 @@ class Strategy:
                    order_type: int=Order.MARKET,
                    lifetime=np.timedelta64(300, 'D'),
                    allow_partial=True):
+        '''     
+        Post new order to backtest. 
+        It may be used inside your strategy overriden ``step`` method.
+        
+        Parameters
+        ----------
+        data:
+            dict having field named as value in ``data_key`` param of 
+            :func:`~ml_investment.features.QuarterlyFeatures.__init__`
+            This field should contain class implementing
+            ``load(index) -> pd.DataFrame`` interface
+        index:
+            list of tickers to calculate features for, i.e. ``['AAPL', 'TSLA']``
+                      
+        Returns
+        -------
+        ``pd.DataFrame``
+            resulted features with index ``['ticker', 'date']``.
+            Each row contains features for ``ticker`` company 
+            at ``date`` quarter
+        '''
+
         if size == 0:
             return
 
