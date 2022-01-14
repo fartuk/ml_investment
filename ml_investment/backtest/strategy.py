@@ -10,7 +10,8 @@ class Order:
        
     MARKET = 0
     LIMIT = 1
-        
+    CLOSE = 2
+
     INIT = 0
     PARTIAL = 1
     COMPLETED = 2
@@ -130,14 +131,20 @@ class Strategy:
             return
 
         execution_date = np.datetime64(
-                            self._data[order['ticker']].loc[idx, 'date'])
+                                self._data[order['ticker']].loc[idx, 'date'])
         
-        if order['creation_date'] + order['lifetime'] < execution_date:
+
+        if order['submit_date'] >= execution_date: 
+            self._active_orders.append(order)
+            return
+
+        if order['submit_date'] + order['lifetime'] < execution_date:
             order['status'] = Order.EXPIRED
             order['price'] = np.nan
             order['execution_date'] = np.nan
             self.orders.append(order)
             return
+
 
         if self._data[order['ticker']].loc[idx, 'missed']:
             self._active_orders.append(order)
@@ -169,6 +176,28 @@ class Strategy:
             
         self.orders.append(order)
 
+
+
+    def _execute_close_order(self, order):
+        idx = self.step_idx + 1
+        execution_date = np.datetime64(
+                                self._data[order['ticker']].loc[idx, 'date'])
+        
+
+        price = self._data[order['ticker']].loc[idx, 'price']
+        self.portfolio[order['ticker']] = 0
+        self._cash -= order['direction'] * price *\
+                      order['size'] * (1 + self.comission)
+        
+        order['execution_date'] = execution_date
+        order['price'] = price
+        
+        order['status'] = Order.COMPLETED
+            
+        self.orders.append(order)
+
+ 
+
         
     def _execute_orders(self):
         curr_orders = self._active_orders.copy()
@@ -182,6 +211,9 @@ class Strategy:
                 
             if order['order_type'] == Order.MARKET:            
                 self._execute_market_order(order)
+
+            if order['order_type'] == Order.CLOSE:            
+                self._execute_close_order(order)
 
             if order['order_type'] == Order.LIMIT:            
                 raise NotImplementedError
@@ -206,7 +238,7 @@ class Strategy:
                 self.post_order(ticker=ticker,
                                 direction=direction,
                                 size=size,
-                                order_type=Order.MARKET,
+                                order_type=Order.CLOSE,
                                 lifetime=np.timedelta64(300, 'D'),
                                 allow_partial=False)
 
@@ -242,18 +274,24 @@ class Strategy:
                    ticker: str,
                    direction: int,
                    size: float,
-                   order_type: int,
-                   lifetime=None,
+                   order_type: int=Order.MARKET,
+                   lifetime=np.timedelta64(300, 'D'),
                    allow_partial=True):
         if size == 0:
             return
+
+        submit_date = self.step_date + self.latency
+        if order_type == Order.CLOSE:
+            submit_date = self.step_date
+
         self._active_orders.append({'ticker': ticker,
                                     'direction': direction,
                                     'size': size,
                                     'order_type': order_type,
                                     'lifetime': lifetime,
                                     'allow_partial': allow_partial,
-                                    'creation_date': self.step_date})
+                                    'creation_date': self.step_date,
+                                    'submit_date': submit_date})
 
 
     def post_order_value(self,
@@ -278,7 +316,7 @@ class Strategy:
     def post_portfolio_size(self,
                             ticker,
                             size,
-                            lifetime,
+                            lifetime=np.timedelta64(300, 'D'),
                             allow_partial=True):
         if ticker not in self.portfolio:
             self.portfolio[ticker] = 0
@@ -300,8 +338,8 @@ class Strategy:
     def post_portfolio_value(self,
                              ticker,
                              value,
-                             lifetime,
-                             allow_partial):
+                             lifetime=np.timedelta64(300, 'D'),
+                             allow_partial=True):
         self._check_create_ticker_data(ticker)
         price = self._data[ticker].loc[self.step_idx, 'price']
         if np.isnan(price): 
@@ -319,8 +357,8 @@ class Strategy:
     def post_portfolio_part(self,
                             ticker,
                             part,
-                            lifetime,
-                            allow_partial):
+                            lifetime=np.timedelta64(300, 'D'),
+                            allow_partial=True):
         needed_value = self.equity[self.step_idx] * part
         self.post_portfolio_value(ticker=ticker,
                                   value=needed_value,
@@ -355,7 +393,7 @@ class Strategy:
                  step_dates=None,
                  cash=100_000,
                  comission=0.00025,
-                 latency=0,
+                 latency=np.timedelta64(1, 'h'),
                  allow_short=False,
                  metrics=None,
                  verbose=True,
@@ -363,6 +401,12 @@ class Strategy:
         '''
         Backtesting
         '''
+        if allow_short:
+            raise NotImplementedError
+        
+        if preload:
+            raise NotImplementedError
+
         self.data_loader = data_loader
         self.date_col = date_col
         self.price_col = price_col

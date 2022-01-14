@@ -252,14 +252,16 @@ class TestStrategy:
         strategy.return_col = 'return'
         strategy.return_format = 'ratio'
         strategy.comission = comission
+        strategy.latency = np.timedelta64(1, 'h')
         strategy._cash = cash
         strategy._check_create_ticker_data('AAPL')
         strategy.portfolio = portfolio
         strategy.step_idx = step_idx
+        strategy.step_date = strategy.step_dates[strategy.step_idx]
 
         order = {'ticker': 'AAPL', 'direction': direction, 'size': size,
                  'allow_partial': allow_partial, 'creation_date': creation_date,
-                 'lifetime': lifetime}
+                 'submit_date': creation_date + strategy.latency, 'lifetime': lifetime}
 
         strategy._execute_market_order(order) 
         
@@ -329,6 +331,7 @@ class TestStrategy:
         strategy._cash = cash
         strategy.portfolio = portfolio
         strategy.step_idx = step_idx
+        strategy.step_date = strategy.step_dates[strategy.step_idx]
 
         for k, df_path in enumerate(df_pathes):
             strategy._check_create_ticker_data('AAPL{}'.format(k))
@@ -380,6 +383,7 @@ class TestStrategy:
         strategy._cash = cash
         strategy.portfolio = portfolio
         strategy.step_idx = step_idx
+        strategy.step_date = strategy.step_dates[strategy.step_idx]
 
         for k, df_path in enumerate(df_pathes):
             strategy._check_create_ticker_data('AAPL{}'.format(k))
@@ -420,6 +424,7 @@ class TestStrategy:
         data_loader = DfData(dfs)
 
         strategy = Strategy()
+        strategy.latency = np.timedelta64(1, 'h')
         strategy.data_loader = data_loader
         strategy.step_dates = step_dates
         strategy.date_col = 'date'
@@ -428,6 +433,7 @@ class TestStrategy:
         strategy.return_format = 'ratio'
         strategy.portfolio = portfolio
         strategy.step_idx = step_idx
+        strategy.step_date = strategy.step_dates[strategy.step_idx]
         strategy.verbose = False
 
         for k, df_path in enumerate(df_pathes):
@@ -470,6 +476,7 @@ class TestStrategy:
         data_loader = DfData(df)
 
         strategy = Strategy()
+        strategy.latency = np.timedelta64(1, 'h')
         strategy.data_loader = data_loader
         strategy.step_dates = step_dates
         strategy.date_col = 'date'
@@ -477,6 +484,7 @@ class TestStrategy:
         strategy.return_col = 'return'
         strategy.return_format = 'ratio'
         strategy.step_idx = step_idx
+        strategy.step_date = strategy.step_dates[strategy.step_idx]
         strategy.verbose = False
 
         strategy.post_order_value(ticker='AAPL',
@@ -496,26 +504,33 @@ class TestStrategy:
 
 
     @pytest.mark.parametrize(
-        ['portfolio', 'size', 'expected_orders'],
+        ['step_dates_path', 'step_idx', 'portfolio', 'size', 'expected_orders'],
         [
-            ({'AAPL': 3}, 10,
+            ('data/step_dates1.csv', 4, {'AAPL': 3}, 10,
              [{'ticker': 'AAPL', 'direction': Order.BUY, 'size': 7}]),
 
-            ({'AAPL': 0}, 10,
+            ('data/step_dates1.csv', 4, {'AAPL': 0}, 10,
              [{'ticker': 'AAPL', 'direction': Order.BUY, 'size': 10}]),
     
-            ({'AAPL': 10}, 4,
+            ('data/step_dates1.csv', 4, {'AAPL': 10}, 4,
              [{'ticker': 'AAPL', 'direction': Order.SELL, 'size': 6}]),
 
-            ({}, 10,
+            ('data/step_dates1.csv', 4, {}, 10,
              [{'ticker': 'AAPL', 'direction': Order.BUY, 'size': 10}]),
 
-            ({'AAPL': 10}, 10,
+            ('data/step_dates1.csv', 4, {'AAPL': 10}, 10,
              []),
         ]
     )
-    def test_post_portfolio_size(self, portfolio, size, expected_orders):
+    def test_post_portfolio_size(self, step_dates_path, step_idx, portfolio, 
+                                 size, expected_orders):
+        step_dates = [np.datetime64(x) for x in 
+                                        pd.read_csv(step_dates_path)['date']]
+
         strategy = Strategy()
+        strategy.step_dates = step_dates
+        strategy.step_date = strategy.step_dates[0]
+        strategy.latency = np.timedelta64(1, 'h')
         strategy.portfolio = portfolio
 
         strategy.post_portfolio_size(ticker='AAPL',
@@ -569,6 +584,7 @@ class TestStrategy:
         data_loader = DfData(df)
 
         strategy = Strategy()
+        strategy.latency = np.timedelta64(1, 'h')
         strategy.portfolio = portfolio
         strategy.data_loader = data_loader
         strategy.step_dates = step_dates
@@ -577,6 +593,7 @@ class TestStrategy:
         strategy.return_col = 'return'
         strategy.return_format = 'ratio'
         strategy.step_idx = step_idx
+        strategy.step_date = strategy.step_dates[strategy.step_idx]
         strategy.verbose = False
 
         strategy.post_portfolio_value(ticker='AAPL',
@@ -623,6 +640,7 @@ class TestStrategy:
         data_loader = DfData(df)
 
         strategy = Strategy()
+        strategy.latency = np.timedelta64(1, 'h')
         strategy.equity = [0] * len(step_dates)
         strategy.equity[step_idx] = step_equity
         strategy.portfolio = portfolio
@@ -633,6 +651,7 @@ class TestStrategy:
         strategy.return_col = 'return'
         strategy.return_format = 'ratio'
         strategy.step_idx = step_idx
+        strategy.step_date = strategy.step_dates[strategy.step_idx]
         strategy.verbose = False
 
         strategy.post_portfolio_part(ticker='AAPL',
@@ -649,6 +668,149 @@ class TestStrategy:
 
 
 
+    class Strategy1(Strategy):        
+        def step(self):        
+            if self.step_idx == 0:
+                self.post_order(ticker='AAPL0',
+                                size=10,
+                                direction=Order.BUY,
+                                lifetime=np.timedelta64(3, 'D'),
+                                allow_partial=True)
+
+                self.post_order(ticker='AAPL1',
+                                size=5,
+                                direction=Order.BUY,
+                                lifetime=np.timedelta64(3, 'D'),
+                                allow_partial=True)
+
+            if self.step_idx == 7:
+                self.post_portfolio_part(ticker='AAPL1',
+                           part=0.99,
+                           allow_partial=True)    
+
+            if self.step_idx == 16:
+                self.post_order(ticker='AAPL0',
+                                size=20,
+                                direction=Order.SELL,
+                                lifetime=np.timedelta64(3, 'D'),
+                                allow_partial=True)        
+
+    @pytest.mark.parametrize(
+        ['step_dates_path', 'df_pathes', 'strategy', 'cash', 'comission', 'latency',
+         'expected_orders', 'expected_equity', 'expected_cash', 'expected_portfolio'],
+        [
+            ('data/step_dates1.csv', ['data/df6.csv', 'data/df3.csv'], Strategy1(),
+             500., 0., np.timedelta64(1, 'h'),
+             [{'ticker': 'AAPL0', 'direction': Order.BUY, 'size': 10, 
+               'creation_date': np.datetime64('2015-02-18'),
+               'execution_date': np.datetime64('2015-02-20'), 
+               'status': Order.COMPLETED, 'price': 16.0},
+              
+              {'ticker': 'AAPL1', 'direction': Order.BUY, 'size': 5, 
+               'creation_date': np.datetime64('2015-02-18'),
+               'execution_date': np.nan, 
+               'status': Order.EXPIRED, 'price': np.nan},
+
+              {'ticker': 'AAPL1', 'direction': Order.BUY, 'size': 28, 
+               'creation_date': np.datetime64('2015-03-05'),
+               'execution_date': np.datetime64('2015-03-12'), 
+               'status': Order.COMPLETED, 'price': 12.3},
+
+              {'ticker': 'AAPL1', 'direction': Order.SELL, 'size': 28, 
+               'creation_date': np.datetime64('2015-03-17'),
+               'execution_date': np.datetime64('2015-03-18'), 
+               'status': Order.COMPLETED, 'price': 19.3},
+
+              {'ticker': 'AAPL0', 'direction': Order.SELL, 'size': 10, 
+               'creation_date': np.datetime64('2015-03-21'),
+               'execution_date': np.datetime64('2015-03-23'), 
+               'status': Order.PARTIAL, 'price': 19.6},
+             ],
+             [500. , 500. , 455. , 498. , 498. , 492.8, 477.8, 496.8, 500.8, 500.8,
+              540.8, 500.8, 500.8, 500.8, 696.8, 737.8, 719.1, 769.1, 769.1, 769.1],
+             [500, 340.0, 340.0, 340.0, 340.0, 358.8, 358.8, 358.8, 358.8, 358.8,
+              14.4, 14.4, 14.4, 14.4, 554.8, 554.8, 573.1, 769.1, 769.1, 769.1],
+             {'AAPL0': 0, 'AAPL1': 0}
+             ),
+
+
+            ('data/step_dates1.csv', ['data/df6.csv', 'data/df3.csv'], Strategy1(),
+             100., 0., np.timedelta64(49, 'h'),
+             [{'ticker': 'AAPL0', 'direction': Order.BUY, 'size': 8, 
+               'creation_date': np.datetime64('2015-02-18'),
+               'execution_date': np.datetime64('2015-02-23'), 
+               'status': Order.PARTIAL, 'price': 11.5},
+              
+              {'ticker': 'AAPL1', 'direction': Order.BUY, 'size': 5, 
+               'creation_date': np.datetime64('2015-02-18'),
+               'execution_date': np.nan, 
+               'status': Order.EXPIRED, 'price': np.nan},
+
+              {'ticker': 'AAPL1', 'direction': Order.BUY, 'size': 1, 
+               'creation_date': np.datetime64('2015-03-05'),
+               'execution_date': np.datetime64('2015-03-12'), 
+               'status': Order.COMPLETED, 'price': 12.3},
+
+              {'ticker': 'AAPL1', 'direction': Order.SELL, 'size': 1, 
+               'creation_date': np.datetime64('2015-03-17'),
+               'execution_date': np.datetime64('2015-03-18'), 
+               'status': Order.COMPLETED, 'price': 19.3},
+
+              {'ticker': 'AAPL0', 'direction': Order.SELL, 'size': 8, 
+               'creation_date': np.datetime64('2015-03-21'),
+               'execution_date': np.datetime64('2015-03-24'), 
+               'status': Order.PARTIAL, 'price': 20.},
+             ],
+             [100., 100., 100., 134.4, 134.4, 130.24, 118.24, 133.44,
+              136.64, 136.64, 168.64, 136.64, 136.64, 136.64, 143.64, 176.44,
+              161.48, 201.48, 204.68, 204.68],
+             [100., 100., 8., 8., 8., 23.04, 23.04, 23.04,
+              23.04, 23.04, 10.74, 10.74, 10.74, 10.74, 30.04, 30.04,
+              44.68, 44.68, 204.68, 204.68],
+             {'AAPL0': 0, 'AAPL1': 0}
+             ),
+
+
+
+
+        ]
+    )
+    def test_backtest_simple_strategy(self, step_dates_path, df_pathes, strategy,
+            cash, comission, latency, expected_orders, expected_equity, 
+            expected_cash, expected_portfolio):
+        step_dates = [np.datetime64(x) for x in 
+                                        pd.read_csv(step_dates_path)['date']]
+        dfs = {}
+        for k, df_path in enumerate(df_pathes):
+            df = pd.read_csv(df_path)
+            df['date'] = df['date'].astype(np.datetime64)
+            dfs['AAPL{}'.format(k)] = df
+        data_loader = DfData(dfs)
+        
+        strategy.backtest(data_loader=data_loader,
+                          date_col='date',
+                          price_col='price',
+                          return_col='return',
+                          return_format='ratio',
+                          step_dates=step_dates,
+                          cash=cash,
+                          comission=comission,
+                          latency=latency)
+
+        assert len(strategy.orders) == len(expected_orders)
+        for order, expected in zip(strategy._active_orders, expected_orders):
+            np.testing.assert_equal(order['ticker'], expected['ticker'])
+            np.testing.assert_equal(order['direction'], expected['direction'])
+            np.testing.assert_equal(order['size'], expected['size'])
+            np.testing.assert_almost_equal(order['price'], expected['price'])
+            np.testing.assert_equal(order['creation_date'], expected['creation_date'])
+            np.testing.assert_equal(order['execution_date'], expected['execution_date'])
+
+
+        np.testing.assert_array_almost_equal(strategy.equity, expected_equity)
+        np.testing.assert_array_almost_equal(strategy.cash, expected_cash)
+
+        assert strategy.portfolio == expected_portfolio
 
 
 
