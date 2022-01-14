@@ -1,7 +1,7 @@
 import numpy as np
 import pandas as pd
 from tqdm import tqdm
-
+from typing import List
 
 
 class Order:
@@ -21,6 +21,15 @@ class Order:
 
 
 class Strategy:
+    '''
+    Base class for strategy backtesting. 
+    It contains overrideble method ``step`` for defining user strategy.
+    This class incapsulate backtesting and metrics calculation process and 
+    also contains information about orders.
+
+    Attributes:
+        cash Fdfdfdfdf
+    '''
     def __init__(self):
         self.data_loader = None
         self._data = {}
@@ -34,11 +43,11 @@ class Strategy:
         self.step_idx = None
         self.orders = []
               
-        self.cash = []
-        self.returns = []
-        self.equity = []
+        self.cash: List[np.datetime64] = []
+        self.returns: List[float] = []
+        self.equity: List[float] = []
         
-        self.metrics = {}
+        self.metrics:Dict = {}
         
     
     def _cast_data(self, df):
