@@ -19,7 +19,7 @@ Welcome to ml_investment's documentation!
    pipelines
    data_loaders
    download_scripts
-   basktest
+   backtest
 
 Indices and tables
 ==================
