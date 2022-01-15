@@ -26,13 +26,6 @@ class Strategy:
     It contains overrideble method ``step`` for defining user strategy.
     This class incapsulate backtesting and metrics calculation process and 
     also contains information about orders.
-
-    Attributes:
-        equity:
-            array with equity at each step date
-        cash:
-            array with cash at each step date
-
     '''
     def __init__(self):
         self.data_loader = None
@@ -42,7 +35,7 @@ class Strategy:
         self._data_step_idxs = {}
 
         self.portfolio = {}
-        self.step_dates:List[] = None
+        self.step_dates:List[np.datetime64] = None
         self.step_date = None
         self.step_idx = None
         self.orders = []
@@ -288,30 +281,28 @@ class Strategy:
                    direction: int,
                    size: float,
                    order_type: int=Order.MARKET,
-                   lifetime=np.timedelta64(300, 'D'),
-                   allow_partial=True):
+                   lifetime: np.timedelta64=np.timedelta64(300, 'D'),
+                   allow_partial: bool=True):
         '''     
         Post new order to backtest. 
         It may be used inside your strategy overriden ``step`` method.
         
         Parameters
         ----------
-        data:
-            dict having field named as value in ``data_key`` param of 
-            :func:`~ml_investment.features.QuarterlyFeatures.__init__`
-            This field should contain class implementing
-            ``load(index) -> pd.DataFrame`` interface
-        index:
-            list of tickers to calculate features for, i.e. ``['AAPL', 'TSLA']``
-                      
-        Returns
-        -------
-        ``pd.DataFrame``
-            resulted features with index ``['ticker', 'date']``.
-            Each row contains features for ``ticker`` company 
-            at ``date`` quarter
+        ticker:
+            ticker of company to post order for
+        direction:
+            one of ``Order.BUY`` (1), ``Order.SELL`` (-1)
+        size:
+            size of order in pieces
+        order_type:
+            one of ``Order.MARKET`` (0), ``Order.LIMIT`` (1)
+        lifetime:
+            amount of time before order closing if it can not be executed 
+            (e.g. if unsatisfactory price lasts a long time)
+        allow_partial:
+            may order be executed with not full size or not
         '''
-
         if size == 0:
             return
 
@@ -330,12 +321,32 @@ class Strategy:
 
 
     def post_order_value(self,
-                         ticker,
-                         direction,
-                         order_type,
-                         value,
-                         lifetime,
-                         allow_partial):
+                         ticker: str,
+                         direction: int,
+                         value: float,
+                         order_type: int=Order.MARKET,
+                         lifetime: np.timedelta64=np.timedelta64(300, 'D'),
+                         allow_partial: bool=True):
+        '''     
+        Post new order by value (instead of size) to backtest.
+        It may be used inside your strategy overriden ``step`` method.
+        
+        Parameters
+        ----------
+        ticker:
+            ticker of company to post order for
+        direction:
+            one of ``Order.BUY`` (1), ``Order.SELL`` (-1)
+        value:
+            value of order in money
+        order_type:
+            one of ``Order.MARKET`` (0), ``Order.LIMIT`` (1)
+        lifetime:
+            amount of time before order closing if it can not be executed 
+            (e.g. if unsatisfactory price lasts a long time)
+        allow_partial:
+            may order be executed with not full size or not
+        '''
         self._check_create_ticker_data(ticker)
         price = self._data[ticker].loc[self.step_idx, 'price']
 
@@ -349,10 +360,28 @@ class Strategy:
 
        
     def post_portfolio_size(self,
-                            ticker,
-                            size,
-                            lifetime=np.timedelta64(300, 'D'),
-                            allow_partial=True):
+                            ticker: str,
+                            size: int,
+                            lifetime: np.timedelta64=np.timedelta64(300, 'D'),
+                            allow_partial: bool=True):
+        '''     
+        Post order to backtest to have desired size in portfolio. 
+        It will calculate difference between current and desired size 
+        to create appropriate order.
+        It may be used inside your strategy overriden ``step`` method.
+        
+        Parameters
+        ----------
+        ticker:
+            ticker of company to post order for
+        size:
+            desired size in portfolio (in pieces)
+        lifetime:
+            amount of time before order closing if it can not be executed 
+            (e.g. if unsatisfactory price lasts a long time)
+        allow_partial:
+            may order be executed with not full size or not
+        '''
         if ticker not in self.portfolio:
             self.portfolio[ticker] = 0
 
@@ -371,10 +400,28 @@ class Strategy:
 
         
     def post_portfolio_value(self,
-                             ticker,
-                             value,
-                             lifetime=np.timedelta64(300, 'D'),
-                             allow_partial=True):
+                             ticker: str,
+                             value: float,
+                             lifetime: np.timedelta64=np.timedelta64(300, 'D'),
+                             allow_partial: bool=True):
+        '''     
+        Post order to backtest to have desired value in portfolio. 
+        It will calculate difference between current and desired value
+        to create appropriate order.
+        It may be used inside your strategy overriden ``step`` method.
+        
+        Parameters
+        ----------
+        ticker:
+            ticker of company to post order for
+        value:
+            desired value in portfolio (in money)
+        lifetime:
+            amount of time before order closing if it can not be executed 
+            (e.g. if unsatisfactory price lasts a long time)
+        allow_partial:
+            may order be executed with not full size or not
+        '''
         self._check_create_ticker_data(ticker)
         price = self._data[ticker].loc[self.step_idx, 'price']
         if np.isnan(price): 
@@ -390,10 +437,30 @@ class Strategy:
 
 
     def post_portfolio_part(self,
-                            ticker,
-                            part,
-                            lifetime=np.timedelta64(300, 'D'),
-                            allow_partial=True):
+                            ticker: str,
+                            part: float,
+                            lifetime: np.timedelta64=np.timedelta64(300, 'D'),
+                            allow_partial: bool=True):
+        '''     
+        Post order to backtest to have desired part in portfolio. 
+        It will calculate difference between current and desired part
+        to create appropriate order.
+        It may be used inside your strategy overriden ``step`` method.
+        
+        Parameters
+        ----------
+        ticker:
+            ticker of company to post order for
+        part:
+            desired part in all equity including other stocks and cash
+            in portfolio (value between 0 and 1)
+        lifetime:
+            amount of time before order closing if it can not be executed 
+            (e.g. if unsatisfactory price lasts a long time)
+        allow_partial:
+            may order be executed with not full size or not
+        '''
+
         needed_value = self.equity[self.step_idx] * part
         self.post_portfolio_value(ticker=ticker,
                                   value=needed_value,
@@ -420,21 +487,72 @@ class Strategy:
         
         
     def backtest(self,
-                 data_loader=None,
-                 date_col=None,
-                 price_col=None,
-                 return_col=None,
-                 return_format=None,
-                 step_dates=None,
-                 cash=100_000,
-                 comission=0.00025,
-                 latency=np.timedelta64(1, 'h'),
-                 allow_short=False,
+                 data_loader,
+                 date_col: str,
+                 price_col: str,
+                 return_col: str,
+                 return_format: str,
+                 step_dates: List[np.timedelta64]=None,
+                 cash: float=100_000,
+                 comission: float=0.00025,
+                 latency: np.timedelta64=np.timedelta64(0, 'h'),
+                 allow_short: bool=False,
                  metrics=None,
-                 verbose=True,
-                 preload=False):
+                 preload: bool=False,
+                 verbose: bool=True):
         '''
-        Backtesting
+        Backtest strategy on provided data and other parameters. 
+        It will create and execute orders and calculate 
+        resulted equity and metrics.
+
+        Parameters
+        ----------
+        data_loader:
+            class implementing
+            ``load(index) -> pd.DataFrame`` interface.
+            index in this case is list of tickers to load market data for.
+        date_col:
+            name of column containing date (time) information in market data
+            provided by ``data_loader``.
+        price_col:
+            name of column containing price information in market data
+            provided by ``data_loader``.
+        return_col:
+            name of column containing total return information in data
+            provided by ``data_loader``. It may be differ from price due to
+            dividends, stock splits and etc.
+        return_format:
+            format of data provided by ``return_col`` column.
+            If ``return_format = 'ratio'`` than column should contain
+            ratio between previous and current adjusted price. 
+            E.g. 1.2 means growth by 20% from the previous step.
+            If ``return_format = 'price'`` than column should contain
+            adjusted price (price, including dividends and etc.)
+            If ``return_format = 'change'`` than column should contain
+            relative change between current and previous step.
+            E.g. 0.2 means growth by 20% from the previous step.
+        step_dates:
+            dates in which all actions can be taken. 
+            Include new market prices receiving, order creation and executing.
+            ``step`` method will iterate over all those dates.
+            If None than all possible dates, provided by ``date_col`` column in
+            ``data_loader`` will be used. Possible only if ``preload = True``
+            and ``data_loader`` have
+            ``existing_index(index) -> List`` interface.
+        cash:
+            initial amount of cash
+        comission:
+            commission charged for each trade (in percent of order value)
+        latency:
+            time between current step date and actual order posting.
+            It emulates delays during ``step`` logic and in the Internet
+            connection with the exchange. 
+        allow_short:
+            allow short positions or not
+        preload:
+            load all data provided from ``data_loader`` to ram or not
+        verbose:
+            show progress or not
         '''
         if allow_short:
             raise NotImplementedError

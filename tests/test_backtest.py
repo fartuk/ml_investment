@@ -770,9 +770,6 @@ class TestStrategy:
              {'AAPL0': 0, 'AAPL1': 0}
              ),
 
-
-
-
         ]
     )
     def test_backtest_simple_strategy(self, step_dates_path, df_pathes, strategy,
