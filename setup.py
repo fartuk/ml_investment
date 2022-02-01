@@ -8,7 +8,7 @@ URL = 'https://github.com/fartuk/ml_investment'
 EMAIL = 'fao3864@gmail.com'
 AUTHOR = 'Artur Fattakhov'
 PYTHON_REQUIRES = '>=3.6.0'
-VERSION = "0.0.23"
+VERSION = "0.0.24"
 
 with open("requirements.txt") as f:
     INSTALL_REQUIRES = f.readlines()

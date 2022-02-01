@@ -1,7 +1,7 @@
 import numpy as np
 import pandas as pd
 from tqdm import tqdm
-from typing import List
+from typing import List, Dict
 
 
 class Order:
@@ -467,19 +467,10 @@ class Strategy:
                                   lifetime=lifetime,
                                   allow_partial=allow_partial)
 
-
-
-
-        
-    def calc_metrics(self):
-        {'annualized_return': 0.0030997070195237786,
-         'max_drawdown': -0.14835668465595964,
-         'total_return': 0.029301277098099817,
-         'sharpe_ratio': 0.09598589832122632,
-         'sortino_ratio': 0.1387087978643872,
-         'beta': 0.0178287716829249,
-         'alpha': 0.0038429722177439896}
-        
+    
+    def calc_metrics(self, metrics:Dict):
+        for key in metrics.keys():
+            self.metrics[key] = metrics[key](self.step_dates, self.returns)
         
         
     def step(self):
@@ -583,10 +574,11 @@ class Strategy:
             self._execute_orders()
 
         self.equity = np.array(self.equity)
-        self.returns = self.equity[1:] / self.equity[:-1]
-        self.returns = np.insert(self.returns, 0, 1., axis=0)
+        self.returns = self.equity[1:] / self.equity[:-1] - 1
+        self.returns = np.insert(self.returns, 0, 0., axis=0)
 
-#         calc_metrics()
+        if metrics is not None:
+            self.calc_metrics(metrics)
         
 
 
